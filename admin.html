@@ -112,7 +112,14 @@
                     </div>
                     <button class="btn-success" style="width: 100%;" onclick="addPolitician()">+ 手動新增人物</button>
                 </div>
-                <div id="politicians-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px;">
+                
+                <div class="card" style="margin-top: 15px;">
+                    <h3 style="margin-top: 0; font-size: 1rem; margin-bottom: 10px;">現有人物名單</h3>
+                    <select id="politician-select" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 1rem;" onchange="renderPolActions()">
+                        <option value="">(請等待資料載入...)</option>
+                    </select>
+                    <div id="politician-actions" class="card-actions" style="display: none; margin-top: 10px;">
+                        </div>
                 </div>
             </div>
         </div>
@@ -127,7 +134,7 @@
                     </div>
                     <button class="btn-success" style="width: 100%;" onclick="addIssue()">+ 手動新增議題</button>
                 </div>
-                <div id="issues-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px;">
+                <div id="issues-container" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
                 </div>
             </div>
         </div>
@@ -219,28 +226,49 @@
         // 資料讀取與渲染
         // ==========================================
         
-        // 載入人物
+        // 載入人物 (下拉選單化)
         async function loadPoliticians() {
             if (!supabase) return;
             const { data, error } = await supabase.from('politicians').select('*').order('created_at', { ascending: false });
             if (error) return console.error(error);
-            const container = document.getElementById('politicians-container');
-            container.innerHTML = data.map(p => `
-                <div class="card" style="margin-bottom: 0;">
-                    <div class="card-header">
-                        <div>
-                            <strong>${p.name}</strong> (${p.party || '無'})
-                            <span class="status-badge ${p.is_visible ? 'status-visible' : 'status-hidden'}">
-                                ${p.is_visible ? '顯示中' : '已隱藏'}
-                            </span>
-                        </div>
-                    </div>
-                    <div class="card-actions">
-                        <button class="btn-outline" onclick="togglePolVisibility('${p.id}', ${p.is_visible})">切換狀態</button>
-                        <button class="btn-danger" onclick="deletePolitician('${p.id}')">刪除</button>
-                    </div>
-                </div>
-            `).join('');
+            
+            window.currentPoliticians = data; // 存入全域變數供切換時讀取
+            
+            const selectEl = document.getElementById('politician-select');
+            const currentVal = selectEl.value; // 記憶當前選擇
+            
+            selectEl.innerHTML = '<option value="">請選擇要管理的人物...</option>' + data.map(p => {
+                const statusStr = p.is_visible ? '顯示中' : '已隱藏';
+                return `<option value="${p.id}">${p.name} (${p.party || '無'}) - [${statusStr}]</option>`;
+            }).join('');
+            
+            // 如果剛才選中的人物還存在，恢復選擇狀態
+            if (data.some(p => p.id === currentVal)) {
+                selectEl.value = currentVal;
+            }
+            
+            renderPolActions(); // 根據選擇狀態渲染按鈕
+        }
+
+        // 渲染選單對應的按鈕動作
+        function renderPolActions() {
+            const selectEl = document.getElementById('politician-select');
+            const actionsContainer = document.getElementById('politician-actions');
+            const selectedId = selectEl.value;
+            
+            if (!selectedId) {
+                actionsContainer.style.display = 'none';
+                return;
+            }
+            
+            const p = window.currentPoliticians.find(pol => pol.id === selectedId);
+            if (!p) return;
+            
+            actionsContainer.style.display = 'flex';
+            actionsContainer.innerHTML = `
+                <button class="btn-outline" onclick="togglePolVisibility('${p.id}', ${p.is_visible})">切換狀態 (${p.is_visible ? '設為隱藏' : '設為顯示'})</button>
+                <button class="btn-danger" onclick="deletePolitician('${p.id}')">刪除</button>
+            `;
         }
 
         // 載入社會議題
@@ -276,12 +304,10 @@
                 event_politician_map ( politicians ( name ) ),
                 event_issue_map ( issues ( name ) )
             `).order('created_at', { ascending: false });
-            
             if (error) return console.error(error);
             
             // 將資料存入全域變數供編輯功能讀取
             window.currentEvents = data;
-            
             const container = document.getElementById('events-container');
             
             container.innerHTML = data.map(e => {
@@ -477,7 +503,6 @@
         // 事件內容編輯邏輯
         // ==========================================
         function openEditModal(id) {
-            // 從剛剛暫存的全域變數中尋找該事件
             const event = window.currentEvents.find(e => e.id === id);
             if (!event) return alert('找不到該事件資料');
             
@@ -485,11 +510,9 @@
             document.getElementById('edit-quote').value = event.quote || '';
             document.getElementById('edit-context').value = event.context || '';
             
-            // 處理 null 連結
             const urlVal = (event.source_url && event.source_url !== 'null') ? event.source_url : '';
             document.getElementById('edit-url').value = urlVal;
             
-            // 顯示彈窗
             document.getElementById('edit-modal').style.display = 'flex';
         }
 
@@ -503,9 +526,7 @@
             const context = document.getElementById('edit-context').value.trim();
             let source_url = document.getElementById('edit-url').value.trim();
             
-            // 若清空連結，則傳 null 回資料庫
             if (!source_url) source_url = null;
-
             if (!quote || !context) return alert('標題與內容不能為空');
 
             const { error } = await supabase.from('events').update({ 
@@ -513,13 +534,13 @@
                 context, 
                 source_url 
             }).eq('id', id);
-
+            
             if (error) {
                 alert('更新失敗: ' + error.message);
             } else {
                 alert('修改已儲存！');
                 closeEditModal();
-                loadEvents(); // 重新載入畫面
+                loadEvents(); 
             }
         }
 
@@ -536,6 +557,7 @@
 
             const { data: publicUrlData } = supabase.storage.from('evidence_images').getPublicUrl(fileName);
             await supabase.from('events').update({ image_url: publicUrlData.publicUrl }).eq('id', eventId);
+            
             const imgEl = document.getElementById(`preview-${eventId}`);
             imgEl.src = publicUrlData.publicUrl; imgEl.style.display = 'block';
             alert('圖片附加成功！');
@@ -563,7 +585,7 @@
         // ==========================================
         Object.assign(window, {
             switchTab, unlockSystem, logout, importJSON, 
-            addPolitician, togglePolVisibility, deletePolitician, 
+            addPolitician, togglePolVisibility, deletePolitician, renderPolActions,
             addIssue, toggleIssueVisibility, deleteIssue,
             toggleContext, toggleEventVisibility, deleteEvent, 
             handleFileUpload, handlePaste,
