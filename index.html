@@ -36,7 +36,21 @@
         /* 左側：清單側邊欄 */
         aside { background: var(--card-bg); padding: 1.5rem; border-radius: 12px; height: fit-content; border: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
         aside h2 { margin-top: 0; font-size: 1.2rem; border-bottom: 2px solid var(--border); padding-bottom: 0.5rem; }
-        .sidebar-list { display: flex; flex-direction: column; gap: 0.5rem; }
+        
+        /* 搜尋與快速標籤樣式 */
+        .search-container { margin-bottom: 15px; }
+        .search-input { width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem; margin-bottom: 8px; }
+        .quick-tags-container { display: flex; flex-wrap: wrap; gap: 6px; }
+        .quick-tag-btn { font-size: 0.8rem; background: #e0e7ff; color: #3730a3; border: none; padding: 4px 10px; border-radius: 12px; cursor: pointer; transition: background 0.2s; }
+        .quick-tag-btn:hover { background: #c7d2fe; }
+
+        /* 側邊欄列表 (加入高度限制與捲動) */
+        .sidebar-list { display: flex; flex-direction: column; gap: 0.5rem; max-height: 60vh; overflow-y: auto; padding-right: 5px; }
+        /* 針對捲動條美化 */
+        .sidebar-list::-webkit-scrollbar { width: 6px; }
+        .sidebar-list::-webkit-scrollbar-track { background: transparent; }
+        .sidebar-list::-webkit-scrollbar-thumb { background-color: #d1d5db; border-radius: 10px; }
+
         .sidebar-item { padding: 0.75rem 1rem; background: var(--bg); border-radius: 8px; cursor: pointer; transition: all 0.2s; border: 1px solid transparent; display: flex; justify-content: space-between; align-items: center; }
         .sidebar-item:hover, .sidebar-item.active { background: #e0e7ff; border-color: #c7d2fe; color: var(--accent); }
         .badge { font-size: 0.8rem; color: var(--text-muted); background: white; padding: 2px 6px; border-radius: 12px; border: 1px solid var(--border); }
@@ -87,44 +101,46 @@
         <h1 onclick="resetToLatest()">Polipoli 啪哩啪哩追蹤站</h1>
     </header>
 
-    <!-- 雙頁籤切換區 -->
     <div class="main-tabs">
         <button class="main-tab-btn active" id="tab-politicians" onclick="switchMainTab('politicians')">👤 人物言行</button>
         <button class="main-tab-btn" id="tab-issues" onclick="switchMainTab('issues')">📌 社會議題</button>
     </div>
 
     <div class="container">
-        <!-- 側邊欄：動態顯示人物或議題 -->
         <aside>
             <h2 id="sidebar-title">人物檔案庫</h2>
+            
+            <div class="search-container">
+                <input type="text" id="sidebar-search" class="search-input" placeholder="搜尋人物姓名或黨籍..." oninput="filterSidebar()">
+                <div id="quick-tags-container" class="quick-tags-container">
+                    </div>
+            </div>
+
             <div id="sidebar-list" class="sidebar-list">
                 <div style="text-align: center; color: var(--text-muted);">資料載入中...</div>
             </div>
         </aside>
 
-        <!-- 主內容：事件牆 -->
         <main>
             <div class="feed-header">
                 <h2 id="feed-title">綜合最新事件牆</h2>
             </div>
             
             <div id="events-feed">
-                <!-- 事件卡片動態渲染區 -->
-            </div>
+                </div>
             
             <div id="loader">載入更多事件中...</div>
             <div id="end-message" class="end-message">已經到底囉！</div>
         </main>
     </div>
 
-    <!-- 圖片預覽燈箱 -->
     <div id="image-modal" onclick="closeImageModal()">
         <img id="modal-img" src="" alt="滿版預覽">
     </div>
 
     <script type="module">
         import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
+        
         // ==========================================
         // 1. 初始化與金鑰設定
         // ==========================================
@@ -134,23 +150,27 @@
 
         // 系統狀態
         let currentTab = 'politicians'; // 'politicians' 或 'issues'
-        let currentMode = 'latest';     // 'latest' 或 'specific'
-        let currentFilterId = null;     // 儲存選中的 人物ID 或 議題ID
+        let currentMode = 'latest'; // 'latest' 或 'specific'
+        let currentFilterId = null; // 儲存選中的 人物ID 或 議題ID
         
         let page = 0;
         const PAGE_SIZE = 15;
         let isFetching = false;
         let hasMoreData = true;
-
+        
         // 快取資料
         let cachePoliticians = [];
         let cacheIssues = [];
+
+        // 預設難檢字與熱門標籤 (你隨時可以在這裡手動增減)
+        const quickPolTags = ['游錫堃', '鄺麗貞', '高金素梅']; 
+        const quickIssueTags = ['居住正義', '財政紀律', '黑金']; 
 
         const feedContainer = document.getElementById('events-feed');
         const loader = document.getElementById('loader');
         const endMessage = document.getElementById('end-message');
         const feedTitle = document.getElementById('feed-title');
-
+        
         window.onload = async () => {
             await fetchSidebarData();
             renderSidebar();
@@ -159,7 +179,7 @@
         };
 
         // ==========================================
-        // 2. 側邊欄資料抓取與渲染
+        // 2. 側邊欄資料抓取與渲染 (包含搜尋與標籤邏輯)
         // ==========================================
         async function fetchSidebarData() {
             // 同時抓取人物與議題的公開清單
@@ -179,39 +199,80 @@
             document.querySelectorAll('.main-tab-btn').forEach(btn => btn.classList.remove('active'));
             document.getElementById(`tab-${tabName}`).classList.add('active');
             
-            // 重置並重新渲染
+            // 重置搜尋框並重新渲染
+            document.getElementById('sidebar-search').value = '';
             resetToLatest();
             renderSidebar();
         };
-
+        
         function renderSidebar() {
             const listContainer = document.getElementById('sidebar-list');
             const title = document.getElementById('sidebar-title');
+            const searchInput = document.getElementById('sidebar-search');
+            const tagsContainer = document.getElementById('quick-tags-container');
 
             if (currentTab === 'politicians') {
                 title.textContent = '人物檔案庫';
+                searchInput.placeholder = '搜尋人物姓名或黨籍...';
+                
+                // 渲染快速標籤
+                tagsContainer.innerHTML = quickPolTags.map(tag => 
+                    `<button class="quick-tag-btn" onclick="applyQuickTag('${tag}')">${tag}</button>`
+                ).join('');
+
+                // 渲染人物列表 (加上 searchable-item 類別與 data-search 屬性)
                 listContainer.innerHTML = `
                     <div class="sidebar-item ${currentMode === 'latest' ? 'active' : ''}" id="btn-all" onclick="resetToLatest()">
                         <strong>綜合最新事件</strong>
                     </div>
                 ` + cachePoliticians.map(p => `
-                    <div class="sidebar-item ${currentFilterId === p.id ? 'active' : ''}" onclick="loadSpecificData('politician', '${p.id}', '${p.name}')">
+                    <div class="sidebar-item searchable-item ${currentFilterId === p.id ? 'active' : ''}" onclick="loadSpecificData('politician', '${p.id}', '${p.name}')" data-search="${p.name} ${p.party || ''}">
                         <strong>${p.name}</strong> <span class="badge">${p.party || '無'}</span>
                     </div>
                 `).join('');
             } else {
                 title.textContent = '社會議題庫';
+                searchInput.placeholder = '搜尋議題名稱...';
+                
+                // 渲染快速標籤
+                tagsContainer.innerHTML = quickIssueTags.map(tag => 
+                    `<button class="quick-tag-btn" onclick="applyQuickTag('${tag}')">${tag}</button>`
+                ).join('');
+
+                // 渲染議題列表
                 listContainer.innerHTML = `
                     <div class="sidebar-item ${currentMode === 'latest' ? 'active' : ''}" id="btn-all" onclick="resetToLatest()">
                         <strong>綜合最新事件</strong>
                     </div>
                 ` + cacheIssues.map(i => `
-                    <div class="sidebar-item ${currentFilterId === i.id ? 'active' : ''}" onclick="loadSpecificData('issue', '${i.id}', '${i.name}')">
+                    <div class="sidebar-item searchable-item ${currentFilterId === i.id ? 'active' : ''}" onclick="loadSpecificData('issue', '${i.id}', '${i.name}')" data-search="${i.name}">
                         <strong># ${i.name}</strong>
                     </div>
                 `).join('');
             }
         }
+
+        // 搜尋過濾邏輯
+        window.filterSidebar = function() {
+            const term = document.getElementById('sidebar-search').value.toLowerCase();
+            const items = document.querySelectorAll('.searchable-item');
+            
+            items.forEach(item => {
+                const searchData = item.getAttribute('data-search').toLowerCase();
+                if (searchData.includes(term)) {
+                    item.style.display = 'flex';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        };
+
+        // 套用快速標籤邏輯
+        window.applyQuickTag = function(tag) {
+            const searchInput = document.getElementById('sidebar-search');
+            searchInput.value = tag;
+            filterSidebar();
+        };
 
         // ==========================================
         // 3. 事件資料獲取 (附帶立體網狀 Join)
@@ -223,7 +284,7 @@
 
             const start = page * PAGE_SIZE;
             const end = start + PAGE_SIZE - 1;
-
+            
             // 抓取事件，同時向外擴展撈取綁定的人物與議題
             const { data, error } = await supabase
                 .from('events')
@@ -235,7 +296,7 @@
                 .eq('is_visible', true)
                 .order('created_at', { ascending: false })
                 .range(start, end);
-
+                
             handleDataResponse(data, error);
         }
 
@@ -253,7 +314,6 @@
             loader.classList.add('visible');
 
             let queryResult;
-
             // 依據不同類型，從中介表反向查詢並 Deep Join
             if (type === 'politician') {
                 queryResult = await supabase.from('event_politician_map').select(`
@@ -281,7 +341,6 @@
 
             // 提取事件陣列並手動排序
             const eventsData = queryResult.data.map(item => item.events).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-            
             renderEvents(eventsData);
             hasMoreData = false; // 特定篩選暫不實作分頁
             loader.classList.remove('visible');
@@ -326,7 +385,7 @@
                         <img class="event-img" src="${e.image_url}" alt="事件佐證圖片" loading="lazy">
                     </div>
                 ` : '';
-
+                
                 const sourceHtml = e.source_url ? `
                     <div class="event-actions">
                         <a href="${e.source_url}" target="_blank" rel="noopener noreferrer" class="source-link">
@@ -334,7 +393,7 @@
                         </a>
                     </div>
                 ` : '';
-
+                
                 return `
                     <article class="event-card">
                         <div class="info-tags">
@@ -355,7 +414,7 @@
                     </article>
                 `;
             }).join('');
-
+            
             if(events.length === 0 && page === 0) {
                 feedContainer.innerHTML = '<div style="text-align:center; padding: 3rem; color: #6b7280;">目前尚無相關公開事件。</div>';
             } else {
