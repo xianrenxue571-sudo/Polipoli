@@ -113,7 +113,7 @@
                     <button class="btn-success" style="width: 100%;" onclick="addPolitician()">+ 手動新增人物</button>
                 </div>
                 <div id="politicians-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px;">
-                    </div>
+                </div>
             </div>
         </div>
 
@@ -128,7 +128,7 @@
                     <button class="btn-success" style="width: 100%;" onclick="addIssue()">+ 手動新增議題</button>
                 </div>
                 <div id="issues-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px;">
-                    </div>
+                </div>
             </div>
         </div>
 
@@ -136,7 +136,30 @@
             <div class="panel">
                 <h2>事件管理模組 (含網狀關聯資訊)</h2>
                 <div id="events-container">
-                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="edit-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
+        <div class="panel" style="width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto;">
+            <h2>編輯事件資料</h2>
+            <input type="hidden" id="edit-event-id">
+            <div class="input-group">
+                <label>爭議行為描述 / 核心語錄 (標題)</label>
+                <input type="text" id="edit-quote">
+            </div>
+            <div class="input-group">
+                <label>事件背景與脈絡 (內容)</label>
+                <textarea id="edit-context" rows="6" style="width:100%; padding:8px; border:1px solid var(--border); border-radius:4px; font-family:inherit;"></textarea>
+            </div>
+            <div class="input-group">
+                <label>真實新聞連結 (URL)</label>
+                <input type="text" id="edit-url" placeholder="若無連結請留白">
+            </div>
+            <div style="display:flex; gap:10px; margin-top:20px;">
+                <button class="btn-primary" onclick="saveEventEdit()">儲存修改</button>
+                <button class="btn-outline" onclick="closeEditModal()">取消</button>
             </div>
         </div>
     </div>
@@ -248,7 +271,6 @@
         // 載入事件 (附帶關聯的人與事)
         async function loadEvents() {
             if (!supabase) return;
-            // 透過關聯查詢同時撈出綁定的人物與議題名稱
             const { data, error } = await supabase.from('events').select(`
                 *,
                 event_politician_map ( politicians ( name ) ),
@@ -256,12 +278,20 @@
             `).order('created_at', { ascending: false });
             
             if (error) return console.error(error);
+            
+            // 將資料存入全域變數供編輯功能讀取
+            window.currentEvents = data;
+            
             const container = document.getElementById('events-container');
             
             container.innerHTML = data.map(e => {
-                // 解析深層 JSON 關聯資料
                 let polNames = e.event_politician_map?.map(m => m.politicians?.name).filter(Boolean).join(', ') || '尚未綁定人物';
                 let issueNames = e.event_issue_map?.map(m => m.issues?.name).filter(Boolean).join(', ') || '無綁定議題';
+
+                // 處理連結判斷
+                const sourceLinkHtml = (e.source_url && e.source_url !== 'null' && e.source_url.trim() !== '') 
+                    ? `<a href="${e.source_url}" target="_blank" style="font-size: 0.8rem; color: var(--primary);">開啟來源連結</a>` 
+                    : `<span style="font-size: 0.8rem; color: #9ca3af;">(無來源連結)</span>`;
 
                 return `
                 <div class="card" id="event-card-${e.id}">
@@ -280,9 +310,10 @@
                     </div>
                     
                     <button class="btn-outline" style="width: 100%; margin-bottom: 10px;" onclick="toggleContext('${e.id}')">展開/收合完整脈絡</button>
+                    
                     <div id="context-${e.id}" class="collapsible-content">
                         <p style="font-size: 0.9rem; line-height: 1.5; color: #4b5563;">${e.context || '無脈絡內容'}</p>
-                        <a href="${e.source_url}" target="_blank" style="font-size: 0.8rem; color: var(--primary);">來源連結</a>
+                        ${sourceLinkHtml}
                     </div>
 
                     <div class="paste-area" tabindex="0" onpaste="handlePaste(event, '${e.id}')">
@@ -292,6 +323,7 @@
                     <img id="preview-${e.id}" class="img-preview" src="${e.image_url || ''}" style="${e.image_url ? 'display:block;' : ''}">
 
                     <div class="card-actions" style="margin-top: 15px; border-top: 1px solid var(--border); padding-top: 10px;">
+                        <button class="btn-outline" style="background: #fef08a; color: #854d0e; border-color: #fef08a;" onclick="openEditModal('${e.id}')">編輯內容</button>
                         <button class="btn-primary" onclick="toggleEventVisibility('${e.id}', ${e.is_visible})">
                             ${e.is_visible ? '隱藏事件' : '開放顯示'}
                         </button>
@@ -323,14 +355,12 @@
             
             const file = fileInput.files[0];
             const reader = new FileReader();
-            
             reader.onload = async function(e) {
                 try {
                     const data = JSON.parse(e.target.result);
                     if (!Array.isArray(data) || data.length === 0) return alert('匯入失敗：檔案為空或非陣列格式');
                     
                     alert(`讀取到 ${data.length} 筆資料，開始背景網狀匯入...`);
-                    
                     for (const item of data) {
                         // 1. 處理人物 (比對或新增)
                         let polId = null;
@@ -363,10 +393,10 @@
                             quote: item.quote, context: item.context, source_url: item.source_url,
                             date: item.date, category: item.category, severity: item.severity, is_visible: false 
                         }]).select().single();
-
+                        
                         // 4. 寫入中介關聯表 (綁定人物)
                         await supabase.from('event_politician_map').insert([{ politician_id: polId, event_id: newEvent.id }]);
-
+                        
                         // 5. 寫入中介關聯表 (綁定議題)
                         if (issueId) {
                             await supabase.from('event_issue_map').insert([{ issue_id: issueId, event_id: newEvent.id }]);
@@ -444,6 +474,56 @@
         }
 
         // ==========================================
+        // 事件內容編輯邏輯
+        // ==========================================
+        function openEditModal(id) {
+            // 從剛剛暫存的全域變數中尋找該事件
+            const event = window.currentEvents.find(e => e.id === id);
+            if (!event) return alert('找不到該事件資料');
+            
+            document.getElementById('edit-event-id').value = event.id;
+            document.getElementById('edit-quote').value = event.quote || '';
+            document.getElementById('edit-context').value = event.context || '';
+            
+            // 處理 null 連結
+            const urlVal = (event.source_url && event.source_url !== 'null') ? event.source_url : '';
+            document.getElementById('edit-url').value = urlVal;
+            
+            // 顯示彈窗
+            document.getElementById('edit-modal').style.display = 'flex';
+        }
+
+        function closeEditModal() {
+            document.getElementById('edit-modal').style.display = 'none';
+        }
+
+        async function saveEventEdit() {
+            const id = document.getElementById('edit-event-id').value;
+            const quote = document.getElementById('edit-quote').value.trim();
+            const context = document.getElementById('edit-context').value.trim();
+            let source_url = document.getElementById('edit-url').value.trim();
+            
+            // 若清空連結，則傳 null 回資料庫
+            if (!source_url) source_url = null;
+
+            if (!quote || !context) return alert('標題與內容不能為空');
+
+            const { error } = await supabase.from('events').update({ 
+                quote, 
+                context, 
+                source_url 
+            }).eq('id', id);
+
+            if (error) {
+                alert('更新失敗: ' + error.message);
+            } else {
+                alert('修改已儲存！');
+                closeEditModal();
+                loadEvents(); // 重新載入畫面
+            }
+        }
+
+        // ==========================================
         // 圖片上傳邏輯
         // ==========================================
         async function processImageFile(file, eventId) {
@@ -456,7 +536,6 @@
 
             const { data: publicUrlData } = supabase.storage.from('evidence_images').getPublicUrl(fileName);
             await supabase.from('events').update({ image_url: publicUrlData.publicUrl }).eq('id', eventId);
-            
             const imgEl = document.getElementById(`preview-${eventId}`);
             imgEl.src = publicUrlData.publicUrl; imgEl.style.display = 'block';
             alert('圖片附加成功！');
@@ -487,7 +566,8 @@
             addPolitician, togglePolVisibility, deletePolitician, 
             addIssue, toggleIssueVisibility, deleteIssue,
             toggleContext, toggleEventVisibility, deleteEvent, 
-            handleFileUpload, handlePaste
+            handleFileUpload, handlePaste,
+            openEditModal, closeEditModal, saveEventEdit
         });
     </script>
 </body>
