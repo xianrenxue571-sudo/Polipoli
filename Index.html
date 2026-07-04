@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>政治人物言行追蹤</title>
+    <style>
+        :root {
+            --primary: #1f2937;
+            --accent: #2563eb;
+            --bg: #f3f4f6;
+            --card-bg: #ffffff;
+            --text-main: #111827;
+            --text-muted: #6b7280;
+            --border: #e5e7eb;
+            --danger: #dc2626;
+            --warning: #d97706;
+        }
+        * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
+        body { margin: 0; background: var(--bg); color: var(--text-main); line-height: 1.6; }
+        
+        /* 頂部導覽列 */
+        header { background: var(--primary); color: white; padding: 1rem 2rem; position: sticky; top: 0; z-index: 100; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        header h1 { margin: 0; font-size: 1.5rem; cursor: pointer; display: inline-block; }
+
+        /* 主導覽頁籤 */
+        .main-tabs { display: flex; justify-content: center; background: var(--card-bg); border-bottom: 1px solid var(--border); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .main-tab-btn { flex: 1; max-width: 300px; padding: 15px; text-align: center; font-size: 1.1rem; font-weight: bold; color: var(--text-muted); cursor: pointer; border: none; background: transparent; border-bottom: 3px solid transparent; transition: all 0.2s; }
+        .main-tab-btn:hover { color: var(--accent); background: #f8fafc; }
+        .main-tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+        /* 主版面配置 (RWD) */
+        .container { display: grid; grid-template-columns: 1fr; gap: 2rem; max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
+        @media (min-width: 768px) { .container { grid-template-columns: 300px 1fr; } }
+
+        /* 左側：清單側邊欄 */
+        aside { background: var(--card-bg); padding: 1.5rem; border-radius: 12px; height: fit-content; border: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        aside h2 { margin-top: 0; font-size: 1.2rem; border-bottom: 2px solid var(--border); padding-bottom: 0.5rem; }
+        .sidebar-list { display: flex; flex-direction: column; gap: 0.5rem; }
+        .sidebar-item { padding: 0.75rem 1rem; background: var(--bg); border-radius: 8px; cursor: pointer; transition: all 0.2s; border: 1px solid transparent; display: flex; justify-content: space-between; align-items: center; }
+        .sidebar-item:hover, .sidebar-item.active { background: #e0e7ff; border-color: #c7d2fe; color: var(--accent); }
+        .badge { font-size: 0.8rem; color: var(--text-muted); background: white; padding: 2px 6px; border-radius: 12px; border: 1px solid var(--border); }
+
+        /* 右側：事件牆 */
+        main { display: flex; flex-direction: column; gap: 1.5rem; }
+        .feed-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); padding-bottom: 0.5rem; }
+        .feed-header h2 { margin: 0; color: var(--accent); }
+
+        /* 事件卡片 */
+        .event-card { background: var(--card-bg); border-radius: 12px; padding: 1.5rem; border: 1px solid var(--border); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); transition: transform 0.2s; }
+        .event-card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+        
+        .info-tags { margin-bottom: 12px; display: flex; flex-wrap: wrap; gap: 8px; }
+        .info-tag { font-size: 0.85rem; font-weight: bold; background: #e0e7ff; color: #3730a3; padding: 4px 8px; border-radius: 6px; }
+        .issue-tag { background: #dcfce7; color: #166534; }
+
+        .event-meta { display: flex; gap: 10px; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem; flex-wrap: wrap; }
+        .meta-tag { background: #f3f4f6; padding: 2px 8px; border-radius: 4px; border: 1px solid var(--border); font-weight: 500; }
+        .severity-high { color: var(--danger); background: #fef2f2; border-color: #fecaca; }
+        .severity-med { color: var(--warning); background: #fffbeb; border-color: #fde68a; }
+        
+        .event-quote { font-size: 1.25rem; font-weight: bold; margin: 0 0 1rem 0; color: var(--text-main); }
+        .event-context { color: #4b5563; font-size: 0.95rem; margin-bottom: 1rem; background: #f8fafc; padding: 1rem; border-left: 4px solid var(--accent); border-radius: 0 8px 8px 0; }
+        
+        .event-img-container { margin-top: 1rem; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); max-height: 300px; cursor: pointer; }
+        .event-img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.3s; }
+        .event-img-container:hover .event-img { transform: scale(1.02); }
+
+        .event-actions { display: flex; justify-content: flex-end; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+        .source-link { color: var(--accent); text-decoration: none; font-weight: bold; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 4px; }
+        .source-link:hover { text-decoration: underline; }
+
+        /* 無限捲動與狀態提示 */
+        #loader { text-align: center; padding: 2rem; color: var(--text-muted); font-weight: bold; display: none; }
+        #loader.visible { display: block; }
+        .end-message { text-align: center; padding: 2rem; color: var(--text-muted); display: none; }
+
+        /* 圖片放大燈箱 (Modal) */
+        #image-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; justify-content: center; align-items: center; padding: 2rem; cursor: zoom-out; }
+        #image-modal.active { display: flex; }
+        #modal-img { max-width: 100%; max-height: 100%; border-radius: 8px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1 onclick="resetToLatest()">🏛️ 政治人物言行追蹤</h1>
+    </header>
+
+    <!-- 雙頁籤切換區 -->
+    <div class="main-tabs">
+        <button class="main-tab-btn active" id="tab-politicians" onclick="switchMainTab('politicians')">👤 人物言行</button>
+        <button class="main-tab-btn" id="tab-issues" onclick="switchMainTab('issues')">📌 社會議題</button>
+    </div>
+
+    <div class="container">
+        <!-- 側邊欄：動態顯示人物或議題 -->
+        <aside>
+            <h2 id="sidebar-title">人物檔案庫</h2>
+            <div id="sidebar-list" class="sidebar-list">
+                <div style="text-align: center; color: var(--text-muted);">資料載入中...</div>
+            </div>
+        </aside>
+
+        <!-- 主內容：事件牆 -->
+        <main>
+            <div class="feed-header">
+                <h2 id="feed-title">綜合最新事件牆</h2>
+            </div>
+            
+            <div id="events-feed">
+                <!-- 事件卡片動態渲染區 -->
+            </div>
+            
+            <div id="loader">載入更多事件中...</div>
+            <div id="end-message" class="end-message">已經到底囉！</div>
+        </main>
+    </div>
+
+    <!-- 圖片預覽燈箱 -->
+    <div id="image-modal" onclick="closeImageModal()">
+        <img id="modal-img" src="" alt="滿版預覽">
+    </div>
+
+    <script type="module">
+        import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+        // ==========================================
+        // 1. 初始化與金鑰設定
+        // ==========================================
+        const SUPABASE_URL = 'https://ymrpsmrxnoyypayzujlm.supabase.co';
+        const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InltcnBzbXJ4bm95eXBheXp1amxtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwNTYyMzcsImV4cCI6MjA5ODYzMjIzN30.Mp8K310jjvKUkKQszs5VaA8GwuJUzQTv3PyXfP7ZdKU';
+        const supabase = createClient(SUPABASE_URL, ANON_KEY);
+
+        // 系統狀態
+        let currentTab = 'politicians'; // 'politicians' 或 'issues'
+        let currentMode = 'latest';     // 'latest' 或 'specific'
+        let currentFilterId = null;     // 儲存選中的 人物ID 或 議題ID
+        
+        let page = 0;
+        const PAGE_SIZE = 15;
+        let isFetching = false;
+        let hasMoreData = true;
+
+        // 快取資料
+        let cachePoliticians = [];
+        let cacheIssues = [];
+
+        const feedContainer = document.getElementById('events-feed');
+        const loader = document.getElementById('loader');
+        const endMessage = document.getElementById('end-message');
+        const feedTitle = document.getElementById('feed-title');
+
+        window.onload = async () => {
+            await fetchSidebarData();
+            renderSidebar();
+            loadLatestEvents();
+            setupIntersectionObserver();
+        };
+
+        // ==========================================
+        // 2. 側邊欄資料抓取與渲染
+        // ==========================================
+        async function fetchSidebarData() {
+            // 同時抓取人物與議題的公開清單
+            const [polRes, issueRes] = await Promise.all([
+                supabase.from('politicians').select('*').eq('is_visible', true).order('name'),
+                supabase.from('issues').select('*').eq('is_visible', true).order('name')
+            ]);
+            if (polRes.data) cachePoliticians = polRes.data;
+            if (issueRes.data) cacheIssues = issueRes.data;
+        }
+
+        window.switchMainTab = function(tabName) {
+            if (currentTab === tabName) return;
+            currentTab = tabName;
+            
+            // 切換上方頁籤視覺
+            document.querySelectorAll('.main-tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+            
+            // 重置並重新渲染
+            resetToLatest();
+            renderSidebar();
+        };
+
+        function renderSidebar() {
+            const listContainer = document.getElementById('sidebar-list');
+            const title = document.getElementById('sidebar-title');
+
+            if (currentTab === 'politicians') {
+                title.textContent = '人物檔案庫';
+                listContainer.innerHTML = `
+                    <div class="sidebar-item ${currentMode === 'latest' ? 'active' : ''}" id="btn-all" onclick="resetToLatest()">
+                        <strong>綜合最新事件</strong>
+                    </div>
+                ` + cachePoliticians.map(p => `
+                    <div class="sidebar-item ${currentFilterId === p.id ? 'active' : ''}" onclick="loadSpecificData('politician', '${p.id}', '${p.name}')">
+                        <strong>${p.name}</strong> <span class="badge">${p.party || '無'}</span>
+                    </div>
+                `).join('');
+            } else {
+                title.textContent = '社會議題庫';
+                listContainer.innerHTML = `
+                    <div class="sidebar-item ${currentMode === 'latest' ? 'active' : ''}" id="btn-all" onclick="resetToLatest()">
+                        <strong>綜合最新事件</strong>
+                    </div>
+                ` + cacheIssues.map(i => `
+                    <div class="sidebar-item ${currentFilterId === i.id ? 'active' : ''}" onclick="loadSpecificData('issue', '${i.id}', '${i.name}')">
+                        <strong># ${i.name}</strong>
+                    </div>
+                `).join('');
+            }
+        }
+
+        // ==========================================
+        // 3. 事件資料獲取 (附帶立體網狀 Join)
+        // ==========================================
+        async function loadLatestEvents() {
+            if (isFetching || !hasMoreData) return;
+            isFetching = true;
+            loader.classList.add('visible');
+
+            const start = page * PAGE_SIZE;
+            const end = start + PAGE_SIZE - 1;
+
+            // 抓取事件，同時向外擴展撈取綁定的人物與議題
+            const { data, error } = await supabase
+                .from('events')
+                .select(`
+                    *,
+                    event_politician_map ( politicians ( name ) ),
+                    event_issue_map ( issues ( name ) )
+                `)
+                .eq('is_visible', true)
+                .order('created_at', { ascending: false })
+                .range(start, end);
+
+            handleDataResponse(data, error);
+        }
+
+        window.loadSpecificData = async function(type, id, name) {
+            currentMode = 'specific';
+            currentFilterId = id;
+            page = 0;
+            hasMoreData = true;
+            feedContainer.innerHTML = '';
+            endMessage.style.display = 'none';
+            
+            // 更新 UI 狀態
+            renderSidebar();
+            feedTitle.textContent = type === 'politician' ? `📂 ${name} 的專屬事件簿` : `📌 關於「${name}」的相關事件`;
+            loader.classList.add('visible');
+
+            let queryResult;
+
+            // 依據不同類型，從中介表反向查詢並 Deep Join
+            if (type === 'politician') {
+                queryResult = await supabase.from('event_politician_map').select(`
+                    events!inner (
+                        *,
+                        event_politician_map ( politicians ( name ) ),
+                        event_issue_map ( issues ( name ) )
+                    )
+                `).eq('politician_id', id).eq('events.is_visible', true);
+            } else {
+                queryResult = await supabase.from('event_issue_map').select(`
+                    events!inner (
+                        *,
+                        event_politician_map ( politicians ( name ) ),
+                        event_issue_map ( issues ( name ) )
+                    )
+                `).eq('issue_id', id).eq('events.is_visible', true);
+            }
+
+            if (queryResult.error) {
+                console.error('特定資料載入失敗:', queryResult.error);
+                loader.classList.remove('visible');
+                return;
+            }
+
+            // 提取事件陣列並手動排序
+            const eventsData = queryResult.data.map(item => item.events).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+            
+            renderEvents(eventsData);
+            hasMoreData = false; // 特定篩選暫不實作分頁
+            loader.classList.remove('visible');
+            endMessage.style.display = 'block';
+        };
+
+        function handleDataResponse(data, error) {
+            if (error) {
+                console.error('事件載入失敗:', error);
+                isFetching = false;
+                loader.classList.remove('visible');
+                return;
+            }
+
+            if (data.length < PAGE_SIZE) {
+                hasMoreData = false;
+                endMessage.style.display = 'block';
+            }
+
+            renderEvents(data);
+            page++;
+            isFetching = false;
+            loader.classList.remove('visible');
+        }
+
+        // ==========================================
+        // 4. 事件卡片渲染 (顯示網狀標籤)
+        // ==========================================
+        function renderEvents(events) {
+            const html = events.map(e => {
+                const severityClass = e.severity >= 4 ? 'severity-high' : (e.severity == 3 ? 'severity-med' : '');
+                
+                // 解析深層 JSON 關聯資料，產生網狀標籤
+                const polTags = e.event_politician_map?.map(m => m.politicians?.name).filter(Boolean)
+                    .map(name => `<span class="info-tag">👤 ${name}</span>`).join('') || '';
+                
+                const issueTags = e.event_issue_map?.map(m => m.issues?.name).filter(Boolean)
+                    .map(name => `<span class="info-tag issue-tag">📌 ${name}</span>`).join('') || '';
+
+                const imageHtml = e.image_url ? `
+                    <div class="event-img-container" onclick="openImageModal('${e.image_url}')">
+                        <img class="event-img" src="${e.image_url}" alt="事件佐證圖片" loading="lazy">
+                    </div>
+                ` : '';
+
+                const sourceHtml = e.source_url ? `
+                    <div class="event-actions">
+                        <a href="${e.source_url}" target="_blank" rel="noopener noreferrer" class="source-link">
+                            🔗 查看原始新聞來源
+                        </a>
+                    </div>
+                ` : '';
+
+                return `
+                    <article class="event-card">
+                        <div class="info-tags">
+                            ${polTags}
+                            ${issueTags}
+                        </div>
+                        <div class="event-meta">
+                            <span class="meta-tag">📅 ${e.date || '日期未明'}</span>
+                            <span class="meta-tag">🏷️ ${e.category || '未分類'}</span>
+                            <span class="meta-tag ${severityClass}">⚠️ 嚴重度: ${e.severity || '-'}</span>
+                        </div>
+                        <h3 class="event-quote">「${e.quote}」</h3>
+                        <div class="event-context">
+                            ${e.context || '無詳細脈絡說明。'}
+                        </div>
+                        ${imageHtml}
+                        ${sourceHtml}
+                    </article>
+                `;
+            }).join('');
+
+            if(events.length === 0 && page === 0) {
+                feedContainer.innerHTML = '<div style="text-align:center; padding: 3rem; color: #6b7280;">目前尚無相關公開事件。</div>';
+            } else {
+                feedContainer.insertAdjacentHTML('beforeend', html);
+            }
+        }
+
+        // ==========================================
+        // 5. 其他互動邏輯
+        // ==========================================
+        window.resetToLatest = function() {
+            if (currentMode === 'latest' && page === 0) return;
+            currentMode = 'latest';
+            currentFilterId = null;
+            page = 0;
+            hasMoreData = true;
+            feedContainer.innerHTML = '';
+            feedTitle.textContent = '綜合最新事件牆';
+            endMessage.style.display = 'none';
+            renderSidebar();
+            loadLatestEvents();
+        };
+
+        function setupIntersectionObserver() {
+            const options = { root: null, rootMargin: '0px', threshold: 0.1 };
+            const observer = new IntersectionObserver((entries) => {
+                if (entries[0].isIntersecting && currentMode === 'latest' && hasMoreData && !isFetching) {
+                    loadLatestEvents();
+                }
+            }, options);
+            observer.observe(loader);
+        }
+
+        window.openImageModal = function(url) {
+            const modal = document.getElementById('image-modal');
+            document.getElementById('modal-img').src = url;
+            modal.classList.add('active');
+        };
+
+        window.closeImageModal = function() {
+            document.getElementById('image-modal').classList.remove('active');
+            setTimeout(() => document.getElementById('modal-img').src = '', 300);
+        };
+    </script>
+</body>
+</html>
