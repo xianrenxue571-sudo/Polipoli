@@ -140,6 +140,51 @@
         </div>
 
         <div id="tab-3" class="tab-content">
+            <div class="panel" style="border: 2px solid var(--primary); background-color: #f8fafc;">
+                <h2 style="color: var(--primary);">+ 手動新增單筆爭議事件</h2>
+                <div class="card" style="display: flex; flex-direction: column; gap: 15px; border: none; background: transparent; padding: 0;">
+                    <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 200px;">
+                            <label style="font-weight: bold; font-size: 0.9rem; display: block; margin-bottom: 5px;">關聯人物 (必選)</label>
+                            <select id="manual-pol-id" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;"></select>
+                        </div>
+                        <div style="flex: 1; min-width: 200px;">
+                            <label style="font-weight: bold; font-size: 0.9rem; display: block; margin-bottom: 5px;">關聯社會議題 (可選)</label>
+                            <select id="manual-issue-id" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;"></select>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 150px;">
+                            <label style="font-weight: bold; font-size: 0.9rem; display: block; margin-bottom: 5px;">發生日期</label>
+                            <input type="date" id="manual-date" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
+                        </div>
+                        <div style="flex: 1; min-width: 150px;">
+                            <label style="font-weight: bold; font-size: 0.9rem; display: block; margin-bottom: 5px;">爭議分類</label>
+                            <input type="text" id="manual-category" placeholder="例: 失言、程序爭議" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
+                        </div>
+                        <div style="flex: 1; min-width: 120px;">
+                            <label style="font-weight: bold; font-size: 0.9rem; display: block; margin-bottom: 5px;">嚴重度 (1-5)</label>
+                            <input type="number" id="manual-severity" min="1" max="5" value="1" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label style="font-weight: bold; font-size: 0.9rem; display: block; margin-bottom: 5px;">爭議行為描述 / 核心語錄 (標題，必填)</label>
+                        <input type="text" id="manual-quote" placeholder="精簡描述事件核心" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
+                    </div>
+                    <div>
+                        <label style="font-weight: bold; font-size: 0.9rem; display: block; margin-bottom: 5px;">事件背景與脈絡 (內容，必填)</label>
+                        <textarea id="manual-context" rows="4" placeholder="詳細具體的事件脈絡..." style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px; font-family: inherit;"></textarea>
+                    </div>
+                    <div>
+                        <label style="font-weight: bold; font-size: 0.9rem; display: block; margin-bottom: 5px;">新聞來源 URL (選填)</label>
+                        <input type="text" id="manual-url" placeholder="https://..." style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
+                    </div>
+                    <button class="btn-success" style="padding: 10px;" onclick="submitManualEvent()">發布新增事件 (預設隱藏)</button>
+                </div>
+            </div>
+
             <div class="panel">
                 <h2>事件管理模組 (含網狀關聯資訊)</h2>
                 <div id="events-container">
@@ -167,7 +212,7 @@
             <div class="input-group">
                 <label>關聯社會議題 (標籤)</label>
                 <select id="edit-issue" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
-                    </select>
+                </select>
             </div>
             <div style="display:flex; gap:10px; margin-top:20px;">
                 <button class="btn-primary" onclick="saveEventEdit()">儲存修改</button>
@@ -228,6 +273,23 @@
         }
 
         // ==========================================
+        // 動態更新下拉選單 (手動新增區塊專用)
+        // ==========================================
+        function updateManualFormDropdowns() {
+            const polSelect = document.getElementById('manual-pol-id');
+            const issueSelect = document.getElementById('manual-issue-id');
+
+            if (polSelect) {
+                polSelect.innerHTML = '<option value="">-- 請選擇人物 --</option>' + 
+                    (window.currentPoliticians || []).map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+            }
+            if (issueSelect) {
+                issueSelect.innerHTML = '<option value="">📌 無綁定議題</option>' + 
+                    (window.currentIssues || []).map(i => `<option value="${i.id}"># ${i.name}</option>`).join('');
+            }
+        }
+
+        // ==========================================
         // 資料讀取與渲染
         // ==========================================
         
@@ -251,6 +313,7 @@
             }
             
             renderPolActions(); 
+            updateManualFormDropdowns(); // 更新新增表單
         }
 
         function renderPolActions() {
@@ -278,7 +341,6 @@
             const { data, error } = await supabase.from('issues').select('*').order('created_at', { ascending: false });
             if (error) return console.error(error);
             
-            // 存入全域變數，供事件編輯彈窗動態生成選項使用
             window.currentIssues = data; 
             
             const container = document.getElementById('issues-container');
@@ -299,11 +361,12 @@
                     </div>
                 </div>
             `).join('');
+
+            updateManualFormDropdowns(); // 更新新增表單
         }
 
         async function loadEvents() {
             if (!supabase) return;
-            // 擴充關聯查詢：加上 issue_id 讓編輯彈窗可以精準抓取並預選
             const { data, error } = await supabase.from('events').select(`
                 *,
                 event_politician_map ( politicians ( name ) ),
@@ -392,7 +455,6 @@
                     
                     alert(`讀取到 ${data.length} 筆資料，開始背景網狀匯入...`);
                     for (const item of data) {
-                        // 1. 人物
                         let polId = null;
                         const { data: polData } = await supabase.from('politicians').select('id').eq('name', item.politician_name).single();
                         if (polData) {
@@ -404,7 +466,6 @@
                             polId = newPol.id;
                         }
 
-                        // 2. 議題
                         let issueId = null;
                         if (item.issue_name) {
                             const { data: issueData } = await supabase.from('issues').select('id').eq('name', item.issue_name).single();
@@ -418,16 +479,13 @@
                             }
                         }
 
-                        // 3. 事件
                         const { data: newEvent } = await supabase.from('events').insert([{
                             quote: item.quote, context: item.context, source_url: item.source_url,
                             date: item.date, category: item.category, severity: item.severity, is_visible: false 
                         }]).select().single();
                         
-                        // 4. 綁定人物
                         await supabase.from('event_politician_map').insert([{ politician_id: polId, event_id: newEvent.id }]);
                         
-                        // 5. 綁定議題
                         if (issueId) {
                             await supabase.from('event_issue_map').insert([{ issue_id: issueId, event_id: newEvent.id }]);
                         }
@@ -447,7 +505,7 @@
         }
 
         // ==========================================
-        // CRUD 操作邏輯
+        // CRUD 操作邏輯 (人物與議題)
         // ==========================================
         async function addPolitician() {
             const name = document.getElementById('new-pol-name').value.trim();
@@ -490,6 +548,47 @@
             loadIssues();
         }
 
+        // ==========================================
+        // 事件 CRUD 與 手動新增邏輯
+        // ==========================================
+        async function submitManualEvent() {
+            const polId = document.getElementById('manual-pol-id').value;
+            const issueId = document.getElementById('manual-issue-id').value;
+            const quote = document.getElementById('manual-quote').value.trim();
+            const context = document.getElementById('manual-context').value.trim();
+            let sourceUrl = document.getElementById('manual-url').value.trim();
+            const date = document.getElementById('manual-date').value || new Date().toISOString().split('T')[0];
+            const category = document.getElementById('manual-category').value.trim() || '未分類';
+            const severity = document.getElementById('manual-severity').value || 1;
+
+            if (!polId) return alert('請選擇關聯的政治人物！');
+            if (!quote || !context) return alert('標題與脈絡內容不能為空！');
+            if (!sourceUrl) sourceUrl = null;
+
+            // 1. 新增事件主體 (預設隱藏)
+            const { data: newEvent, error: evError } = await supabase.from('events').insert([{
+                quote, context, source_url: sourceUrl, date, category, severity, is_visible: false 
+            }]).select().single();
+            
+            if (evError) return alert('新增事件失敗: ' + evError.message);
+
+            // 2. 寫入中介關聯
+            await supabase.from('event_politician_map').insert([{ politician_id: polId, event_id: newEvent.id }]);
+            if (issueId) {
+                await supabase.from('event_issue_map').insert([{ issue_id: issueId, event_id: newEvent.id }]);
+            }
+
+            alert('手動新增成功！新事件預設為隱藏狀態，請確認後開放顯示。');
+            
+            // 3. 清空表單並重新載入
+            document.getElementById('manual-quote').value = '';
+            document.getElementById('manual-context').value = '';
+            document.getElementById('manual-url').value = '';
+            document.getElementById('manual-category').value = '';
+            document.getElementById('manual-severity').value = '1';
+            loadEvents();
+        }
+
         async function toggleEventVisibility(id, currentStatus) {
             await supabase.from('events').update({ is_visible: !currentStatus }).eq('id', id);
             loadEvents();
@@ -502,7 +601,7 @@
         }
 
         // ==========================================
-        // 事件內容編輯邏輯 (擴充議題重新綁定)
+        // 事件內容編輯邏輯
         // ==========================================
         function openEditModal(id) {
             const event = window.currentEvents.find(e => e.id === id);
@@ -514,17 +613,15 @@
             const urlVal = (event.source_url && event.source_url !== 'null') ? event.source_url : '';
             document.getElementById('edit-url').value = urlVal;
             
-            // 動態生成議題選單
             const issueSelect = document.getElementById('edit-issue');
             issueSelect.innerHTML = '<option value="">📌 無綁定議題</option>' + 
                 (window.currentIssues || []).map(i => `<option value="${i.id}"># ${i.name}</option>`).join('');
                 
-            // 自動預選目前綁定的議題
-            const currentIssueMap = event.event_issue_map?.[0]; // 抓取第一筆關聯
+            const currentIssueMap = event.event_issue_map?.[0]; 
             if (currentIssueMap && currentIssueMap.issue_id) {
                 issueSelect.value = currentIssueMap.issue_id;
             } else {
-                issueSelect.value = ""; // 無綁定
+                issueSelect.value = ""; 
             }
             
             document.getElementById('edit-modal').style.display = 'flex';
@@ -539,12 +636,11 @@
             const quote = document.getElementById('edit-quote').value.trim();
             const context = document.getElementById('edit-context').value.trim();
             let source_url = document.getElementById('edit-url').value.trim();
-            const issueId = document.getElementById('edit-issue').value; // 取得新選擇的議題ID
+            const issueId = document.getElementById('edit-issue').value; 
             
             if (!source_url) source_url = null;
             if (!quote || !context) return alert('標題與內容不能為空');
 
-            // 第一步：更新事件本體
             const { error } = await supabase.from('events').update({ 
                 quote, 
                 context, 
@@ -556,22 +652,14 @@
                 return;
             }
             
-            // 第二步：更新中介關聯表 (先刪除舊的，再寫入新的)
-            const { error: deleteMapError } = await supabase.from('event_issue_map').delete().eq('event_id', id);
-            if (deleteMapError) {
-                console.error('刪除舊關聯失敗:', deleteMapError);
-            }
-            
+            await supabase.from('event_issue_map').delete().eq('event_id', id);
             if (issueId) {
-                const { error: insertMapError } = await supabase.from('event_issue_map').insert([{ event_id: id, issue_id: issueId }]);
-                if (insertMapError) {
-                    console.error('寫入新關聯失敗:', insertMapError);
-                }
+                await supabase.from('event_issue_map').insert([{ event_id: id, issue_id: issueId }]);
             }
 
             alert('修改與標籤綁定已儲存！');
             closeEditModal();
-            loadEvents(); // 重新載入畫面以顯示最新標籤
+            loadEvents(); 
         }
 
         // ==========================================
@@ -617,7 +705,7 @@
             switchTab, unlockSystem, logout, importJSON, 
             addPolitician, togglePolVisibility, deletePolitician, renderPolActions,
             addIssue, toggleIssueVisibility, deleteIssue,
-            toggleContext, toggleEventVisibility, deleteEvent, 
+            submitManualEvent, toggleContext, toggleEventVisibility, deleteEvent, 
             handleFileUpload, handlePaste,
             openEditModal, closeEditModal, saveEventEdit
         });
