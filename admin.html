@@ -119,7 +119,7 @@
                         <option value="">(請等待資料載入...)</option>
                     </select>
                     <div id="politician-actions" class="card-actions" style="display: none; margin-top: 10px;">
-                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -163,6 +163,11 @@
             <div class="input-group">
                 <label>真實新聞連結 (URL)</label>
                 <input type="text" id="edit-url" placeholder="若無連結請留白">
+            </div>
+            <div class="input-group">
+                <label>關聯社會議題 (標籤)</label>
+                <select id="edit-issue" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
+                    </select>
             </div>
             <div style="display:flex; gap:10px; margin-top:20px;">
                 <button class="btn-primary" onclick="saveEventEdit()">儲存修改</button>
@@ -226,31 +231,28 @@
         // 資料讀取與渲染
         // ==========================================
         
-        // 載入人物 (下拉選單化)
         async function loadPoliticians() {
             if (!supabase) return;
             const { data, error } = await supabase.from('politicians').select('*').order('created_at', { ascending: false });
             if (error) return console.error(error);
             
-            window.currentPoliticians = data; // 存入全域變數供切換時讀取
+            window.currentPoliticians = data; 
             
             const selectEl = document.getElementById('politician-select');
-            const currentVal = selectEl.value; // 記憶當前選擇
+            const currentVal = selectEl.value; 
             
             selectEl.innerHTML = '<option value="">請選擇要管理的人物...</option>' + data.map(p => {
                 const statusStr = p.is_visible ? '顯示中' : '已隱藏';
                 return `<option value="${p.id}">${p.name} (${p.party || '無'}) - [${statusStr}]</option>`;
             }).join('');
             
-            // 如果剛才選中的人物還存在，恢復選擇狀態
             if (data.some(p => p.id === currentVal)) {
                 selectEl.value = currentVal;
             }
             
-            renderPolActions(); // 根據選擇狀態渲染按鈕
+            renderPolActions(); 
         }
 
-        // 渲染選單對應的按鈕動作
         function renderPolActions() {
             const selectEl = document.getElementById('politician-select');
             const actionsContainer = document.getElementById('politician-actions');
@@ -271,11 +273,14 @@
             `;
         }
 
-        // 載入社會議題
         async function loadIssues() {
             if (!supabase) return;
             const { data, error } = await supabase.from('issues').select('*').order('created_at', { ascending: false });
             if (error) return console.error(error);
+            
+            // 存入全域變數，供事件編輯彈窗動態生成選項使用
+            window.currentIssues = data; 
+            
             const container = document.getElementById('issues-container');
             container.innerHTML = data.map(i => `
                 <div class="card" style="margin-bottom: 0;">
@@ -296,17 +301,17 @@
             `).join('');
         }
 
-        // 載入事件 (附帶關聯的人與事)
         async function loadEvents() {
             if (!supabase) return;
+            // 擴充關聯查詢：加上 issue_id 讓編輯彈窗可以精準抓取並預選
             const { data, error } = await supabase.from('events').select(`
                 *,
                 event_politician_map ( politicians ( name ) ),
-                event_issue_map ( issues ( name ) )
+                event_issue_map ( issue_id, issues ( name ) )
             `).order('created_at', { ascending: false });
+            
             if (error) return console.error(error);
             
-            // 將資料存入全域變數供編輯功能讀取
             window.currentEvents = data;
             const container = document.getElementById('events-container');
             
@@ -314,7 +319,6 @@
                 let polNames = e.event_politician_map?.map(m => m.politicians?.name).filter(Boolean).join(', ') || '尚未綁定人物';
                 let issueNames = e.event_issue_map?.map(m => m.issues?.name).filter(Boolean).join(', ') || '無綁定議題';
 
-                // 處理連結判斷
                 const sourceLinkHtml = (e.source_url && e.source_url !== 'null' && e.source_url.trim() !== '') 
                     ? `<a href="${e.source_url}" target="_blank" style="font-size: 0.8rem; color: var(--primary);">開啟來源連結</a>` 
                     : `<span style="font-size: 0.8rem; color: #9ca3af;">(無來源連結)</span>`;
@@ -373,7 +377,7 @@
         }
 
         // ==========================================
-        // JSON 網狀匯入邏輯 (人、事、議題綁定)
+        // JSON 網狀匯入邏輯
         // ==========================================
         async function importJSON() {
             const fileInput = document.getElementById('json-upload');
@@ -388,7 +392,7 @@
                     
                     alert(`讀取到 ${data.length} 筆資料，開始背景網狀匯入...`);
                     for (const item of data) {
-                        // 1. 處理人物 (比對或新增)
+                        // 1. 人物
                         let polId = null;
                         const { data: polData } = await supabase.from('politicians').select('id').eq('name', item.politician_name).single();
                         if (polData) {
@@ -400,7 +404,7 @@
                             polId = newPol.id;
                         }
 
-                        // 2. 處理社會議題 (比對或新增，若 JSON 有提供)
+                        // 2. 議題
                         let issueId = null;
                         if (item.issue_name) {
                             const { data: issueData } = await supabase.from('issues').select('id').eq('name', item.issue_name).single();
@@ -414,16 +418,16 @@
                             }
                         }
 
-                        // 3. 寫入事件 (預設隱藏)
+                        // 3. 事件
                         const { data: newEvent } = await supabase.from('events').insert([{
                             quote: item.quote, context: item.context, source_url: item.source_url,
                             date: item.date, category: item.category, severity: item.severity, is_visible: false 
                         }]).select().single();
                         
-                        // 4. 寫入中介關聯表 (綁定人物)
+                        // 4. 綁定人物
                         await supabase.from('event_politician_map').insert([{ politician_id: polId, event_id: newEvent.id }]);
                         
-                        // 5. 寫入中介關聯表 (綁定議題)
+                        // 5. 綁定議題
                         if (issueId) {
                             await supabase.from('event_issue_map').insert([{ issue_id: issueId, event_id: newEvent.id }]);
                         }
@@ -443,7 +447,7 @@
         }
 
         // ==========================================
-        // CRUD 操作邏輯 (人物與議題)
+        // CRUD 操作邏輯
         // ==========================================
         async function addPolitician() {
             const name = document.getElementById('new-pol-name').value.trim();
@@ -465,7 +469,6 @@
             loadPoliticians();
         }
 
-        // 社會議題 CRUD
         async function addIssue() {
             const name = document.getElementById('new-issue-name').value.trim();
             const desc = document.getElementById('new-issue-desc').value.trim();
@@ -487,7 +490,6 @@
             loadIssues();
         }
 
-        // 事件 CRUD
         async function toggleEventVisibility(id, currentStatus) {
             await supabase.from('events').update({ is_visible: !currentStatus }).eq('id', id);
             loadEvents();
@@ -500,7 +502,7 @@
         }
 
         // ==========================================
-        // 事件內容編輯邏輯
+        // 事件內容編輯邏輯 (擴充議題重新綁定)
         // ==========================================
         function openEditModal(id) {
             const event = window.currentEvents.find(e => e.id === id);
@@ -509,9 +511,21 @@
             document.getElementById('edit-event-id').value = event.id;
             document.getElementById('edit-quote').value = event.quote || '';
             document.getElementById('edit-context').value = event.context || '';
-            
             const urlVal = (event.source_url && event.source_url !== 'null') ? event.source_url : '';
             document.getElementById('edit-url').value = urlVal;
+            
+            // 動態生成議題選單
+            const issueSelect = document.getElementById('edit-issue');
+            issueSelect.innerHTML = '<option value="">📌 無綁定議題</option>' + 
+                (window.currentIssues || []).map(i => `<option value="${i.id}"># ${i.name}</option>`).join('');
+                
+            // 自動預選目前綁定的議題
+            const currentIssueMap = event.event_issue_map?.[0]; // 抓取第一筆關聯
+            if (currentIssueMap && currentIssueMap.issue_id) {
+                issueSelect.value = currentIssueMap.issue_id;
+            } else {
+                issueSelect.value = ""; // 無綁定
+            }
             
             document.getElementById('edit-modal').style.display = 'flex';
         }
@@ -525,10 +539,12 @@
             const quote = document.getElementById('edit-quote').value.trim();
             const context = document.getElementById('edit-context').value.trim();
             let source_url = document.getElementById('edit-url').value.trim();
+            const issueId = document.getElementById('edit-issue').value; // 取得新選擇的議題ID
             
             if (!source_url) source_url = null;
             if (!quote || !context) return alert('標題與內容不能為空');
 
+            // 第一步：更新事件本體
             const { error } = await supabase.from('events').update({ 
                 quote, 
                 context, 
@@ -536,12 +552,26 @@
             }).eq('id', id);
             
             if (error) {
-                alert('更新失敗: ' + error.message);
-            } else {
-                alert('修改已儲存！');
-                closeEditModal();
-                loadEvents(); 
+                alert('更新事件失敗: ' + error.message);
+                return;
             }
+            
+            // 第二步：更新中介關聯表 (先刪除舊的，再寫入新的)
+            const { error: deleteMapError } = await supabase.from('event_issue_map').delete().eq('event_id', id);
+            if (deleteMapError) {
+                console.error('刪除舊關聯失敗:', deleteMapError);
+            }
+            
+            if (issueId) {
+                const { error: insertMapError } = await supabase.from('event_issue_map').insert([{ event_id: id, issue_id: issueId }]);
+                if (insertMapError) {
+                    console.error('寫入新關聯失敗:', insertMapError);
+                }
+            }
+
+            alert('修改與標籤綁定已儲存！');
+            closeEditModal();
+            loadEvents(); // 重新載入畫面以顯示最新標籤
         }
 
         // ==========================================
