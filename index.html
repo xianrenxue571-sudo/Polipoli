@@ -19,30 +19,58 @@
         * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
         body { margin: 0; background: var(--bg); color: var(--text-main); line-height: 1.6; }
         
-        /* 頂部導覽列 */
-        header { background: var(--primary); color: white; padding: 1rem 1rem; position: sticky; top: 0; z-index: 100; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        /* 頂部導覽列 (修改：縮減 padding、Flex 置中、加入滑動漸變) */
+        header { 
+            background: var(--primary);
+            color: white; 
+            padding: 0.5rem 1rem; /* 縮減邊框感 */
+            position: sticky; 
+            top: 0; 
+            z-index: 100; 
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            display: flex; 
+            justify-content: center; /* 置中 */
+            align-items: center;
+            transition: transform 0.3s ease-in-out; /* 滾動收合的平滑過場 */
+        }
+        /* 往下捲動時加入此 class 來收起 header */
+        header.hidden {
+            transform: translateY(-100%);
+        }
         header h1 { margin: 0; font-size: 1.5rem; cursor: pointer; display: inline-block; }
 
         /* 主導覽頁籤 */
-        .main-tabs { display: flex; justify-content: center; background: var(--card-bg); border-bottom: 1px solid var(--border); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        .main-tab-btn { flex: 1; max-width: 300px; padding: 15px; text-align: center; font-size: 1.1rem; font-weight: bold; color: var(--text-muted); cursor: pointer; border: none; background: transparent; border-bottom: 3px solid transparent; transition: all 0.2s; }
+        .main-tabs { display: flex;
+            justify-content: center; background: var(--card-bg); border-bottom: 1px solid var(--border); box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .main-tab-btn { flex: 1; max-width: 300px; padding: 15px; text-align: center; font-size: 1.1rem;
+            font-weight: bold; color: var(--text-muted); cursor: pointer; border: none; background: transparent; border-bottom: 3px solid transparent; transition: all 0.2s;
+        }
         .main-tab-btn:hover { color: var(--accent); background: #f8fafc; }
         .main-tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
 
         /* 主版面配置 (RWD) */
-        .container { display: grid; grid-template-columns: 1fr; gap: 2rem; max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
+        .container { display: grid;
+            grid-template-columns: 1fr; gap: 2rem; max-width: 1200px; margin: 2rem auto; padding: 0 1rem;
+        }
         @media (min-width: 768px) { .container { grid-template-columns: 300px 1fr; } }
 
         /* 左側：清單側邊欄 */
-        aside { background: var(--card-bg); padding: 1.5rem; border-radius: 12px; height: fit-content; border: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-        aside h2 { margin-top: 0; font-size: 1.2rem; border-bottom: 2px solid var(--border); padding-bottom: 0.5rem; }
+        aside { background: var(--card-bg);
+            padding: 1.5rem; border-radius: 12px; height: fit-content; border: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        aside h2 { margin-top: 0; font-size: 1.2rem; border-bottom: 2px solid var(--border);
+            padding-bottom: 0.5rem; }
         
         /* 搜尋框與捲動限制 */
         .search-container { margin-bottom: 15px; }
-        .search-input { width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem; margin-bottom: 5px; }
+        .search-input { width: 100%; padding: 8px 12px; border: 1px solid var(--border);
+            border-radius: 6px; font-size: 0.95rem; margin-bottom: 5px; }
         
         /* 手機版下拉選單 (預設隱藏) */
-        .mobile-issue-select { display: none; width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 1rem; margin-bottom: 15px; background: #f9fafb; }
+        .mobile-issue-select { display: none;
+            width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 1rem; margin-bottom: 15px; background: #f9fafb;
+        }
         
         .sidebar-list { max-height: 60vh; overflow-y: auto; padding-right: 5px; }
         .sidebar-list::-webkit-scrollbar { width: 4px; }
@@ -50,9 +78,14 @@
 
         /* 統一按鈕標籤排版 (全按鈕化) */
         .quick-tags-container { display: flex; flex-wrap: wrap; gap: 8px; }
-        .quick-tag-btn { font-size: 0.9rem; background: #f3f4f6; color: var(--text-main); border: 1px solid var(--border); padding: 6px 12px; border-radius: 20px; cursor: pointer; transition: all 0.2s; font-weight: 500; display: inline-flex; align-items: center; }
-        .quick-tag-btn:hover, .quick-tag-btn.active { background: #e0e7ff; border-color: #c7d2fe; color: var(--accent); font-weight: bold; box-shadow: 0 2px 4px rgba(37, 99, 235, 0.1); }
-        .section-label { font-size: 0.8rem; color: var(--text-muted); margin: 12px 0 4px 4px; width: 100%; font-weight: bold; }
+        .quick-tag-btn { font-size: 0.9rem; background: #f3f4f6; color: var(--text-main);
+            border: 1px solid var(--border); padding: 6px 12px; border-radius: 20px; cursor: pointer; transition: all 0.2s; font-weight: 500; display: inline-flex; align-items: center;
+        }
+        .quick-tag-btn:hover, .quick-tag-btn.active { background: #e0e7ff; border-color: #c7d2fe; color: var(--accent); font-weight: bold;
+            box-shadow: 0 2px 4px rgba(37, 99, 235, 0.1); }
+        .section-label { font-size: 0.8rem;
+            color: var(--text-muted); margin: 12px 0 4px 4px; width: 100%; font-weight: bold;
+        }
 
         /* RWD 社會議題側邊欄切換邏輯 */
         @media (max-width: 767px) {
@@ -65,34 +98,48 @@
 
         /* 右側：事件牆 */
         main { display: flex; flex-direction: column; gap: 1.5rem; }
-        .feed-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); padding-bottom: 0.5rem; }
+        .feed-header { display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 2px solid var(--border); padding-bottom: 0.5rem; }
         .feed-header h2 { margin: 0; color: var(--accent); }
 
         /* 事件卡片 */
-        .event-card { background: var(--card-bg); border-radius: 12px; padding: 1.5rem; border: 1px solid var(--border); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); transition: transform 0.2s; }
+        .event-card { background: var(--card-bg);
+            border-radius: 12px; padding: 1.5rem; border: 1px solid var(--border); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); transition: transform 0.2s;
+        }
         .event-card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
         
         /* 標籤雙層排版樣式與動態手指懸停 */
         .tag-row { margin-bottom: 10px; display: flex; flex-wrap: wrap; gap: 8px; }
-        .info-tag { font-size: 0.85rem; font-weight: bold; background: #e0e7ff; color: #3730a3; padding: 4px 8px; border-radius: 6px; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; }
+        .info-tag { font-size: 0.85rem; font-weight: bold;
+            background: #e0e7ff; color: #3730a3; padding: 4px 8px; border-radius: 6px; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center;
+        }
         .info-tag:hover { background: #c7d2fe; transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         .issue-tag { background: #dcfce7; color: #166534; }
         .issue-tag:hover { background: #bbf7d0; }
 
-        .event-meta { display: flex; gap: 10px; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem; flex-wrap: wrap; padding-bottom: 10px; border-bottom: 1px dashed var(--border); }
-        .meta-tag { background: #f3f4f6; padding: 2px 8px; border-radius: 4px; border: 1px solid var(--border); font-weight: 500; }
+        .event-meta { display: flex; gap: 10px; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;
+            flex-wrap: wrap; padding-bottom: 10px; border-bottom: 1px dashed var(--border); }
+        .meta-tag { background: #f3f4f6;
+            padding: 2px 8px; border-radius: 4px; border: 1px solid var(--border); font-weight: 500;
+        }
         .severity-high { color: var(--danger); background: #fef2f2; border-color: #fecaca; }
         .severity-med { color: var(--warning); background: #fffbeb; border-color: #fde68a; }
         
         .event-quote { font-size: 1.25rem; font-weight: bold; margin: 10px 0 1rem 0; color: var(--text-main); }
-        .event-context { color: #4b5563; font-size: 0.95rem; margin-bottom: 1rem; background: #f8fafc; padding: 1rem; border-left: 4px solid var(--accent); border-radius: 0 8px 8px 0; }
+        .event-context { color: #4b5563;
+            font-size: 0.95rem; margin-bottom: 1rem; background: #f8fafc; padding: 1rem; border-left: 4px solid var(--accent); border-radius: 0 8px 8px 0;
+        }
         
-        .event-img-container { margin-top: 1rem; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); max-height: 300px; cursor: pointer; }
+        .event-img-container { margin-top: 1rem;
+            border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); max-height: 300px; cursor: pointer;
+        }
         .event-img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.3s; }
         .event-img-container:hover .event-img { transform: scale(1.02); }
 
-        .event-actions { display: flex; justify-content: flex-end; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); }
-        .source-link { color: var(--accent); text-decoration: none; font-weight: bold; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 4px; }
+        .event-actions { display: flex; justify-content: flex-end; margin-top: 1rem; padding-top: 1rem;
+            border-top: 1px solid var(--border); }
+        .source-link { color: var(--accent); text-decoration: none; font-weight: bold;
+            font-size: 0.9rem; display: inline-flex; align-items: center; gap: 4px; }
         .source-link:hover { text-decoration: underline; }
 
         /* 無限捲動與狀態提示 */
@@ -101,46 +148,36 @@
         .end-message { text-align: center; padding: 2rem; color: var(--text-muted); display: none; }
 
         /* 圖片放大燈箱 (Modal) */
-        #image-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; justify-content: center; align-items: center; padding: 2rem; cursor: zoom-out; }
+        #image-modal { display: none;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; justify-content: center; align-items: center; padding: 2rem;
+            cursor: zoom-out; }
         #image-modal.active { display: flex; }
         #modal-img { max-width: 100%; max-height: 100%; border-radius: 8px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
     </style>
-    <!-- 1. 標準瀏覽器分頁標籤圖示 -->
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)' viewBox='0 0 120 120'><rect width='120' height='120' fill='%230e131f'/><g transform='translate(20, 15)'><path d='M32 45 L58 45 L54 20 L36 20 Z' fill='%23fbc02d'/><path d='M25 45 L65 45 A 6 6 0 0 0 65 51 L25 51 A 6 6 0 0 0 25 45' fill='%23f59e0b'/><rect x='34' y='39' width='23' height='6' fill='%23ef4444'/><path d='M28 64 C28 56 38 56 38 64' stroke='%2306b6d4' stroke-width='5' stroke-linecap='round' fill='none'/><path d='M52 64 C52 56 62 56 62 64' stroke='%2306b6d4' stroke-width='5' stroke-linecap='round' fill='none'/><path d='M20 75 C16 71 14 76 17 78 Q45 99 73 78 C76 76 74 71 70 75 Q45 94 20 75' fill='%23db2777'/></g></svg>">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'><rect width='120' height='120' fill='%230e131f'/><g transform='translate(20, 15)'><path d='M32 45 L58 45 L54 20 L36 20 Z' fill='%23fbc02d'/><path d='M25 45 L65 45 A 6 6 0 0 0 65 51 L25 51 A 6 6 0 0 0 25 45' fill='%23f59e0b'/><rect x='34' y='39' width='23' height='6' fill='%23ef4444'/><path d='M28 64 C28 56 38 56 38 64' stroke='%2306b6d4' stroke-width='5' stroke-linecap='round' fill='none'/><path d='M52 64 C52 56 62 56 62 64' stroke='%2306b6d4' stroke-width='5' stroke-linecap='round' fill='none'/><path d='M20 75 C16 71 14 76 17 78 Q45 99 73 78 C76 76 74 71 70 75 Q45 94 20 75' fill='%23db2777'/></g></svg>">
 
-<!-- 2. 蘋果 iOS 與 Android 裝置加入主畫面的桌面圖示 -->
-<link rel="apple-touch-icon" href="data:image/svg+xml;utf8,<svg xmlns='[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)' viewBox='0 0 120 120'><rect width='120' height='120' fill='%230e131f'/><g transform='translate(20, 15)'><path d='M32 45 L58 45 L54 20 L36 20 Z' fill='%23fbc02d'/><path d='M25 45 L65 45 A 6 6 0 0 0 65 51 L25 51 A 6 6 0 0 0 25 45' fill='%23f59e0b'/><rect x='34' y='39' width='23' height='6' fill='%23ef4444'/><path d='M28 64 C28 56 38 56 38 64' stroke='%2306b6d4' stroke-width='5' stroke-linecap='round' fill='none'/><path d='M52 64 C52 56 62 56 62 64' stroke='%2306b6d4' stroke-width='5' stroke-linecap='round' fill='none'/><path d='M20 75 C16 71 14 76 17 78 Q45 99 73 78 C76 76 74 71 70 75 Q45 94 20 75' fill='%23db2777'/></g></svg>">
-
+    <link rel="apple-touch-icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'><rect width='120' height='120' fill='%230e131f'/><g transform='translate(20, 15)'><path d='M32 45 L58 45 L54 20 L36 20 Z' fill='%23fbc02d'/><path d='M25 45 L65 45 A 6 6 0 0 0 65 51 L25 51 A 6 6 0 0 0 25 45' fill='%23f59e0b'/><rect x='34' y='39' width='23' height='6' fill='%23ef4444'/><path d='M28 64 C28 56 38 56 38 64' stroke='%2306b6d4' stroke-width='5' stroke-linecap='round' fill='none'/><path d='M52 64 C52 56 62 56 62 64' stroke='%2306b6d4' stroke-width='5' stroke-linecap='round' fill='none'/><path d='M20 75 C16 71 14 76 17 78 Q45 99 73 78 C76 76 74 71 70 75 Q45 94 20 75' fill='%23db2777'/></g></svg>">
 </head>
 <body>
 
-    <header>
-<div onclick="resetToLatest()" style="cursor: pointer; display: inline-flex; align-items: center;">
-  <svg style="height: 48px; width: auto;" viewBox="0 0 450 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <!-- Mascot 左側圖示區：戴帽笑臉 -->
-    <g transform="translate(10, 10)">
-      <!-- 皇冠高帽 -->
-      <path d="M32 45 L58 45 L54 20 L36 20 Z" fill="#fbc02d"/>
-      <path d="M25 45 L65 45 A 6 6 0 0 0 65 51 L25 51 A 6 6 0 0 0 25 45" fill="#f59e0b"/>
-      <rect x="34" y="39" width="23" height="6" fill="#ef4444"/>
-      <!-- 藍色雙 c 嘲諷眼 -->
-      <path d="M28 64 C28 56 38 56 38 64" stroke="#06b6d4" stroke-width="5" stroke-linecap="round" fill="none"/>
-      <path d="M52 64 C52 56 62 56 62 64" stroke="#06b6d4" stroke-width="5" stroke-linecap="round" fill="none"/>
-      <!-- 桃紅側翹笑嘴 -->
-      <path d="M20 75 C16 71 14 76 17 78 Q45 99 73 78 C76 76 74 71 70 75 Q45 94 20 75" fill="#db2777"/>
-    </g>
-    
-    <!-- Typography 右側文字區 -->
-    <g transform="translate(110, 10)">
-      <!-- polipoli.cc 主文字 -->
-      <text x="0" y="58" fill="#ffffff" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="36" letter-spacing="0.5">polipoli<tspan fill="#db2777">.cc</tspan></text>
-      <!-- 中文副標題 -->
-      <text x="2" y="86" fill="#64748b" font-family="system-ui, -apple-system, sans-serif" font-weight="700" font-size="14" letter-spacing="2">言行審查 • 雙標對決站</text>
-    </g>
-  </svg>
-</div>
-
-
+    <header id="main-header">
+        <div onclick="resetToLatest()" style="cursor: pointer; display: inline-flex; align-items: center;">
+          <svg style="height: 60px; width: auto;" viewBox="0 0 450 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <g transform="translate(10, 10)">
+              <path d="M32 45 L58 45 L54 20 L36 20 Z" fill="#fbc02d"/>
+              <path d="M25 45 L65 45 A 6 6 0 0 0 65 51 L25 51 A 6 6 0 0 0 25 45" fill="#f59e0b"/>
+              <rect x="34" y="39" width="23" height="6" fill="#ef4444"/>
+              <path d="M28 64 C28 56 38 56 38 64" stroke="#06b6d4" stroke-width="5" stroke-linecap="round" fill="none"/>
+              <path d="M52 64 C52 56 62 56 62 64" stroke="#06b6d4" stroke-width="5" stroke-linecap="round" fill="none"/>
+              <path d="M20 75 C16 71 14 76 17 78 Q45 99 73 78 C76 76 74 71 70 75 Q45 94 20 75" fill="#db2777"/>
+            </g>
+            
+            <g transform="translate(110, 10)">
+              <text x="0" y="58" fill="#ffffff" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="36" letter-spacing="0.5">polipoli<tspan fill="#db2777">.cc</tspan></text>
+              <text x="2" y="86" fill="#64748b" font-family="system-ui, -apple-system, sans-serif" font-weight="700" font-size="14" letter-spacing="2">言行審查 • 雙標對決站</text>
+            </g>
+          </svg>
+        </div>
     </header>
 
     <div class="main-tabs">
@@ -193,11 +230,11 @@
         const supabase = createClient(SUPABASE_URL, ANON_KEY);
 
         // 系統狀態控制
-        let currentTab = 'politicians'; 
+        let currentTab = 'politicians';
         let currentMode = 'latest'; 
         let currentFilterId = null; 
-        let currentTargetName = null; 
-        
+        let currentTargetName = null;
+
         // 無限捲動分頁狀態
         let page = 0;
         const PAGE_SIZE = 15;
@@ -210,7 +247,7 @@
         let topFivePoliticians = [];
 
         // 自訂難檢字
-        const quickPolTags = ['游錫堃', '鄺麗貞', '傅崐萁', '陳玉珍', '徐欣瑩', '張嘉郡', '陳智菡', '黃瀞瑩', '顏寬恒', '佀廣洋']; 
+        const quickPolTags = ['游錫堃', '鄺麗貞', '傅崐萁', '陳玉珍', '徐欣瑩', '張嘉郡', '陳智菡', '黃瀞瑩', '顏寬恒', '佀廣洋'];
 
         // DOM 元素快取
         const feedContainer = document.getElementById('events-feed');
@@ -220,7 +257,24 @@
         const searchContainer = document.getElementById('sidebar-search-container');
         const tagsContainer = document.getElementById('quick-tags-container');
         const mobileSelect = document.getElementById('mobile-issue-select');
-        
+
+        // ==========================================
+        // 新增功能：向下捲動時隱藏 Header
+        // ==========================================
+        let lastScrollTop = 0;
+        window.addEventListener('scroll', () => {
+            let currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            const header = document.getElementById('main-header');
+            
+            // 當滾動超過 60px 且方向是向下時隱藏，否則顯示
+            if (currentScroll > lastScrollTop && currentScroll > 60) {
+                header.classList.add('hidden');
+            } else {
+                header.classList.remove('hidden');
+            }
+            lastScrollTop = currentScroll <= 0 ? 0 : currentScroll; // 處理手機端負數回彈
+        });
+
         window.onload = async () => {
             await fetchSidebarData();
             renderSidebar();
@@ -246,11 +300,9 @@
                     acc[cur.politician_id] = (acc[cur.politician_id] || 0) + 1;
                     return acc;
                 }, {});
-                
                 const topFiveIds = Object.keys(counts)
                     .sort((a, b) => counts[b] - counts[a])
                     .slice(0, 5);
-                    
                 topFivePoliticians = cachePoliticians.filter(p => topFiveIds.includes(p.id));
             } else {
                 topFivePoliticians = [];
@@ -267,7 +319,7 @@
             if (!preventReload) {
                 resetToLatest();
             } else {
-                renderSidebar(); 
+                renderSidebar();
             }
         };
         
@@ -358,7 +410,7 @@
             const term = rawTerm.toLowerCase();
             
             if (!term) {
-                renderSidebarButtons(); 
+                renderSidebarButtons();
                 return;
             }
             
@@ -377,7 +429,7 @@
         };
 
         // ==========================================
-        // 3. 事件資料獲取 (多維度網狀 Join 查詢)
+        // 3. 事件資料獲取 (修改：以真實發生 date 由新至舊排序)
         // ==========================================
         async function loadLatestEvents() {
             if (isFetching || !hasMoreData) return;
@@ -387,6 +439,7 @@
             const start = page * PAGE_SIZE;
             const end = start + PAGE_SIZE - 1;
             
+            // 修改：從 order('created_at') 改為 order('date') 降冪排列
             const { data, error } = await supabase
                 .from('events')
                 .select(`
@@ -395,18 +448,17 @@
                     event_issue_map ( issue_id, issues ( name ) )
                 `)
                 .eq('is_visible', true)
-                .order('created_at', { ascending: false })
+                .order('date', { ascending: false })
                 .range(start, end);
-                
+            
             handleDataResponse(data, error);
         }
 
         window.loadSpecificData = async function(type, id, name) {
             currentMode = 'specific';
             currentFilterId = id;
-            currentTargetName = (type === 'politician') ? name : null; 
-            
-            // 💡 修正點擊卡片上人物時，側邊欄完整同步並高亮 Active 狀態
+            currentTargetName = (type === 'politician') ? name : null;
+
             if (type === 'politician' && currentTab !== 'politicians') {
                 switchMainTab('politicians', true);
                 document.getElementById('sidebar-search').value = name;
@@ -456,8 +508,8 @@
                 return;
             }
 
-            const eventsData = queryResult.data.map(item => item.events).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-            
+            // 修改：從依據 created_at 排序改為依據真實發生 date 排序
+            const eventsData = queryResult.data.map(item => item.events).sort((a, b) => new Date(b.date || '1970-01-01') - new Date(a.date || '1970-01-01'));
             renderEvents(eventsData);
             hasMoreData = false;
             loader.classList.remove('visible');
@@ -494,7 +546,6 @@
                     `<span class="info-tag issue-tag" onclick="loadSpecificData('issue', '${m.issue_id}', '${m.issues.name}')">📌 ${m.issues.name}</span>`
                 ).join('') || '';
                 
-                // 💡 人物標籤渲染：當前正在看的人名會自動去重，其餘關聯人物標籤(包含萬美玲)皆會綁定 onclick 自動跳轉
                 const polTags = e.event_politician_map?.filter(m => m.politicians?.name && m.politicians.name !== currentTargetName).map(m => 
                     `<span class="info-tag" onclick="loadSpecificData('politician', '${m.politician_id}', '${m.politicians.name}')">👤 ${m.politicians.name}</span>`
                 ).join('') || '';
@@ -512,7 +563,7 @@
                         </a>
                     </div>
                 ` : '';
-                
+
                 return `
                     <article class="event-card">
                         <div class="tag-row">
@@ -546,7 +597,6 @@
         // ==========================================
         window.resetToLatest = function() {
             if (currentMode === 'latest' && page === 0) return;
-            
             currentMode = 'latest';
             currentFilterId = null;
             currentTargetName = null; 
