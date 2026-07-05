@@ -59,10 +59,12 @@
         .event-card { background: var(--card-bg); border-radius: 12px; padding: 1.5rem; border: 1px solid var(--border); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); transition: transform 0.2s; }
         .event-card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
         
-        /* 標籤雙層排版樣式 */
+        /* 標籤雙層排版樣式與互動優化 */
         .tag-row { margin-bottom: 10px; display: flex; flex-wrap: wrap; gap: 8px; }
-        .info-tag { font-size: 0.85rem; font-weight: bold; background: #e0e7ff; color: #3730a3; padding: 4px 8px; border-radius: 6px; }
+        .info-tag { font-size: 0.85rem; font-weight: bold; background: #e0e7ff; color: #3730a3; padding: 4px 8px; border-radius: 6px; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; }
+        .info-tag:hover { background: #c7d2fe; transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         .issue-tag { background: #dcfce7; color: #166534; }
+        .issue-tag:hover { background: #bbf7d0; }
 
         .event-meta { display: flex; gap: 10px; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem; flex-wrap: wrap; }
         .meta-tag { background: #f3f4f6; padding: 2px 8px; border-radius: 4px; border: 1px solid var(--border); font-weight: 500; }
@@ -146,7 +148,7 @@
         let currentTab = 'politicians'; 
         let currentMode = 'latest'; 
         let currentFilterId = null; 
-        let currentTargetName = null; // 紀錄目前正在查看的特定人物名稱，用於隱藏重複標籤
+        let currentTargetName = null; 
         
         let page = 0;
         const PAGE_SIZE = 15;
@@ -186,7 +188,6 @@
             if (polRes.data) cachePoliticians = polRes.data;
             if (issueRes.data) cacheIssues = issueRes.data;
             
-            // 動態計算事件數前五名人物
             if (mapRes.data && cachePoliticians.length > 0) {
                 const counts = mapRes.data.reduce((acc, cur) => {
                     acc[cur.politician_id] = (acc[cur.politician_id] || 0) + 1;
@@ -226,7 +227,6 @@
                 searchInput.placeholder = '搜尋議題名稱...';
             }
             
-            // 💡 維持搜尋狀態
             if (searchInput.value.trim() !== '') {
                 filterSidebar();
             } else {
@@ -234,7 +234,6 @@
             }
         }
 
-        // 渲染基礎組合按鈕
         function renderSidebarButtons() {
             const tagsContainer = document.getElementById('quick-tags-container');
             const isLatestActive = currentMode === 'latest' ? 'active' : '';
@@ -274,7 +273,6 @@
             tagsContainer.innerHTML = html;
         }
 
-        // 💡 智慧搜尋過濾：動態生成按鈕
         window.filterSidebar = function() {
             const rawTerm = document.getElementById('sidebar-search').value.trim();
             const term = rawTerm.toLowerCase();
@@ -288,7 +286,6 @@
             if (currentTab === 'politicians') {
                 const filtered = cachePoliticians.filter(p => p.name.toLowerCase().includes(term));
                 if (filtered.length === 0) {
-                    // 無資料自動按鈕化
                     const isActive = currentFilterId === 'not-found' ? 'active' : '';
                     tagsContainer.innerHTML = `<button class="quick-tag-btn ${isActive}" onclick="loadSpecificData('politician', 'not-found', '${rawTerm}')">👤 ${rawTerm}</button>`;
                 } else {
@@ -300,7 +297,6 @@
             } else {
                 const filtered = cacheIssues.filter(i => i.name.toLowerCase().includes(term));
                 if (filtered.length === 0) {
-                    // 無資料自動按鈕化
                     const isActive = currentFilterId === 'not-found' ? 'active' : '';
                     tagsContainer.innerHTML = `<button class="quick-tag-btn ${isActive}" onclick="loadSpecificData('issue', 'not-found', '${rawTerm}')">📌 # ${rawTerm}</button>`;
                 } else {
@@ -313,7 +309,7 @@
         };
 
         // ==========================================
-        // 3. 事件資料獲取 (附帶立體網狀 Join)
+        // 3. 事件資料獲取 (💡 更新：加入 politician_id 與 issue_id 抓取)
         // ==========================================
         async function loadLatestEvents() {
             if (isFetching || !hasMoreData) return;
@@ -327,8 +323,8 @@
                 .from('events')
                 .select(`
                     *,
-                    event_politician_map ( politicians ( name ) ),
-                    event_issue_map ( issues ( name ) )
+                    event_politician_map ( politician_id, politicians ( name ) ),
+                    event_issue_map ( issue_id, issues ( name ) )
                 `)
                 .eq('is_visible', true)
                 .order('created_at', { ascending: false })
@@ -341,7 +337,15 @@
             currentMode = 'specific';
             currentFilterId = id;
             
-            // 💡 紀錄當前查詢的人名，供渲染時隱藏重複標籤使用
+            // 💡 點擊卡片標籤時，如果是跨頁籤資料（例如在人物頁點擊議題），自動切換上方頁籤狀態
+            if (type === 'politician' && currentTab !== 'politicians') {
+                switchMainTab('politicians');
+                document.getElementById('sidebar-search').value = name;
+            } else if (type === 'issue' && currentTab !== 'issues') {
+                switchMainTab('issues');
+                document.getElementById('sidebar-search').value = name;
+            }
+            
             currentTargetName = type === 'politician' ? name : null; 
             
             page = 0;
@@ -353,7 +357,6 @@
             feedTitle.textContent = type === 'politician' ? `📂 ${name} 的專屬事件簿` : `📌 關於「${name}」的相關事件`;
             loader.classList.add('visible');
 
-            // 💡 攔截：不在資料庫裡的按鈕
             if (id === 'not-found') {
                 renderEvents([]);
                 hasMoreData = false; 
@@ -367,16 +370,16 @@
                 queryResult = await supabase.from('event_politician_map').select(`
                     events!inner (
                         *,
-                        event_politician_map ( politicians ( name ) ),
-                        event_issue_map ( issues ( name ) )
+                        event_politician_map ( politician_id, politicians ( name ) ),
+                        event_issue_map ( issue_id, issues ( name ) )
                     )
                 `).eq('politician_id', id).eq('events.is_visible', true);
             } else {
                 queryResult = await supabase.from('event_issue_map').select(`
                     events!inner (
                         *,
-                        event_politician_map ( politicians ( name ) ),
-                        event_issue_map ( issues ( name ) )
+                        event_politician_map ( politician_id, politicians ( name ) ),
+                        event_issue_map ( issue_id, issues ( name ) )
                     )
                 `).eq('issue_id', id).eq('events.is_visible', true);
             }
@@ -414,19 +417,20 @@
         }
 
         // ==========================================
-        // 4. 事件卡片渲染 (💡 雙層排版與隱藏重複標籤)
+        // 4. 事件卡片渲染 (💡 更新：補上 onclick 聯動互動)
         // ==========================================
         function renderEvents(events) {
             const html = events.map(e => {
                 const severityClass = e.severity >= 4 ? 'severity-high' : (e.severity == 3 ? 'severity-med' : '');
                 
-                // 第一行所需標籤：議題與人物 (過濾掉當前主角)
-                const issueTags = e.event_issue_map?.map(m => m.issues?.name).filter(Boolean)
-                    .map(name => `<span class="info-tag issue-tag">📌 ${name}</span>`).join('') || '';
+                // 第一行所需標籤：議題與人物 (加入 onclick 與動態參數)
+                const issueTags = e.event_issue_map?.filter(m => m.issues?.name).map(m => 
+                    `<span class="info-tag issue-tag" onclick="loadSpecificData('issue', '${m.issue_id}', '${m.issues.name}')">📌 ${m.issues.name}</span>`
+                ).join('') || '';
                 
-                const polTags = e.event_politician_map?.map(m => m.politicians?.name).filter(Boolean)
-                    .filter(name => name !== currentTargetName) // 隱藏重複標籤
-                    .map(name => `<span class="info-tag">👤 ${name}</span>`).join('') || '';
+                const polTags = e.event_politician_map?.filter(m => m.politicians?.name && m.politicians.name !== currentTargetName).map(m => 
+                    `<span class="info-tag" onclick="loadSpecificData('politician', '${m.politician_id}', '${m.politicians.name}')">👤 ${m.politicians.name}</span>`
+                ).join('') || '';
 
                 const imageHtml = e.image_url ? `
                     <div class="event-img-container" onclick="openImageModal('${e.image_url}')">
@@ -442,7 +446,6 @@
                     </div>
                 ` : '';
                 
-                // 將主題(議題/人物)統一放第一行，Meta屬性放第二行
                 return `
                     <article class="event-card">
                         <div class="tag-row">
@@ -478,7 +481,7 @@
             if (currentMode === 'latest' && page === 0) return;
             currentMode = 'latest';
             currentFilterId = null;
-            currentTargetName = null; // 重置當前主角
+            currentTargetName = null; 
             page = 0;
             hasMoreData = true;
             feedContainer.innerHTML = '';
