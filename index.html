@@ -115,7 +115,32 @@
 <body>
 
     <header>
-        <h1 onclick="resetToLatest()">Polipoli 啪哩啪哩追蹤站</h1>
+<div onclick="resetToLatest()" class="cursor-pointer flex items-center">
+  <svg class="h-10 md:h-12 w-auto" viewBox="0 0 450 120" fill="none" xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)">
+    <!-- Mascot (左側圖示區：戴帽笑臉) -->
+    <g transform="translate(10, 10)">
+      <!-- 皇冠高帽 -->
+      <path d="M32 45 L58 45 L54 20 L36 20 Z" fill="#fbc02d"/>
+      <path d="M25 45 L65 45 A 6 6 0 0 0 65 51 L25 51 A 6 6 0 0 0 25 45" fill="#f59e0b"/>
+      <rect x="34" y="39" width="23" height="6" fill="#ef4444"/>
+      <!-- 藍色雙 c 嘲諷眼 -->
+      <path d="M28 64 C28 56 38 56 38 64" stroke="#06b6d4" stroke-width="5" stroke-linecap="round" fill="none"/>
+      <path d="M52 64 C52 56 62 56 62 64" stroke="#06b6d4" stroke-width="5" stroke-linecap="round" fill="none"/>
+      <!-- 桃紅側翹笑嘴 -->
+      <path d="M20 75 C16 71 14 76 17 78 Q45 99 73 78 C76 76 74 71 70 75 Q45 94 20 75" fill="#db2777"/>
+    </g>
+    
+    <!-- Typography (右側文字區) -->
+    <g transform="translate(110, 10)">
+      <!-- polipoli.cc 主文字 -->
+      <text x="0" y="58" fill="#ffffff" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="36" letter-spacing="0.5">polipoli<tspan fill="#db2777">.cc</tspan></text>
+      <!-- 中文副標題 -->
+      <text x="2" y="86" fill="#64748b" font-family="system-ui, -apple-system, sans-serif" font-weight="700" font-size="14" letter-spacing="2">言行審查 • 雙標對決站</text>
+    </g>
+  </svg>
+</div>
+
+
     </header>
 
     <div class="main-tabs">
