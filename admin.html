@@ -304,8 +304,8 @@
             const currentVal = selectEl.value; 
             
             selectEl.innerHTML = '<option value="">請選擇要管理的人物...</option>' + data.map(p => {
-                const statusStr = p.is_visible ? '顯示中' : '已隱藏';
-                return `<option value="${p.id}">${p.name} (${p.party || '無'}) - [${statusStr}]</option>`;
+                const statusStr = p.is_visible ? '顯示' : '隱藏';
+                return `<option value="${p.id}">${p.name}-${p.party || '無'}-[${statusStr}]</option>`;
             }).join('');
             
             if (data.some(p => p.id === currentVal)) {
