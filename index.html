@@ -54,7 +54,7 @@
         .quick-tag-btn:hover, .quick-tag-btn.active { background: #e0e7ff; border-color: #c7d2fe; color: var(--accent); font-weight: bold; box-shadow: 0 2px 4px rgba(37, 99, 235, 0.1); }
         .section-label { font-size: 0.8rem; color: var(--text-muted); margin: 12px 0 4px 4px; width: 100%; font-weight: bold; }
 
-        /* 手機與桌機的議題側邊欄顯示邏輯 */
+        /* RWD 社會議題側邊欄切換邏輯 */
         @media (max-width: 767px) {
             .desktop-issue-tags { display: none !important; }
             .mobile-issue-select.active-tab { display: block; }
@@ -72,7 +72,7 @@
         .event-card { background: var(--card-bg); border-radius: 12px; padding: 1.5rem; border: 1px solid var(--border); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); transition: transform 0.2s; }
         .event-card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
         
-        /* 標籤雙層排版樣式與互動優化 */
+        /* 標籤雙層排版樣式與動態手指懸停 */
         .tag-row { margin-bottom: 10px; display: flex; flex-wrap: wrap; gap: 8px; }
         .info-tag { font-size: 0.85rem; font-weight: bold; background: #e0e7ff; color: #3730a3; padding: 4px 8px; border-radius: 6px; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; }
         .info-tag:hover { background: #c7d2fe; transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
@@ -155,7 +155,7 @@
         import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
         
         // ==========================================
-        // 1. 初始化與金鑰設定 (直接寫死 ANON_KEY 供前台唯讀)
+        // 1. 初始化與金鑰設定
         // ==========================================
         const SUPABASE_URL = 'https://ymrpsmrxnoyypayzujlm.supabase.co';
         const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InltcnBzbXJ4bm95eXBheXp1amxtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwNTYyMzcsImV4cCI6MjA5ODYzMjIzN30.Mp8K310jjvKUkKQszs5VaA8GwuJUzQTv3PyXfP7ZdKU';
@@ -257,7 +257,7 @@
                 }
             } else {
                 title.textContent = '社會議題庫';
-                searchContainer.style.display = 'none'; // 隱藏搜尋框
+                searchContainer.style.display = 'none'; 
                 mobileSelect.classList.add('active-tab');
                 tagsContainer.classList.add('desktop-issue-tags');
                 
@@ -266,7 +266,6 @@
             }
         }
 
-        // 渲染手機下拉選單 (議題專用)
         window.renderMobileIssueSelect = function() {
             let options = `<option value="latest" ${currentMode === 'latest' ? 'selected' : ''}>✨ 全部 / 所有事件</option>`;
             cacheIssues.forEach(i => {
@@ -313,7 +312,6 @@
             } else {
                 html += `<button class="quick-tag-btn ${isLatestActive}" style="width: 100%; margin-bottom: 5px; justify-content: center;" onclick="resetToLatest()">✨ 全部 / 所有事件</button>`;
                 
-                // 議題：無條件列出所有標籤，併排呈現
                 if (cacheIssues.length > 0) {
                     html += cacheIssues.map(i => {
                         const isActive = currentFilterId === i.id ? 'active' : '';
@@ -348,7 +346,7 @@
         };
 
         // ==========================================
-        // 3. 事件資料獲取 (無限捲動與關聯深層查詢)
+        // 3. 事件資料獲取 (多維度網狀 Join 查詢)
         // ==========================================
         async function loadLatestEvents() {
             if (isFetching || !hasMoreData) return;
@@ -377,12 +375,12 @@
             currentFilterId = id;
             currentTargetName = (type === 'politician') ? name : null; 
             
+            // 💡 修正點擊卡片上人物時，側邊欄完整同步並高亮 Active 狀態
             if (type === 'politician' && currentTab !== 'politicians') {
                 switchMainTab('politicians', true);
                 document.getElementById('sidebar-search').value = name;
             } else if (type === 'issue' && currentTab !== 'issues') {
                 switchMainTab('issues', true);
-                // 修復 Bug：切換至議題時不再動態塞入文字至搜尋框，保留完整議題清單
             }
             
             page = 0;
@@ -455,7 +453,7 @@
         }
 
         // ==========================================
-        // 4. 事件卡片渲染 (雙層排版與隱藏重複標籤)
+        // 4. 事件卡片渲染 (多標籤並排與點擊跨向跳轉)
         // ==========================================
         function renderEvents(events) {
             const html = events.map(e => {
@@ -465,6 +463,7 @@
                     `<span class="info-tag issue-tag" onclick="loadSpecificData('issue', '${m.issue_id}', '${m.issues.name}')">📌 ${m.issues.name}</span>`
                 ).join('') || '';
                 
+                // 💡 人物標籤渲染：當前正在看的人名會自動去重，其餘關聯人物標籤(包含萬美玲)皆會綁定 onclick 自動跳轉
                 const polTags = e.event_politician_map?.filter(m => m.politicians?.name && m.politicians.name !== currentTargetName).map(m => 
                     `<span class="info-tag" onclick="loadSpecificData('politician', '${m.politician_id}', '${m.politicians.name}')">👤 ${m.politicians.name}</span>`
                 ).join('') || '';
@@ -512,7 +511,7 @@
         }
 
         // ==========================================
-        // 5. 互動邏輯與 IntersectionObserver 監聽
+        // 5. 互動邏輯與安全視窗
         // ==========================================
         window.resetToLatest = function() {
             if (currentMode === 'latest' && page === 0) return;
