@@ -21,171 +21,216 @@
         #login-section { max-width: 400px; margin: 100px auto; background: var(--card-bg); padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .input-group { margin-bottom: 15px; }
         .input-group label { display: block; margin-bottom: 5px; font-weight: bold; }
-        .input-group input, .input-group select, .input-group textarea { width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px; }
-        .btn { width: 100%; padding: 10px; background: var(--primary); color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; }
-        .btn:hover { background: #1d4ed8; }
-
-        /* 主控台配置 */
-        #admin-panel { display: none; max-width: 1200px; margin: 0 auto; }
-        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
+        .input-group input, .input-group select { width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px; }
         
-        /* 頁籤控制 */
-        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
-        .tab-btn { padding: 10px 20px; background: #e5e7eb; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        .tab-btn.active { background: var(--primary); color: white; }
+        /* 儀表板區塊 */
+        #dashboard-section { max-width: 1200px; margin: 0 auto; display: none; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
         
-        .tab-content { display: none; background: var(--card-bg); padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        /* 頁籤設計 (Tabs) */
+        .tabs { display: flex; gap: 5px; border-bottom: 2px solid var(--border); margin-bottom: 20px; flex-wrap: wrap; }
+        .tab-btn { background: transparent; border: none; padding: 10px 20px; font-size: 1rem; cursor: pointer; color: #6b7280; font-weight: bold; border-bottom: 3px solid transparent; margin-bottom: -2px; }
+        .tab-btn:hover { color: var(--primary); }
+        .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+        .tab-content { display: none; animation: fadeIn 0.3s ease-in-out; }
         .tab-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-        /* 表格與清單 */
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        table th, table td { padding: 12px; border: 1px solid var(--border); text-align: left; }
-        table th { background: #f9fafb; }
+        /* 卡片設計與排版 (RWD) */
+        .panel { background: var(--card-bg); padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .panel h2 { margin-top: 0; font-size: 1.2rem; border-bottom: 2px solid var(--border); padding-bottom: 10px; }
         
-        .action-btn { padding: 4px 8px; border: none; border-radius: 4px; color: white; cursor: pointer; font-size: 0.85rem; margin-right: 5px; font-weight: bold; }
-        .btn-toggle { background: #6b7280; }
-        .btn-delete { background: var(--danger); }
-        .btn-edit { background: #d97706; }
-
-        /* 事件卡片管理排版 */
-        .event-manage-card { border: 1px solid var(--border); padding: 15px; border-radius: 8px; margin-bottom: 15px; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-        .event-manage-meta { display: flex; gap: 15px; font-size: 0.85rem; color: #6b7280; margin: 5px 0 10px 0; flex-wrap: wrap; }
-        .event-manage-quote { font-weight: bold; font-size: 1.1rem; margin: 0 0 8px 0; }
-        .event-manage-context { background: #f8fafc; padding: 10px; border-left: 4px solid var(--primary); font-size: 0.9rem; margin-bottom: 10px; }
+        .card { border: 1px solid var(--border); border-radius: 6px; padding: 15px; margin-bottom: 15px; background: #fafafa; }
+        .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+        .card-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px;}
         
-        /* 圖片預覽與貼上區塊 */
-        .image-upload-zone { background: #f8fafc; border: 2px dashed var(--border); padding: 15px; border-radius: 6px; text-align: center; margin-top: 10px; position: relative; }
-        .image-upload-zone:focus-within { border-color: var(--primary); background: #eff6ff; }
-        .img-preview { max-width: 200px; max-height: 150px; object-fit: cover; border-radius: 4px; margin-top: 10px; border: 1px solid var(--border); display: none; }
-
-        /* 彈出視窗 Modal */
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
-        .modal.active { display: flex; }
-        .modal-content { background: white; padding: 25px; border-radius: 8px; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
-        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; padding-top: 15px; border-top: 1px solid var(--border); }
+        /* 按鈕設計 */
+        button { padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; transition: opacity 0.2s; display: inline-flex; align-items: center; justify-content: center; }
+        button:hover { opacity: 0.8; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-success { background: var(--success); color: white; }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
         
-        /* 複選框群組排版 */
-        .checkbox-group { display: flex; flex-wrap: wrap; gap: 10px; padding: 10px; background: #f9fafb; border: 1px solid var(--border); border-radius: 4px; max-height: 150px; overflow-y: auto; }
-        .checkbox-item { display: inline-flex; align-items: center; gap: 5px; font-size: 0.9rem; cursor: pointer; background: white; padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); }
+        /* 內容折疊 */
+        .collapsible-content { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; }
+        .collapsible-content.expanded { max-height: 1000px; }
+        
+        .status-badge { padding: 4px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: bold; }
+        .status-visible { background: #dcfce7; color: #166534; }
+        .status-hidden { background: #f3f4f6; color: #374151; }
+        .info-tag { font-size: 0.8rem; background: #e0e7ff; color: #3730a3; padding: 2px 6px; border-radius: 4px; margin-right: 5px;}
+        
+        /* 多選核取方塊區塊 */
+        .checkbox-grid { display: flex; flex-wrap: wrap; gap: 10px; padding: 10px; border: 1px solid var(--border); border-radius: 4px; background: #fafafa; max-height: 150px; overflow-y: auto; }
+        .checkbox-label { display: inline-flex; align-items: center; gap: 5px; font-size: 0.9rem; cursor: pointer; padding: 4px 8px; background: white; border: 1px solid var(--border); border-radius: 4px;}
+        .checkbox-label:hover { background: #f3f4f6; }
     </style>
 </head>
 <body>
 
     <div id="login-section">
-        <h2 style="text-align: center; margin-top: 0;">🔒 啪哩啪哩數據庫解鎖</h2>
+        <h2>系統解鎖</h2>
         <div class="input-group">
-            <label>Supabase 專案網址 (URL)</label>
-            <input type="text" id="db-url" placeholder="https://xxx.supabase.co">
+            <label>Supabase URL</label>
+            <input type="text" id="supa-url" placeholder="https://xyzcompany.supabase.co">
         </div>
         <div class="input-group">
-            <label>Service Role 最高權限私鑰 (Key)</label>
-            <input type="password" id="db-key" placeholder="請輸入標記為 service_role 的私鑰">
+            <label>Service Role Key (最高權限)</label>
+            <input type="password" id="supa-key" placeholder="eyJh......">
         </div>
-        <button class="btn" onclick="unlockSystem()">驗證並解鎖系統</button>
+        <button class="btn-primary" style="width: 100%" onclick="unlockSystem()">解鎖進入後台</button>
     </div>
 
-    <div id="admin-panel">
-        <header>
-            <h1>🛠️ Polipoli 後台主控管理系統</h1>
-            <div>
-                <span id="status-badge" style="color: var(--success); font-weight: bold; margin-right: 15px;">● 最高權限連線中</span>
-                <button onclick="logout()" style="padding: 6px 12px; background: #374151; color: white; border: none; border-radius: 4px; cursor: pointer;">鎖定並登出</button>
-            </div>
-        </header>
+    <div id="dashboard-section">
+        <div class="header">
+            <h1>啪哩啪哩-後台管理</h1>
+            <button class="btn-outline" onclick="logout()">鎖定並登出</button>
+        </div>
 
         <div class="tabs">
-            <button class="tab-btn active" onclick="switchTab('tab-import')">📥 批次匯入精靈</button>
-            <button class="tab-btn" onclick="switchTab('tab-politicians')">👤 人物建檔與審核</button>
-            <button class="tab-btn" onclick="switchTab('tab-issues')">📌 社會議題審核</button>
-            <button class="tab-btn" onclick="switchTab('tab-events')">📝 事件審核與校正牆</button>
+            <button class="tab-btn active" onclick="switchTab(event, 'tab-1')">1. 匯入與基本管理</button>
+            <button class="tab-btn" onclick="switchTab(event, 'tab-2')">2. 事件審核</button>
         </div>
 
-        <div id="tab-import" class="tab-content active">
-            <h2>📥 AI JSON 數據批次匯入精靈</h2>
-            <p style="color: #6b7280; font-size: 0.9rem;">請將產出角色生成的標準 JSON 陣列直接貼在下方欄位中。系統將自動執行去關聯化寫入，若遇到未建檔的人物或議題，將會自動在底層新增，並精準綁定多重網狀交織關聯線。</p>
-            <div class="input-group">
-                <label>標準 JSON 數據代碼</label>
-                <textarea id="json-input" rows="12" placeholder="[{ ... }, { ... }]" style="font-family: monospace; font-size: 0.85rem;"></textarea>
+        <div id="tab-1" class="tab-content active">
+            <div class="panel">
+                <h2>大量資料匯入 (JSON)</h2>
+                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                    <input type="file" id="json-upload" accept=".json" style="flex-grow: 1;">
+                    <button class="btn-primary" onclick="importJSON()">執行匯入</button>
+                </div>
+                <small style="color: #6b7280; display: block; margin-top: 5px;">* 支援 JSON 內的 `issue_name` 欄位。新匯入的事件預設為隱藏狀態，人物與議題若不存在將自動建立並綁定。</small>
             </div>
-            <button class="btn" onclick="importJSON()">啟動智能解析並批次匯入</button>
-        </div>
 
-        <div id="tab-politicians" class="tab-content">
-            <h2>👤 政治人物建檔與審核中心</h2>
-            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-                <input type="text" id="new-pol-name" placeholder="輸入政治人物姓名" style="padding: 8px; border: 1px solid var(--border); border-radius: 4px; flex: 2;">
-                <input type="text" id="new-pol-party" placeholder="輸入所屬政黨" style="padding: 8px; border: 1px solid var(--border); border-radius: 4px; flex: 1;">
-                <button class="btn" onclick="addPolitician()" style="width: auto; padding: 0 20px;">手動新增人物</button>
+            <div class="panel">
+                <h2>人物管理模組</h2>
+                <div class="card">
+                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                        <input type="text" id="new-pol-name" placeholder="姓名" style="flex: 1; padding: 6px;">
+                        <input type="text" id="new-pol-party" placeholder="黨籍" style="flex: 1; padding: 6px;">
+                    </div>
+                    <button class="btn-success" style="width: 100%;" onclick="addPolitician()">+ 手動新增人物</button>
+                </div>
+                
+                <div class="card" style="margin-top: 15px;">
+                    <h3 style="margin-top: 0; font-size: 1rem; margin-bottom: 10px;">現有人物名單</h3>
+                    <select id="politician-select" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 1rem;" onchange="renderPolActions()">
+                        <option value="">(請等待資料載入...)</option>
+                    </select>
+                    <div id="politician-actions" class="card-actions" style="display: none; margin-top: 10px;">
+                    </div>
+                </div>
             </div>
-            <table>
-                <thead>
-                    <tr>
-                        <th>姓名</th>
-                        <th>所屬政黨</th>
-                        <th>前台可見度</th>
-                        <th>管理操作</th>
-                    </tr>
-                </thead>
-                <tbody id="politicians-table-body"></tbody>
-            </table>
-        </div>
 
-        <div id="tab-issues" class="tab-content">
-            <h2>📌 社會議題庫建檔與審核中心</h2>
-            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-                <input type="text" id="new-issue-name" placeholder="例如：居住正義、交通安全、政治攻防、個人爭議" style="padding: 8px; border: 1px solid var(--border); border-radius: 4px; flex: 1;">
-                <button class="btn" onclick="addIssue()" style="width: auto; padding: 0 20px;">手動新增議題標籤</button>
+            <div class="panel">
+                <h2>社會議題管理模組</h2>
+                <div class="card">
+                    <div style="display: flex; gap: 10px; margin-bottom: 10px; flex-direction: column;">
+                        <input type="text" id="new-issue-name" placeholder="社會議題名稱 (例：居住正義)" style="padding: 6px;">
+                        <input type="text" id="new-issue-desc" placeholder="議題簡介說明 (選填)" style="padding: 6px;">
+                    </div>
+                    <button class="btn-success" style="width: 100%;" onclick="addIssue()">+ 手動新增議題</button>
+                </div>
+                <div id="issues-container" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+                </div>
             </div>
-            <table>
-                <thead>
-                    <tr>
-                        <th>社會議題/備用桶標籤名稱</th>
-                        <th>前台可見度</th>
-                        <th>管理操作</th>
-                    </tr>
-                </thead>
-                <tbody id="issues-table-body"></tbody>
-            </table>
         </div>
 
-        <div id="tab-events" class="tab-content">
-            <h2>📝 核心事件審核與網狀數據校正牆</h2>
-            <p style="color: #6b7280; font-size: 0.9rem;">提示：AI 剛匯入的事件預設皆為「隱藏 (不可見)」狀態，請在此逐一審查內文、新聞網址，或點擊「編輯校正」來手動勾選漏掉的人物標籤，確認無誤後點擊「顯示」即可推播至前台。</p>
-            <div id="events-manage-list"></div>
+        <div id="tab-2" class="tab-content">
+            <div class="panel" style="border: 2px solid var(--primary); background-color: #f8fafc;">
+                <h2 style="color: var(--primary);">+ 手動新增單筆爭議事件</h2>
+                <div class="card" style="display: flex; flex-direction: column; gap: 15px; border: none; background: transparent; padding: 0;">
+                    <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 200px;">
+                            <label style="font-weight: bold; font-size: 0.9rem; display: block; margin-bottom: 5px;">關聯人物 (必選)</label>
+                            <select id="manual-pol-id" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;"></select>
+                        </div>
+                        <div style="flex: 1; min-width: 200px;">
+                            <label style="font-weight: bold; font-size: 0.9rem; display: block; margin-bottom: 5px;">關聯社會議題 (可選)</label>
+                            <select id="manual-issue-id" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;"></select>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 150px;">
+                            <label style="font-weight: bold; font-size: 0.9rem; display: block; margin-bottom: 5px;">發生日期</label>
+                            <input type="date" id="manual-date" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
+                        </div>
+                        <div style="flex: 1; min-width: 150px;">
+                            <label style="font-weight: bold; font-size: 0.9rem; display: block; margin-bottom: 5px;">爭議分類</label>
+                            <input type="text" id="manual-category" placeholder="例: 失言、程序爭議" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
+                        </div>
+                        <div style="flex: 1; min-width: 200px;">
+                            <label style="font-weight: bold; font-size: 0.9rem; display: block; margin-bottom: 5px;">嚴重度</label>
+                            <select id="manual-severity" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
+                                <option value="1">1：一般爭議</option>
+                                <option value="2">2：新聞事件</option>
+                                <option value="3">3：重大政治事件</option>
+                                <option value="4">4：司法案件或重大公共利益事件</option>
+                                <option value="5">5：影響全國政治之重大事件</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label style="font-weight: bold; font-size: 0.9rem; display: block; margin-bottom: 5px;">爭議行為描述 / 核心語錄 (標題，必填)</label>
+                        <input type="text" id="manual-quote" placeholder="精簡描述事件核心" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
+                    </div>
+                    <div>
+                        <label style="font-weight: bold; font-size: 0.9rem; display: block; margin-bottom: 5px;">事件背景與脈絡 (內容，必填)</label>
+                        <textarea id="manual-context" rows="4" placeholder="詳細具體的事件脈絡..." style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px; font-family: inherit;"></textarea>
+                    </div>
+                    <div>
+                        <label style="font-weight: bold; font-size: 0.9rem; display: block; margin-bottom: 5px;">新聞來源 URL (選填)</label>
+                        <input type="text" id="manual-url" placeholder="https://..." style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
+                    </div>
+                    <button class="btn-success" style="padding: 10px;" onclick="submitManualEvent()">發布新增事件 (預設隱藏)</button>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>事件管理模組 (含網狀關聯資訊)</h2>
+                <div id="events-container">
+                </div>
+            </div>
         </div>
     </div>
 
-    <div id="edit-modal" class="modal">
-        <div class="modal-content">
-            <h3 style="margin-top:0; border-bottom: 2px solid var(--border); padding-bottom:10px;">✏️ 網狀交織數據精準校正</h3>
+    <div id="edit-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
+        <div class="panel" style="width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto;">
+            <h2>編輯事件資料</h2>
             <input type="hidden" id="edit-event-id">
             
             <div class="input-group">
-                <label>核心爭議引言/標題 (Quote)</label>
-                <input type="text" id="edit-event-quote">
-            </div>
-            <div class="input-group">
-                <label>歷史時空脈絡與客觀後果 (Context)</label>
-                <textarea id="edit-event-context" rows="4"></textarea>
-            </div>
-            <div class="input-group">
-                <label>原始新聞佐證網址 (Source URL)</label>
-                <input type="text" id="edit-event-source-url">
-            </div>
-            <div class="input-group">
-                <label>歸屬社會議題/功能桶</label>
-                <select id="edit-event-issue"></select>
-            </div>
-            
-            <div class="input-group">
-                <label style="color: var(--primary);">👤 關聯政治人物 (可多選校正，勾選萬美玲前台即立刻連動)</label>
-                <div id="edit-event-politicians-group" class="checkbox-group">
+                <label>關聯政治人物 (可多選綁定)</label>
+                <div id="edit-pol-checkboxes" class="checkbox-grid">
                     </div>
             </div>
 
-            <div class="modal-actions">
-                <button onclick="closeEditModal()" style="padding: 8px 16px; background:#e5e7eb; border:none; border-radius:4px; cursor:pointer; font-weight:bold;">取消</button>
-                <button onclick="saveEventEdit()" style="padding: 8px 16px; background:var(--primary); color:white; border:none; border-radius:4px; cursor:pointer; font-weight:bold;">儲存精準校正</button>
+            <div class="input-group">
+                <label>關聯社會議題 (標籤)</label>
+                <select id="edit-issue" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label>爭議行為描述 / 核心語錄 (標題)</label>
+                <input type="text" id="edit-quote">
+            </div>
+       
+            <div class="input-group">
+                <label>事件背景與脈絡 (內容)</label>
+                <textarea id="edit-context" rows="6" style="width:100%; padding:8px; border:1px solid var(--border); border-radius:4px; font-family:inherit;"></textarea>
+            </div>
+            <div class="input-group">
+                <label>真實新聞連結 (URL)</label>
+                <input type="text" id="edit-url" placeholder="若無連結請留白">
+            </div>
+            
+            <div style="display:flex; gap:10px; margin-top:20px;">
+                <button class="btn-primary" onclick="saveEventEdit()">儲存修改</button>
+                <button class="btn-outline" onclick="closeEditModal()">取消</button>
             </div>
         </div>
     </div>
@@ -194,470 +239,460 @@
         import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
         let supabase = null;
-        let cachePoliticians = [];
-        let cacheIssues = [];
 
         // ==========================================
-        // 1. 驗證登入與系統初始化
+        // 系統初始化與頁籤切換
         // ==========================================
-        window.unlockSystem = async function() {
-            const url = document.getElementById('db-url').value.trim();
-            const key = document.getElementById('db-key').value.trim();
-
-            if (!url || !key) { alert('專案網址與 service_role 金鑰皆為必填！'); return; }
-
-            try {
-                const client = createClient(url, key);
-                const { data, error } = await client.from('politicians').select('count', { count: 'exact', head: true });
-                
-                if (error) throw error;
-
-                // 驗證通過，寫入快取
-                sessionStorage.setItem('sp_url', url);
-                sessionStorage.setItem('sp_key', key);
-                supabase = client;
-
-                document.getElementById('login-section').style.display = 'none';
-                document.getElementById('admin-panel').style.display = 'block';
-
-                await refreshAllData();
-            } catch (err) {
-                alert('連線驗證失敗，請檢查網址是否正確，且金鑰必須是最高權限的 service_role_key！\n錯誤訊息: ' + err.message);
+        window.onload = () => {
+            const storedUrl = sessionStorage.getItem('supa_url');
+            const storedKey = sessionStorage.getItem('supa_key');
+            if (storedUrl && storedKey) {
+                initSupabase(storedUrl, storedKey);
             }
         };
 
-        window.logout = function() {
-            sessionStorage.clear();
-            alert('憑證已安全銷毀，系統已鎖定。');
-            location.reload();
-        };
-
-        // 自動登入檢查
-        window.addEventListener('DOMContentLoaded', () => {
-            const url = sessionStorage.getItem('sp_url');
-            const key = sessionStorage.getItem('sp_key');
-            if (url && key) {
-                document.getElementById('db-url').value = url;
-                document.getElementById('db-key').value = key;
-                unlockSystem();
-            }
-        });
-
-        window.switchTab = function(tabId) {
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(ctx => ctx.classList.remove('active'));
-            
-            event.target.classList.add('active');
+        function switchTab(evt, tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
             document.getElementById(tabId).classList.add('active');
-        };
-
-        async function refreshAllData() {
-            if (!supabase) return;
-            const [pRes, iRes] = await Promise.all([
-                supabase.from('politicians').select('*').order('name'),
-                supabase.from('issues').select('*').order('name')
-            ]);
-            cachePoliticians = pRes.data || [];
-            cacheIssues = iRes.data || [];
-
-            renderPoliticiansTable();
-            renderIssuesTable();
-            loadEventsManageList();
+            evt.currentTarget.classList.add('active');
         }
 
-        // ==========================================
-        // 2. 批次匯入精靈核心運作邏輯
-        // ==========================================
-        window.importJSON = async function() {
-            const inputRaw = document.getElementById('json-input').value.trim();
-            if (!inputRaw) { alert('請貼入標準 JSON 代碼數據！'); return; }
+        function unlockSystem() {
+            const url = document.getElementById('supa-url').value.trim();
+            const key = document.getElementById('supa-key').value.trim();
+            if (!url || !key) return alert('請輸入完整的 URL 與 Key');
+            sessionStorage.setItem('supa_url', url);
+            sessionStorage.setItem('supa_key', key);
+            initSupabase(url, key);
+        }
 
-            let arr;
+        function logout() {
+            sessionStorage.clear();
+            location.reload();
+        }
+
+        function initSupabase(url, key) {
             try {
-                arr = JSON.parse(inputRaw);
-                if (!Array.isArray(arr)) throw new Error('貼入的數據結構必須是 JSON 陣列 []');
-            } catch (err) {
-                alert('JSON 解析失敗，請確認標點符號是否完整。\n錯誤代碼: ' + err.message);
-                return;
+                supabase = createClient(url, key);
+                document.getElementById('login-section').style.display = 'none';
+                document.getElementById('dashboard-section').style.display = 'block';
+                loadPoliticians();
+                loadIssues();
+                loadEvents();
+            } catch (error) {
+                alert('初始化失敗，請確認 URL 與 Key 格式是否正確。\n錯誤訊息: ' + error.message);
+                sessionStorage.clear();
             }
-
-            let successCount = 0;
-            for (let item of arr) {
-                try {
-                    // 1. 人物防呆雙向去關聯化
-                    let politicianId;
-                    const existingPol = cachePoliticians.find(p => p.name === item.politician_name);
-                    if (existingPol) {
-                        politicianId = existingPol.id;
-                    } else {
-                        const { data: newPol, error: pErr } = await supabase
-                            .from('politicians')
-                            .insert({ name: item.politician_name, party: item.party || '未知' })
-                            .select()
-                            .single();
-                        if (pErr) throw pErr;
-                        politicianId = newPol.id;
-                        cachePoliticians.push(newPol); // 動態推入快取
-                    }
-
-                    // 2. 社會議題/備用桶智能斷開建立
-                    let issueId = null;
-                    if (item.issue_name) {
-                        const existingIssue = cacheIssues.find(i => i.name === item.issue_name);
-                        if (existingIssue) {
-                            issueId = existingIssue.id;
-                        } else {
-                            const { data: newIssue, error: iErr } = await supabase
-                                .from('issues')
-                                .insert({ name: item.issue_name })
-                                .select()
-                                .single();
-                            if (iErr) throw iErr;
-                            issueId = newIssue.id;
-                            cacheIssues.push(newIssue);
-                        }
-                    }
-
-                    // 3. 寫入主事件表 (預設皆為 false 隱藏)
-                    const { data: newEvent, error: eErr } = await supabase
-                        .from('events')
-                        .insert({
-                            quote: item.quote,
-                            context: item.context,
-                            source_url: item.source_url,
-                            date: item.date,
-                            category: item.category,
-                            severity: parseInt(item.severity) || 1,
-                            is_visible: false 
-                        })
-                        .select()
-                        .single();
-                    if (eErr) throw eErr;
-
-                    // 4. 綁定人物交織橋樑
-                    const { error: map1Err } = await supabase
-                        .from('event_politician_map')
-                        .insert({ event_id: newEvent.id, politician_id: politicianId });
-                    if (map1Err) throw map1Err;
-
-                    // 5. 綁定議題交織橋樑
-                    if (issueId) {
-                        const { error: map2Err } = await supabase
-                            .from('event_issue_map')
-                            .insert({ event_id: newEvent.id, issue_id: issueId });
-                        if (map2Err) throw map2Err;
-                    }
-
-                    successCount++;
-                } catch (singleErr) {
-                    console.error('單筆資料匯入中斷:', singleErr);
-                }
-            }
-
-            alert(`智能批次導入完成！成功解析並建立： ${successCount} 筆事件數據。`);
-            document.getElementById('json-input').value = '';
-            await refreshAllData();
-        };
-
-        // ==========================================
-        // 3. 人物與議題管理 UI 渲染
-        // ==========================================
-        function renderPoliticiansTable() {
-            const tbody = document.getElementById('politicians-table-body');
-            tbody.innerHTML = cachePoliticians.map(p => `
-                <tr>
-                    <td style="font-weight:bold;">👤 ${p.name}</td>
-                    <td><span style="background:#f3f4f6; padding:2px 8px; border-radius:4px;">${p.party}</span></td>
-                    <td style="font-weight:bold; color:${p.is_visible ? 'var(--success)' : 'var(--danger)'}">
-                        ${p.is_visible ? '● 公開顯示' : '○ 已隱藏'}
-                    </td>
-                    <td>
-                        <button class="action-btn btn-toggle" onclick="togglePolVisibility('${p.id}', ${p.is_visible})">切換可見度</button>
-                        <button class="action-btn btn-delete" onclick="deletePolitician('${p.id}')">永久刪除</button>
-                    </td>
-                </tr>
-            `).join('');
         }
 
-        window.addPolitician = async function() {
-            const name = document.getElementById('new-pol-name').value.trim();
-            const party = document.getElementById('new-pol-party').value.trim() || '無黨籍';
-            if (!name) { alert('姓名為必填欄位！'); return; }
+        // ==========================================
+        // 動態更新下拉選單 (手動新增區塊專用)
+        // ==========================================
+        function updateManualFormDropdowns() {
+            const polSelect = document.getElementById('manual-pol-id');
+            const issueSelect = document.getElementById('manual-issue-id');
 
-            const { error } = await supabase.from('politicians').insert({ name, party });
-            if (error) alert('新增失敗: ' + error.message);
-            else {
-                document.getElementById('new-pol-name').value = '';
-                document.getElementById('new-pol-party').value = '';
-                await refreshAllData();
+            if (polSelect) {
+                polSelect.innerHTML = '<option value="">-- 請選擇人物 --</option>' + 
+                    (window.currentPoliticians || []).map(p => `<option value="${p.id}">${p.name}</option>`).join('');
             }
-        };
-
-        window.togglePolVisibility = async function(id, cur) {
-            await supabase.from('politicians').update({ is_visible: !cur }).eq('id', id);
-            await refreshAllData();
-        };
-
-        window.deletePolitician = async function(id) {
-            if (!confirm('警告：刪除人物將會連帶清空前台所有關聯線（事件主體將依法保留），確定執行？')) return;
-            await supabase.from('politicians').delete().eq('id', id);
-            await refreshAllData();
-        };
-
-        function renderIssuesTable() {
-            const tbody = document.getElementById('issues-table-body');
-            tbody.innerHTML = cacheIssues.map(i => `
-                <tr>
-                    <td style="font-weight:bold; color:#166534;">📌 ${i.name}</td>
-                    <td style="font-weight:bold; color:${i.is_visible ? 'var(--success)' : 'var(--danger)'}">
-                        ${i.is_visible ? '● 公開顯示' : '○ 已隱藏'}
-                    </td>
-                    <td>
-                        <button class="action-btn btn-toggle" onclick="toggleIssueVisibility('${i.id}', ${i.is_visible})">切換可見度</button>
-                        <button class="action-btn btn-delete" onclick="deleteIssue('${i.id}')">永久刪除</button>
-                    </td>
-                </tr>
-            `).join('');
+            if (issueSelect) {
+                issueSelect.innerHTML = '<option value="">📌 無綁定議題</option>' + 
+                    (window.currentIssues || []).map(i => `<option value="${i.id}"># ${i.name}</option>`).join('');
+            }
         }
 
-        window.addIssue = async function() {
-            const name = document.getElementById('new-issue-name').value.trim();
-            if (!name) { alert('議題標籤名稱不可為空！'); return; }
-
-            const { error } = await supabase.from('issues').insert({ name });
-            if (error) alert('新增失敗: ' + error.message);
-            else {
-                document.getElementById('new-issue-name').value = '';
-                await refreshAllData();
-            }
-        };
-
-        window.toggleIssueVisibility = async function(id, cur) {
-            await supabase.from('issues').update({ is_visible: !cur }).eq('id', id);
-            await refreshAllData();
-        };
-
-        window.deleteIssue = async function(id) {
-            if (!confirm('確定永久刪除此項社會議題標籤？')) return;
-            await supabase.from('issues').delete().eq('id', id);
-            await refreshAllData();
-        };
-
         // ==========================================
-        // 4. 事件審核管理牆核心
+        // 資料讀取與渲染
         // ==========================================
-        async function loadEventsManageList() {
-            const listEl = document.getElementById('events-manage-list');
+        
+        async function loadPoliticians() {
+            if (!supabase) return;
+            const { data, error } = await supabase.from('politicians').select('*').order('created_at', { ascending: false });
+            if (error) return console.error(error);
             
-            const { data: events, error } = await supabase
-                .from('events')
-                .select(`
-                    *,
-                    event_politician_map ( politician_id, politicians ( name ) ),
-                    event_issue_map ( issue_id, issues ( name ) )
-                `)
-                .order('created_at', { ascending: false });
+            window.currentPoliticians = data;
+            const selectEl = document.getElementById('politician-select');
+            const currentVal = selectEl.value; 
+            
+            selectEl.innerHTML = '<option value="">請選擇要管理的人物...</option>' + data.map(p => {
+                const statusStr = p.is_visible ? '顯示中' : '已隱藏';
+                return `<option value="${p.id}">${p.name} (${p.party || '無'}) - [${statusStr}]</option>`;
+            }).join('');
+            
+            if (data.some(p => p.id === currentVal)) {
+                selectEl.value = currentVal;
+            }
+            
+            renderPolActions();
+            updateManualFormDropdowns(); // 更新新增表單
+        }
 
-            if (error || !events || events.length === 0) {
-                listEl.innerHTML = '<div style="text-align:center; padding:2rem; color:#6b7280; font-weight:bold;">目前審核牆內空空如也。</div>';
+        function renderPolActions() {
+            const selectEl = document.getElementById('politician-select');
+            const actionsContainer = document.getElementById('politician-actions');
+            const selectedId = selectEl.value;
+            
+            if (!selectedId) {
+                actionsContainer.style.display = 'none';
                 return;
             }
+            
+            const p = window.currentPoliticians.find(pol => pol.id === selectedId);
+            if (!p) return;
+            
+            actionsContainer.style.display = 'flex';
+            actionsContainer.innerHTML = `
+                <button class="btn-outline" onclick="togglePolVisibility('${p.id}', ${p.is_visible})">切換狀態 (${p.is_visible ? '設為隱藏' : '設為顯示'})</button>
+                <button class="btn-danger" onclick="deletePolitician('${p.id}')">刪除</button>
+            `;
+        }
 
-            listEl.innerHTML = events.map(e => {
-                const pols = e.event_politician_map?.map(m => `👤 ${m.politicians?.name || '未知'}`).join(', ') || '無任何關聯人物';
-                const issues = e.event_issue_map?.map(m => `📌 ${m.issues?.name || '未知'}`).join(', ') || '尚未歸類議題';
-                const imgDisplay = e.image_url ? `block; src="${e.image_url}"` : 'none;"';
-
-                return `
-                    <div class="event-manage-card">
-                        <div class="event-manage-quote">「${e.quote}」</div>
-                        <div class="event-manage-context">${e.context}</div>
-                        <div class="event-manage-meta">
-                            <span>📅 日期: ${e.date || '未設定'}</span>
-                            <span style="color:var(--primary); font-weight:bold;">👥 關聯人物: ${pols}</span>
-                            <span style="color:#166534; font-weight:bold;">🏷️ 議題桶: ${issues}</span>
-                            <span>⚠️ 嚴重度: ${e.severity}</span>
-                            <span style="font-weight:bold; color:${e.is_visible ? 'var(--success)' : 'var(--danger)'}">
-                                狀態: ${e.is_visible ? '● 前台已發布' : '○ 審核隱藏中'}
+        async function loadIssues() {
+            if (!supabase) return;
+            const { data, error } = await supabase.from('issues').select('*').order('created_at', { ascending: false });
+            if (error) return console.error(error);
+            
+            window.currentIssues = data;
+            const container = document.getElementById('issues-container');
+            container.innerHTML = data.map(i => `
+                <div class="card" style="margin-bottom: 0;">
+                    <div class="card-header">
+                        <div>
+                            <strong style="color: var(--primary)"># ${i.name}</strong>
+                            <span class="status-badge ${i.is_visible ? 'status-visible' : 'status-hidden'}">
+                                ${i.is_visible ? '顯示中' : '已隱藏'}
                             </span>
-                        </div>
-
-                        <div style="display:flex; justify-content: space-between; align-items: center; flex-wrap:wrap; gap:10px;">
-                            <div>
-                                <button class="action-btn btn-toggle" style="background:${e.is_visible ? '#6b7280':'var(--success)'}" onclick="toggleEventVisibility('${e.id}', ${e.is_visible})">
-                                    ${e.is_visible ? '下架隱藏' : '審核通過開切發布'}
-                                </button>
-                                <button class="action-btn btn-edit" onclick="openEditModal('${e.id}')">✏️ 數據精準校正</button>
-                                <button class="action-btn btn-delete" onclick="deleteEvent('${e.id}')">永久刪除</button>
-                            </div>
-
-                            <div class="image-upload-zone" onpaste="handlePaste(event, '${e.id}')">
-                                <span style="font-size:0.8rem; color:#4b5563; font-weight:bold;">截圖直覺貼上：點擊此處並按 Ctrl+V </span>
-                                <input type="file" accept="image/*" onchange="handleFileUpload(event, '${e.id}')" style="font-size:0.75rem; max-width:150px; margin-left:10px;">
-                                <img id="preview-${e.id}" class="img-preview" style="display:${imgDisplay}>
-                            </div>
+                            <p style="font-size: 0.85rem; color: #666; margin: 5px 0 0 0;">${i.description || '無簡介'}</p>
                         </div>
                     </div>
-                `;
-            }).join('');
+                    <div class="card-actions">
+                        <button class="btn-outline" onclick="toggleIssueVisibility('${i.id}', ${i.is_visible})">切換狀態</button>
+                        <button class="btn-danger" onclick="deleteIssue('${i.id}')">刪除</button>
+                    </div>
+                </div>
+            `).join('');
+
+            updateManualFormDropdowns(); // 更新新增表單
         }
 
-        window.toggleEventVisibility = async function(id, cur) {
-            await supabase.from('events').update({ is_visible: !cur }).eq('id', id);
-            await loadEventsManageList();
-        };
-
-        window.deleteEvent = async function(id) {
-            if (!confirm('永久刪除此事件將一併抹除其延伸出的所有人與議題網絡線，確定？')) return;
-            await supabase.from('events').delete().eq('id', id);
-            await loadEventsManageList();
-        };
-
-        // ==========================================
-        // 5. 數據校正彈出視窗核心邏輯 (💡 升級多人物校正)
-        // ==========================================
-        window.openEditModal = async function(eventId) {
-            document.getElementById('edit-event-id').value = eventId;
+        async function loadEvents() {
+            if (!supabase) return;
+            const { data, error } = await supabase.from('events').select(`
+                *,
+                event_politician_map ( politician_id, politicians ( name ) ),
+                event_issue_map ( issue_id, issues ( name ) )
+            `).order('created_at', { ascending: false });
+            if (error) return console.error(error);
             
-            // 讀取單一事件與目前綁定完畢的人物與議題
-            const { data: e, error } = await supabase
-                .from('events')
-                .select(`
-                    *,
-                    event_politician_map ( politician_id ),
-                    event_issue_map ( issue_id )
-                `)
-                .eq('id', eventId)
-                .single();
+            window.currentEvents = data;
+            const container = document.getElementById('events-container');
+            container.innerHTML = data.map(e => {
+                let polNames = e.event_politician_map?.map(m => m.politicians?.name).filter(Boolean).join(', ') || '尚未綁定人物';
+                let issueNames = e.event_issue_map?.map(m => m.issues?.name).filter(Boolean).join(', ') || '無綁定議題';
 
-            if (error || !e) { alert('事件讀取失敗！'); return; }
+                const sourceLinkHtml = (e.source_url && e.source_url !== 'null' && e.source_url.trim() !== '') 
+                    ? `<a href="${e.source_url}" target="_blank" style="font-size: 0.8rem; color: var(--primary);">開啟來源連結</a>` 
+                    : `<span style="font-size: 0.8rem; color: #9ca3af;">(無來源連結)</span>`;
 
-            document.getElementById('edit-event-quote').value = e.quote || '';
-            document.getElementById('edit-event-context').value = e.context || '';
-            document.getElementById('edit-event-source-url').value = e.source_url || '';
-
-            // 渲染議題選單
-            const issueSelect = document.getElementById('edit-event-issue');
-            const currentIssueId = e.event_issue_map?.[0]?.issue_id || '';
-            issueSelect.innerHTML = '<option value="">-- 未歸類特定社會議題 --</option>' + 
-                cacheIssues.map(i => `<option value="${i.id}" ${i.id === currentIssueId ? 'selected':''}>${i.name}</option>`).join('');
-
-            // 💡 核心修正：渲染全資料庫政治人物複選框清單
-            const polsGroup = document.getElementById('edit-event-politicians-group');
-            const checkedPolIds = e.event_politician_map?.map(m => m.politician_id) || [];
-            
-            polsGroup.innerHTML = cachePoliticians.map(p => {
-                const isChecked = checkedPolIds.includes(p.id) ? 'checked' : '';
                 return `
-                    <label class="checkbox-item">
-                        <input type="checkbox" name="edit-pol-ids" value="${p.id}" ${isChecked}>
-                        <span>${p.name} (${p.party})</span>
+                <div class="card" id="event-card-${e.id}">
+                    <div class="card-header">
+                        <div style="flex: 1;">
+                            <div style="margin-bottom: 8px;">
+                                <span class="status-badge ${e.is_visible ? 'status-visible' : 'status-hidden'}">
+                                    ${e.is_visible ? '顯示中' : '已隱藏'}
+                                </span>
+                                <span class="info-tag">👤 ${polNames}</span>
+                                <span class="info-tag">📌 ${issueNames}</span>
+                            </div>
+                            <p style="margin: 8px 0; font-weight: bold;">"${e.quote}"</p>
+                            <small style="color: #666;">分類: ${e.category || '未分類'} | 日期: ${e.date || '未知'} | 嚴重度: ${e.severity || '-'}</small>
+                        </div>
+                    </div>
+                    
+                    <button class="btn-outline" style="width: 100%; margin-bottom: 10px;" onclick="toggleContext('${e.id}')">展開/收合完整脈絡</button>
+                    
+                    <div id="context-${e.id}" class="collapsible-content">
+                        <p style="font-size: 0.9rem; line-height: 1.5; color: #4b5563;">${e.context || '無脈絡內容'}</p>
+                        ${sourceLinkHtml}
+                    </div>
+
+                    <div class="card-actions" style="margin-top: 15px; border-top: 1px solid var(--border); padding-top: 10px;">
+                        <button class="btn-outline" style="background: #fef08a; color: #854d0e; border-color: #fef08a;" onclick="openEditModal('${e.id}')">編輯內容</button>
+                        <button class="btn-primary" onclick="toggleEventVisibility('${e.id}', ${e.is_visible})">
+                            ${e.is_visible ? '隱藏事件' : '開放顯示'}
+                        </button>
+                        <button class="btn-danger" onclick="deleteEvent('${e.id}')">永久刪除</button>
+                    </div>
+                </div>
+            `}).join('');
+        }
+
+        function toggleContext(id) {
+            const el = document.getElementById(`context-${id}`);
+            el.classList.toggle('expanded');
+        }
+
+        // ==========================================
+        // JSON 網狀匯入邏輯
+        // ==========================================
+        async function importJSON() {
+            const fileInput = document.getElementById('json-upload');
+            if (!fileInput.files.length) return alert('請先選擇 JSON 檔案');
+            
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (!Array.isArray(data) || data.length === 0) return alert('匯入失敗：檔案為空或非陣列格式');
+                    
+                    alert(`讀取到 ${data.length} 筆資料，開始背景網狀匯入...`);
+                    for (const item of data) {
+                        let polId = null;
+                        const { data: polData } = await supabase.from('politicians').select('id').eq('name', item.politician_name).single();
+                        if (polData) {
+                            polId = polData.id;
+                        } else {
+                            const { data: newPol } = await supabase.from('politicians').insert([{ 
+                                name: item.politician_name, party: item.party || '未知' 
+                            }]).select().single();
+                            polId = newPol.id;
+                        }
+
+                        let issueId = null;
+                        if (item.issue_name) {
+                            const { data: issueData } = await supabase.from('issues').select('id').eq('name', item.issue_name).single();
+                            if (issueData) {
+                                issueId = issueData.id;
+                            } else {
+                                const { data: newIssue } = await supabase.from('issues').insert([{ 
+                                    name: item.issue_name 
+                                }]).select().single();
+                                issueId = newIssue.id;
+                            }
+                        }
+
+                        const { data: newEvent } = await supabase.from('events').insert([{
+                            quote: item.quote, context: item.context, source_url: item.source_url,
+                            date: item.date, category: item.category, severity: item.severity, is_visible: false 
+                        }]).select().single();
+                        
+                        await supabase.from('event_politician_map').insert([{ politician_id: polId, event_id: newEvent.id }]);
+                        
+                        if (issueId) {
+                            await supabase.from('event_issue_map').insert([{ issue_id: issueId, event_id: newEvent.id }]);
+                        }
+                    }
+                    
+                    alert('匯入與自動關聯完成！');
+                    loadPoliticians();
+                    loadIssues();
+                    loadEvents();
+                    fileInput.value = '';
+                    
+                } catch (error) {
+                    alert('JSON 解析失敗或寫入錯誤：' + error.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // ==========================================
+        // CRUD 操作邏輯 (人物與議題)
+        // ==========================================
+        async function addPolitician() {
+            const name = document.getElementById('new-pol-name').value.trim();
+            const party = document.getElementById('new-pol-party').value.trim();
+            if (!name) return alert('姓名不得為空');
+            await supabase.from('politicians').insert([{ name, party }]);
+            document.getElementById('new-pol-name').value = ''; document.getElementById('new-pol-party').value = '';
+            loadPoliticians();
+        }
+
+        async function togglePolVisibility(id, currentStatus) {
+            await supabase.from('politicians').update({ is_visible: !currentStatus }).eq('id', id);
+            loadPoliticians();
+        }
+
+        async function deletePolitician(id) {
+            if (!confirm('確定刪除此人物？(事件將保留)')) return;
+            await supabase.from('politicians').delete().eq('id', id);
+            loadPoliticians();
+        }
+
+        async function addIssue() {
+            const name = document.getElementById('new-issue-name').value.trim();
+            const desc = document.getElementById('new-issue-desc').value.trim();
+            if (!name) return alert('議題名稱不得為空');
+            const { error } = await supabase.from('issues').insert([{ name: name, description: desc }]);
+            if (error) return alert('新增失敗，可能是議題名稱重複');
+            document.getElementById('new-issue-name').value = ''; document.getElementById('new-issue-desc').value = '';
+            loadIssues();
+        }
+
+        async function toggleIssueVisibility(id, currentStatus) {
+            await supabase.from('issues').update({ is_visible: !currentStatus }).eq('id', id);
+            loadIssues();
+        }
+
+        async function deleteIssue(id) {
+            if (!confirm('確定刪除此議題？(事件將保留，僅解除綁定)')) return;
+            await supabase.from('issues').delete().eq('id', id);
+            loadIssues();
+        }
+
+        // ==========================================
+        // 事件 CRUD 與 手動新增邏輯
+        // ==========================================
+        async function submitManualEvent() {
+            const polId = document.getElementById('manual-pol-id').value;
+            const issueId = document.getElementById('manual-issue-id').value;
+            const quote = document.getElementById('manual-quote').value.trim();
+            const context = document.getElementById('manual-context').value.trim();
+            let sourceUrl = document.getElementById('manual-url').value.trim();
+            const date = document.getElementById('manual-date').value || new Date().toISOString().split('T')[0];
+            const category = document.getElementById('manual-category').value.trim() || '未分類';
+            const severity = document.getElementById('manual-severity').value || 1;
+            
+            if (!polId) return alert('請選擇關聯的政治人物！');
+            if (!quote || !context) return alert('標題與脈絡內容不能為空！');
+            if (!sourceUrl) sourceUrl = null;
+            
+            // 1. 新增事件主體 (預設隱藏)
+            const { data: newEvent, error: evError } = await supabase.from('events').insert([{
+                quote, context, source_url: sourceUrl, date, category, severity, is_visible: false 
+            }]).select().single();
+            if (evError) return alert('新增事件失敗: ' + evError.message);
+
+            // 2. 寫入中介關聯
+            await supabase.from('event_politician_map').insert([{ politician_id: polId, event_id: newEvent.id }]);
+            if (issueId) {
+                await supabase.from('event_issue_map').insert([{ issue_id: issueId, event_id: newEvent.id }]);
+            }
+
+            alert('手動新增成功！新事件預設為隱藏狀態，請確認後開放顯示。');
+            
+            // 3. 清空表單並重新載入
+            document.getElementById('manual-quote').value = '';
+            document.getElementById('manual-context').value = '';
+            document.getElementById('manual-url').value = '';
+            document.getElementById('manual-category').value = '';
+            document.getElementById('manual-severity').value = '1';
+            loadEvents();
+        }
+
+        async function toggleEventVisibility(id, currentStatus) {
+            await supabase.from('events').update({ is_visible: !currentStatus }).eq('id', id);
+            loadEvents();
+        }
+
+        async function deleteEvent(id) {
+            if (!confirm('確定永久刪除此事件？')) return;
+            await supabase.from('events').delete().eq('id', id);
+            loadEvents();
+        }
+
+        // ==========================================
+        // 事件內容編輯邏輯
+        // ==========================================
+        function openEditModal(id) {
+            const event = window.currentEvents.find(e => e.id === id);
+            if (!event) return alert('找不到該事件資料');
+            
+            document.getElementById('edit-event-id').value = event.id;
+            document.getElementById('edit-quote').value = event.quote || '';
+            document.getElementById('edit-context').value = event.context || '';
+            
+            const urlVal = (event.source_url && event.source_url !== 'null') ? event.source_url : '';
+            document.getElementById('edit-url').value = urlVal;
+            
+            // 渲染議題下拉選單
+            const issueSelect = document.getElementById('edit-issue');
+            issueSelect.innerHTML = '<option value="">📌 無綁定議題</option>' + 
+                (window.currentIssues || []).map(i => `<option value="${i.id}"># ${i.name}</option>`).join('');
+            
+            const currentIssueMap = event.event_issue_map?.[0]; 
+            if (currentIssueMap && currentIssueMap.issue_id) {
+                issueSelect.value = currentIssueMap.issue_id;
+            } else {
+                issueSelect.value = "";
+            }
+
+            // 動態渲染政治人物多選核取方塊
+            const polCheckboxesContainer = document.getElementById('edit-pol-checkboxes');
+            const currentPolIds = event.event_politician_map?.map(m => m.politician_id) || [];
+            
+            polCheckboxesContainer.innerHTML = (window.currentPoliticians || []).map(p => {
+                const isChecked = currentPolIds.includes(p.id) ? 'checked' : '';
+                return `
+                    <label class="checkbox-label">
+                        <input type="checkbox" value="${p.id}" ${isChecked}>
+                        ${p.name}
                     </label>
                 `;
             }).join('');
+            
+            document.getElementById('edit-modal').style.display = 'flex';
+        }
 
-            document.getElementById('edit-edit-modal' || 'edit-modal').classList.add('active');
-        };
+        function closeEditModal() {
+            document.getElementById('edit-modal').style.display = 'none';
+        }
 
-        window.closeEditModal = function() {
-            document.getElementById('edit-modal').classList.remove('active');
-        };
+        async function saveEventEdit() {
+            const id = document.getElementById('edit-event-id').value;
+            const quote = document.getElementById('edit-quote').value.trim();
+            const context = document.getElementById('edit-context').value.trim();
+            let source_url = document.getElementById('edit-url').value.trim();
+            const issueId = document.getElementById('edit-issue').value;
+            
+            // 抓取所有被勾選的政治人物 UUID
+            const checkedPolCheckboxes = document.querySelectorAll('#edit-pol-checkboxes input[type="checkbox"]:checked');
+            const newPolIds = Array.from(checkedPolCheckboxes).map(cb => cb.value);
 
-        window.saveEventEdit = async function() {
-            const eventId = document.getElementById('edit-event-id').value;
-            const quote = document.getElementById('edit-event-quote').value.trim();
-            const context = document.getElementById('edit-event-context').value.trim();
-            const sourceUrl = document.getElementById('edit-event-source-url').value.trim();
-            const issueId = document.getElementById('edit-event-issue').value;
+            if (!source_url) source_url = null;
+            if (!quote || !context) return alert('標題與內容不能為空');
+            if (newPolIds.length === 0) return alert('事件必須至少關聯一位政治人物！');
 
-            // 💡 收集複選框中所有被勾選的政治人物 ID (例如萬美玲、黃國昌)
-            const checkedBoxes = document.querySelectorAll('input[name="edit-pol-ids"]:checked');
-            const selectedPolIds = Array.from(checkedBoxes).map(cb => cb.value);
-
-            if (selectedPolIds.length === 0) { alert('一個事件至少必須勾選關聯一位政治人物！'); return; }
-
-            try {
-                // 1. 更新主事件表
-                const { error: eErr } = await supabase
-                    .from('events')
-                    .update({ quote, context, source_url: sourceUrl || null })
-                    .eq('id', eventId);
-                if (eErr) throw eErr;
-
-                // 2. 嚴謹的事務級別去關聯更新：先切斷該事件在人物中介表的所有舊線，再重新建立
-                const { error: delPolErr } = await supabase.from('event_politician_map').delete().eq('event_id', eventId);
-                if (delPolErr) throw delPolErr;
-
-                const polInserts = selectedPolIds.map(pId => ({ event_id: eventId, politician_id: pId }));
-                const { error: insPolErr } = await supabase.from('event_politician_map').insert(polInserts);
-                if (insPolErr) throw insPolErr;
-
-                // 3. 議題中介表切斷更新
-                const { error: delIssueErr } = await supabase.from('event_issue_map').delete().eq('event_id', eventId);
-                if (delIssueErr) throw delIssueErr;
-
-                if (issueId) {
-                    const { error: insIssueErr } = await supabase.from('event_issue_map').insert({ event_id: eventId, issue_id: issueId });
-                    if (insIssueErr) throw insIssueErr;
-                }
-
-                alert('大功告成！網狀數據已成功進行多維度精準校正。');
-                closeEditModal();
-                await refreshAllData();
-            } catch (err) {
-                alert('校正儲存中斷錯誤: ' + err.message);
+            // 1. 儲存事件本體修改
+            const { error } = await supabase.from('events').update({ 
+                quote, 
+                context, 
+                source_url 
+            }).eq('id', id);
+            
+            if (error) {
+                alert('更新事件失敗: ' + error.message);
+                return;
             }
-        };
+            
+            // 2. 重建議題關聯
+            await supabase.from('event_issue_map').delete().eq('event_id', id);
+            if (issueId) {
+                await supabase.from('event_issue_map').insert([{ event_id: id, issue_id: issueId }]);
+            }
+
+            // 3. 重建人物關聯 (先全刪舊的，再插入新的)
+            await supabase.from('event_politician_map').delete().eq('event_id', id);
+            const polInsertData = newPolIds.map(polId => ({ event_id: id, politician_id: polId }));
+            await supabase.from('event_politician_map').insert(polInsertData);
+
+            alert('修改與標籤綁定已儲存！');
+            closeEditModal();
+            loadEvents();
+        }
 
         // ==========================================
-        // 6. 直覺貼上截圖與儲存桶(Storage)自動附加
+        // 模組化暴露
         // ==========================================
-        async function processImageFile(file, eventId) {
-            if (!supabase) return;
-            
-            const fileExt = file.type.split('/')[1] || 'png';
-            const fileName = `${eventId}-${Date.now()}.${fileExt}`;
-            
-            let { error: uploadError } = await supabase.storage
-                .from('evidence_images')
-                .upload(fileName, file);
-
-            if (uploadError) { alert('圖片上傳儲存桶失敗: ' + uploadError.message); return; }
-
-            const { data: publicUrlData } = supabase.storage
-                .from('evidence_images')
-                .getPublicUrl(fileName);
-            
-            await supabase.from('events').update({ image_url: publicUrlData.publicUrl }).eq('id', eventId);
-            
-            const imgEl = document.getElementById(`preview-${eventId}`);
-            imgEl.src = publicUrlData.publicUrl; imgEl.style.display = 'block';
-            alert('截圖附加成功！前台將即時展示該佐證畫面。');
-        }
-
-        function handleFileUpload(e, eventId) {
-            const file = e.target.files[0];
-            if (file) processImageFile(file, eventId);
-        }
-
-        function handlePaste(e, eventId) {
-            e.preventDefault();
-            const items = (e.clipboardData || e.originalEvent.clipboardData).items;
-            for (let item of items) {
-                if (item.type.indexOf('image') === 0) {
-                    processImageFile(item.getAsFile(), eventId);
-                    return;
-                }
-            }
-            alert('剪貼簿內沒有偵測到影像圖檔！請先使用任意截圖工具後再來此處 Ctrl+V 貼上。');
-        }
-
-        // 模組化掛載
         Object.assign(window, {
             switchTab, unlockSystem, logout, importJSON, 
-            addPolitician, togglePolVisibility, deletePolitician,
+            addPolitician, togglePolVisibility, deletePolitician, renderPolActions,
             addIssue, toggleIssueVisibility, deleteIssue,
-            toggleEventVisibility, deleteEvent, handleFileUpload, handlePaste,
+            submitManualEvent, toggleContext, toggleEventVisibility, deleteEvent, 
             openEditModal, closeEditModal, saveEventEdit
         });
     </script>
