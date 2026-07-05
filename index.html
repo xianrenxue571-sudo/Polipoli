@@ -175,7 +175,6 @@
         // 2. 側邊欄資料抓取與動態按鈕渲染
         // ==========================================
         async function fetchSidebarData() {
-            // 同時抓取人物、議題公開清單、以及中介關聯表做事件數統計
             const [polRes, issueRes, mapRes] = await Promise.all([
                 supabase.from('politicians').select('*').eq('is_visible', true).order('name'),
                 supabase.from('issues').select('*').eq('is_visible', true).order('name'),
@@ -185,7 +184,7 @@
             if (polRes.data) cachePoliticians = polRes.data;
             if (issueRes.data) cacheIssues = issueRes.data;
             
-            // 💡 動態計算事件數前五名人物
+            // 動態計算事件數前五名人物
             if (mapRes.data && cachePoliticians.length > 0) {
                 const counts = mapRes.data.reduce((acc, cur) => {
                     acc[cur.politician_id] = (acc[cur.politician_id] || 0) + 1;
@@ -226,7 +225,13 @@
                 title.textContent = '社會議題庫';
                 searchInput.placeholder = '搜尋議題名稱...';
             }
-            renderSidebarButtons();
+            
+            // 💡 修正：如果搜尋框裡面有字，維持搜尋過濾狀態；沒有字才渲染預設按鈕群
+            if (searchInput.value.trim() !== '') {
+                filterSidebar();
+            } else {
+                renderSidebarButtons();
+            }
         }
 
         // 渲染基礎組合按鈕（未搜尋狀態）
@@ -238,7 +243,6 @@
             let html = `<button class="quick-tag-btn ${isLatestActive}" onclick="resetToLatest()">✨ 綜合最新事件</button>`;
             
             if (currentTab === 'politicians') {
-                // 1. 安全過濾難檢字：只有真正存在於資料庫（cache）中的才渲染，避免出現空資料困惑
                 const visibleQuickTags = quickPolTags.filter(tag => cachePoliticians.some(p => p.name === tag));
                 if (visibleQuickTags.length > 0) {
                     html += `<div style="font-size:0.8rem; color:var(--text-muted); margin: 12px 0 4px 4px; width:100%; font-weight:bold;">難檢字快速查</div>`;
@@ -249,7 +253,6 @@
                     }).join('');
                 }
                 
-                // 2. 渲染動態前五名熱門追蹤人物（若已存在於難檢字中則剔除，避免按鈕重複）
                 const topFiveFiltered = (window.topFivePoliticians || []).filter(p => !visibleQuickTags.includes(p.name));
                 if (topFiveFiltered.length > 0) {
                     html += `<div style="font-size:0.8rem; color:var(--text-muted); margin: 12px 0 4px 4px; width:100%; font-weight:bold;">🔥 熱門追蹤人物</div>`;
@@ -259,7 +262,6 @@
                     }).join('');
                 }
             } else {
-                // 議題標籤處理
                 const visibleIssueTags = quickIssueTags.filter(tag => cacheIssues.some(i => i.name === tag));
                 if (visibleIssueTags.length > 0) {
                     html += `<div style="font-size:0.8rem; color:var(--text-muted); margin: 12px 0 4px 4px; width:100%; font-weight:bold;">熱門關注議題</div>`;
@@ -273,9 +275,10 @@
             tagsContainer.innerHTML = html;
         }
 
-        // 💡 智慧搜尋過濾：直接在按鈕容器內動態過濾並生成「按鈕標籤」結果，完美取代舊列表！
+        // 💡 智慧搜尋過濾：動態生成按鈕
         window.filterSidebar = function() {
-            const term = document.getElementById('sidebar-search').value.trim().toLowerCase();
+            const rawTerm = document.getElementById('sidebar-search').value.trim();
+            const term = rawTerm.toLowerCase();
             const tagsContainer = document.getElementById('quick-tags-container');
             
             if (!term) {
@@ -286,7 +289,9 @@
             if (currentTab === 'politicians') {
                 const filtered = cachePoliticians.filter(p => p.name.toLowerCase().includes(term));
                 if (filtered.length === 0) {
-                    tagsContainer.innerHTML = '<div style="color:var(--text-muted); font-size:0.9rem; padding: 10px; text-align:center; width:100%;">找不到相符的人物</div>';
+                    // 💡 不顯示「找不到」，直接動態生成一顆暫時的查詢按鈕
+                    const isActive = currentFilterId === 'not-found' ? 'active' : '';
+                    tagsContainer.innerHTML = `<button class="quick-tag-btn ${isActive}" onclick="loadSpecificData('politician', 'not-found', '${rawTerm}')">👤 ${rawTerm}</button>`;
                 } else {
                     tagsContainer.innerHTML = filtered.map(p => {
                         const isActive = currentFilterId === p.id ? 'active' : '';
@@ -296,7 +301,9 @@
             } else {
                 const filtered = cacheIssues.filter(i => i.name.toLowerCase().includes(term));
                 if (filtered.length === 0) {
-                    tagsContainer.innerHTML = '<div style="color:var(--text-muted); font-size:0.9rem; padding: 10px; text-align:center; width:100%;">找不到相符的議題</div>';
+                    // 💡 不顯示「找不到」，直接動態生成一顆暫時的查詢按鈕
+                    const isActive = currentFilterId === 'not-found' ? 'active' : '';
+                    tagsContainer.innerHTML = `<button class="quick-tag-btn ${isActive}" onclick="loadSpecificData('issue', 'not-found', '${rawTerm}')">📌 # ${rawTerm}</button>`;
                 } else {
                     tagsContainer.innerHTML = filtered.map(i => {
                         const isActive = currentFilterId === i.id ? 'active' : '';
@@ -343,6 +350,14 @@
             renderSidebar();
             feedTitle.textContent = type === 'politician' ? `📂 ${name} 的專屬事件簿` : `📌 關於「${name}」的相關事件`;
             loader.classList.add('visible');
+
+            // 💡 攔截：如果是不在資料庫裡的人物/議題，直接回傳空事件，避免報錯
+            if (id === 'not-found') {
+                renderEvents([]);
+                hasMoreData = false; 
+                loader.classList.remove('visible');
+                return;
+            }
 
             let queryResult;
             if (type === 'politician') {
