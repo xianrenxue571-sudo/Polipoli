@@ -59,7 +59,8 @@
         .event-card { background: var(--card-bg); border-radius: 12px; padding: 1.5rem; border: 1px solid var(--border); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); transition: transform 0.2s; }
         .event-card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
         
-        .info-tags { margin-bottom: 12px; display: flex; flex-wrap: wrap; gap: 8px; }
+        /* 標籤雙層排版樣式 */
+        .tag-row { margin-bottom: 10px; display: flex; flex-wrap: wrap; gap: 8px; }
         .info-tag { font-size: 0.85rem; font-weight: bold; background: #e0e7ff; color: #3730a3; padding: 4px 8px; border-radius: 6px; }
         .issue-tag { background: #dcfce7; color: #166534; }
 
@@ -145,6 +146,7 @@
         let currentTab = 'politicians'; 
         let currentMode = 'latest'; 
         let currentFilterId = null; 
+        let currentTargetName = null; // 紀錄目前正在查看的特定人物名稱，用於隱藏重複標籤
         
         let page = 0;
         const PAGE_SIZE = 15;
@@ -156,7 +158,7 @@
         let cacheIssues = [];
 
         // 預設難檢字與熱門議題
-        const quickPolTags = ['游錫堃', '鄺麗貞', '高金素梅']; 
+        const quickPolTags = ['傅崐萁', '陳玉珍', '徐欣瑩', '張嘉郡', '陳智菡', '黃瀞瑩', '顏寬恒', '佀廣洋']; 
         const quickIssueTags = ['居住正義', '財政紀律', '黑金']; 
 
         const feedContainer = document.getElementById('events-feed');
@@ -205,11 +207,9 @@
             if (currentTab === tabName) return;
             currentTab = tabName;
             
-            // 切換上方頁籤視覺
             document.querySelectorAll('.main-tab-btn').forEach(btn => btn.classList.remove('active'));
             document.getElementById(`tab-${tabName}`).classList.add('active');
             
-            // 重置搜尋框並重新渲染
             document.getElementById('sidebar-search').value = '';
             resetToLatest();
         };
@@ -226,7 +226,7 @@
                 searchInput.placeholder = '搜尋議題名稱...';
             }
             
-            // 💡 修正：如果搜尋框裡面有字，維持搜尋過濾狀態；沒有字才渲染預設按鈕群
+            // 💡 維持搜尋狀態
             if (searchInput.value.trim() !== '') {
                 filterSidebar();
             } else {
@@ -234,12 +234,11 @@
             }
         }
 
-        // 渲染基礎組合按鈕（未搜尋狀態）
+        // 渲染基礎組合按鈕
         function renderSidebarButtons() {
             const tagsContainer = document.getElementById('quick-tags-container');
             const isLatestActive = currentMode === 'latest' ? 'active' : '';
             
-            // 基礎的「綜合最新事件」按鈕
             let html = `<button class="quick-tag-btn ${isLatestActive}" onclick="resetToLatest()">✨ 綜合最新事件</button>`;
             
             if (currentTab === 'politicians') {
@@ -282,14 +281,14 @@
             const tagsContainer = document.getElementById('quick-tags-container');
             
             if (!term) {
-                renderSidebarButtons(); // 清空時恢復預設按鈕群
+                renderSidebarButtons(); 
                 return;
             }
             
             if (currentTab === 'politicians') {
                 const filtered = cachePoliticians.filter(p => p.name.toLowerCase().includes(term));
                 if (filtered.length === 0) {
-                    // 💡 不顯示「找不到」，直接動態生成一顆暫時的查詢按鈕
+                    // 無資料自動按鈕化
                     const isActive = currentFilterId === 'not-found' ? 'active' : '';
                     tagsContainer.innerHTML = `<button class="quick-tag-btn ${isActive}" onclick="loadSpecificData('politician', 'not-found', '${rawTerm}')">👤 ${rawTerm}</button>`;
                 } else {
@@ -301,7 +300,7 @@
             } else {
                 const filtered = cacheIssues.filter(i => i.name.toLowerCase().includes(term));
                 if (filtered.length === 0) {
-                    // 💡 不顯示「找不到」，直接動態生成一顆暫時的查詢按鈕
+                    // 無資料自動按鈕化
                     const isActive = currentFilterId === 'not-found' ? 'active' : '';
                     tagsContainer.innerHTML = `<button class="quick-tag-btn ${isActive}" onclick="loadSpecificData('issue', 'not-found', '${rawTerm}')">📌 # ${rawTerm}</button>`;
                 } else {
@@ -341,21 +340,25 @@
         window.loadSpecificData = async function(type, id, name) {
             currentMode = 'specific';
             currentFilterId = id;
+            
+            // 💡 紀錄當前查詢的人名，供渲染時隱藏重複標籤使用
+            currentTargetName = type === 'politician' ? name : null; 
+            
             page = 0;
             hasMoreData = true;
             feedContainer.innerHTML = '';
             endMessage.style.display = 'none';
             
-            // 更新按鈕選中樣式
             renderSidebar();
             feedTitle.textContent = type === 'politician' ? `📂 ${name} 的專屬事件簿` : `📌 關於「${name}」的相關事件`;
             loader.classList.add('visible');
 
-            // 💡 攔截：如果是不在資料庫裡的人物/議題，直接回傳空事件，避免報錯
+            // 💡 攔截：不在資料庫裡的按鈕
             if (id === 'not-found') {
                 renderEvents([]);
                 hasMoreData = false; 
                 loader.classList.remove('visible');
+                endMessage.style.display = 'block';
                 return;
             }
 
@@ -411,17 +414,19 @@
         }
 
         // ==========================================
-        // 4. 事件卡片渲染 (顯示網狀標籤)
+        // 4. 事件卡片渲染 (💡 雙層排版與隱藏重複標籤)
         // ==========================================
         function renderEvents(events) {
             const html = events.map(e => {
                 const severityClass = e.severity >= 4 ? 'severity-high' : (e.severity == 3 ? 'severity-med' : '');
                 
-                const polTags = e.event_politician_map?.map(m => m.politicians?.name).filter(Boolean)
-                    .map(name => `<span class="info-tag">👤 ${name}</span>`).join('') || '';
-                
+                // 第一行所需標籤：議題與人物 (過濾掉當前主角)
                 const issueTags = e.event_issue_map?.map(m => m.issues?.name).filter(Boolean)
                     .map(name => `<span class="info-tag issue-tag">📌 ${name}</span>`).join('') || '';
+                
+                const polTags = e.event_politician_map?.map(m => m.politicians?.name).filter(Boolean)
+                    .filter(name => name !== currentTargetName) // 隱藏重複標籤
+                    .map(name => `<span class="info-tag">👤 ${name}</span>`).join('') || '';
 
                 const imageHtml = e.image_url ? `
                     <div class="event-img-container" onclick="openImageModal('${e.image_url}')">
@@ -437,11 +442,12 @@
                     </div>
                 ` : '';
                 
+                // 將主題(議題/人物)統一放第一行，Meta屬性放第二行
                 return `
                     <article class="event-card">
-                        <div class="info-tags">
-                            ${polTags}
+                        <div class="tag-row">
                             ${issueTags}
+                            ${polTags}
                         </div>
                         <div class="event-meta">
                             <span class="meta-tag">📅 ${e.date || '日期未明'}</span>
@@ -472,6 +478,7 @@
             if (currentMode === 'latest' && page === 0) return;
             currentMode = 'latest';
             currentFilterId = null;
+            currentTargetName = null; // 重置當前主角
             page = 0;
             hasMoreData = true;
             feedContainer.innerHTML = '';
