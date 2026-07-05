@@ -96,8 +96,8 @@
         <div id="tab-1" class="tab-content active">
             <div class="panel">
                 <h2>大量資料匯入 (JSON)</h2>
-                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                    <input type="file" id="json-upload" accept=".json" style="flex-grow: 1;">
+                <div style="display: flex; gap: 10px; align-items: stretch; flex-wrap: wrap;">
+                    <textarea id="json-upload" placeholder="請在此貼上 JSON 格式的文字..." style="flex-grow: 1; min-height: 60px; padding: 8px; border: 1px solid var(--border); border-radius: 4px; font-family: monospace; resize: vertical;"></textarea>
                     <button class="btn-primary" onclick="importJSON()">執行匯入</button>
                 </div>
                 <small style="color: #6b7280; display: block; margin-top: 5px;">* 支援 JSON 內的 `issue_name` 欄位。新匯入的事件預設為隱藏狀態，人物與議題若不存在將自動建立並綁定。</small>
@@ -205,7 +205,7 @@
             <div class="input-group">
                 <label>關聯政治人物 (可多選綁定)</label>
                 <div id="edit-pol-checkboxes" class="checkbox-grid">
-                    </div>
+                </div>
             </div>
 
             <div class="input-group">
@@ -218,7 +218,6 @@
                 <label>爭議行為描述 / 核心語錄 (標題)</label>
                 <input type="text" id="edit-quote">
             </div>
-       
             <div class="input-group">
                 <label>事件背景與脈絡 (內容)</label>
                 <textarea id="edit-context" rows="6" style="width:100%; padding:8px; border:1px solid var(--border); border-radius:4px; font-family:inherit;"></textarea>
@@ -320,7 +319,6 @@
                 const statusStr = p.is_visible ? '顯示中' : '已隱藏';
                 return `<option value="${p.id}">${p.name} (${p.party || '無'}) - [${statusStr}]</option>`;
             }).join('');
-            
             if (data.some(p => p.id === currentVal)) {
                 selectEl.value = currentVal;
             }
@@ -436,68 +434,62 @@
         }
 
         // ==========================================
-        // JSON 網狀匯入邏輯
+        // JSON 文字貼上匯入邏輯
         // ==========================================
         async function importJSON() {
-            const fileInput = document.getElementById('json-upload');
-            if (!fileInput.files.length) return alert('請先選擇 JSON 檔案');
+            const textInput = document.getElementById('json-upload').value.trim();
+            if (!textInput) return alert('請先貼上 JSON 格式的文字');
             
-            const file = fileInput.files[0];
-            const reader = new FileReader();
-            reader.onload = async function(e) {
-                try {
-                    const data = JSON.parse(e.target.result);
-                    if (!Array.isArray(data) || data.length === 0) return alert('匯入失敗：檔案為空或非陣列格式');
-                    
-                    alert(`讀取到 ${data.length} 筆資料，開始背景網狀匯入...`);
-                    for (const item of data) {
-                        let polId = null;
-                        const { data: polData } = await supabase.from('politicians').select('id').eq('name', item.politician_name).single();
-                        if (polData) {
-                            polId = polData.id;
-                        } else {
-                            const { data: newPol } = await supabase.from('politicians').insert([{ 
-                                name: item.politician_name, party: item.party || '未知' 
-                            }]).select().single();
-                            polId = newPol.id;
-                        }
-
-                        let issueId = null;
-                        if (item.issue_name) {
-                            const { data: issueData } = await supabase.from('issues').select('id').eq('name', item.issue_name).single();
-                            if (issueData) {
-                                issueId = issueData.id;
-                            } else {
-                                const { data: newIssue } = await supabase.from('issues').insert([{ 
-                                    name: item.issue_name 
-                                }]).select().single();
-                                issueId = newIssue.id;
-                            }
-                        }
-
-                        const { data: newEvent } = await supabase.from('events').insert([{
-                            quote: item.quote, context: item.context, source_url: item.source_url,
-                            date: item.date, category: item.category, severity: item.severity, is_visible: false 
+            try {
+                const data = JSON.parse(textInput);
+                if (!Array.isArray(data) || data.length === 0) return alert('匯入失敗：內容為空或非陣列格式');
+                
+                alert(`讀取到 ${data.length} 筆資料，開始背景網狀匯入...`);
+                for (const item of data) {
+                    let polId = null;
+                    const { data: polData } = await supabase.from('politicians').select('id').eq('name', item.politician_name).single();
+                    if (polData) {
+                        polId = polData.id;
+                    } else {
+                        const { data: newPol } = await supabase.from('politicians').insert([{ 
+                            name: item.politician_name, party: item.party || '未知' 
                         }]).select().single();
-                        
-                        await supabase.from('event_politician_map').insert([{ politician_id: polId, event_id: newEvent.id }]);
-                        
-                        if (issueId) {
-                            await supabase.from('event_issue_map').insert([{ issue_id: issueId, event_id: newEvent.id }]);
+                        polId = newPol.id;
+                    }
+
+                    let issueId = null;
+                    if (item.issue_name) {
+                        const { data: issueData } = await supabase.from('issues').select('id').eq('name', item.issue_name).single();
+                        if (issueData) {
+                            issueId = issueData.id;
+                        } else {
+                            const { data: newIssue } = await supabase.from('issues').insert([{ 
+                                name: item.issue_name 
+                            }]).select().single();
+                            issueId = newIssue.id;
                         }
                     }
+
+                    const { data: newEvent } = await supabase.from('events').insert([{
+                        quote: item.quote, context: item.context, source_url: item.source_url,
+                        date: item.date, category: item.category, severity: item.severity, is_visible: false 
+                    }]).select().single();
+                    await supabase.from('event_politician_map').insert([{ politician_id: polId, event_id: newEvent.id }]);
                     
-                    alert('匯入與自動關聯完成！');
-                    loadPoliticians();
-                    loadIssues();
-                    loadEvents();
-                    fileInput.value = '';
-                    
-                } catch (error) {
-                    alert('JSON 解析失敗或寫入錯誤：' + error.message);
+                    if (issueId) {
+                        await supabase.from('event_issue_map').insert([{ issue_id: issueId, event_id: newEvent.id }]);
+                    }
                 }
-            };
-            reader.readAsText(file);
+                
+                alert('匯入與自動關聯完成！');
+                loadPoliticians();
+                loadIssues();
+                loadEvents();
+                document.getElementById('json-upload').value = ''; // 匯入成功後清空文字框
+                
+            } catch (error) {
+                alert('JSON 解析失敗或寫入錯誤：' + error.message);
+            }
         }
 
         // ==========================================
@@ -556,11 +548,9 @@
             const date = document.getElementById('manual-date').value || new Date().toISOString().split('T')[0];
             const category = document.getElementById('manual-category').value.trim() || '未分類';
             const severity = document.getElementById('manual-severity').value || 1;
-            
             if (!polId) return alert('請選擇關聯的政治人物！');
             if (!quote || !context) return alert('標題與脈絡內容不能為空！');
             if (!sourceUrl) sourceUrl = null;
-            
             // 1. 新增事件主體 (預設隱藏)
             const { data: newEvent, error: evError } = await supabase.from('events').insert([{
                 quote, context, source_url: sourceUrl, date, category, severity, is_visible: false 
@@ -574,7 +564,6 @@
             }
 
             alert('手動新增成功！新事件預設為隱藏狀態，請確認後開放顯示。');
-            
             // 3. 清空表單並重新載入
             document.getElementById('manual-quote').value = '';
             document.getElementById('manual-context').value = '';
@@ -605,15 +594,12 @@
             document.getElementById('edit-event-id').value = event.id;
             document.getElementById('edit-quote').value = event.quote || '';
             document.getElementById('edit-context').value = event.context || '';
-            
             const urlVal = (event.source_url && event.source_url !== 'null') ? event.source_url : '';
             document.getElementById('edit-url').value = urlVal;
-            
             // 渲染議題下拉選單
             const issueSelect = document.getElementById('edit-issue');
             issueSelect.innerHTML = '<option value="">📌 無綁定議題</option>' + 
                 (window.currentIssues || []).map(i => `<option value="${i.id}"># ${i.name}</option>`).join('');
-            
             const currentIssueMap = event.event_issue_map?.[0]; 
             if (currentIssueMap && currentIssueMap.issue_id) {
                 issueSelect.value = currentIssueMap.issue_id;
@@ -634,7 +620,6 @@
                     </label>
                 `;
             }).join('');
-            
             document.getElementById('edit-modal').style.display = 'flex';
         }
 
@@ -648,7 +633,6 @@
             const context = document.getElementById('edit-context').value.trim();
             let source_url = document.getElementById('edit-url').value.trim();
             const issueId = document.getElementById('edit-issue').value;
-            
             // 抓取所有被勾選的政治人物 UUID
             const checkedPolCheckboxes = document.querySelectorAll('#edit-pol-checkboxes input[type="checkbox"]:checked');
             const newPolIds = Array.from(checkedPolCheckboxes).map(cb => cb.value);
@@ -663,7 +647,6 @@
                 context, 
                 source_url 
             }).eq('id', id);
-            
             if (error) {
                 alert('更新事件失敗: ' + error.message);
                 return;
