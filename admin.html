@@ -191,8 +191,14 @@
 
             <div class="panel">
                 <h2>事件管理模組 (含網狀關聯資訊)</h2>
-                <div id="events-container">
+                
+                <div class="tabs" style="margin-bottom: 15px;">
+                    <button id="subtab-hidden" class="tab-btn active" onclick="switchEventSubTab('hidden')">待審核 (0)</button>
+                    <button id="subtab-visible" class="tab-btn" onclick="switchEventSubTab('visible')">已顯示 (0)</button>
                 </div>
+
+                <div id="events-container">
+                    </div>
             </div>
         </div>
     </div>
@@ -238,6 +244,7 @@
         import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
         let supabase = null;
+        let currentEventSubTab = 'hidden'; // 新增全域變數：追蹤當前事件子頁籤狀態 (預設為待審核)
 
         // ==========================================
         // 系統初始化與頁籤切換
@@ -324,7 +331,7 @@
             }
             
             renderPolActions();
-            updateManualFormDropdowns(); // 更新新增表單
+            updateManualFormDropdowns(); 
         }
 
         function renderPolActions() {
@@ -372,7 +379,19 @@
                 </div>
             `).join('');
 
-            updateManualFormDropdowns(); // 更新新增表單
+            updateManualFormDropdowns(); 
+        }
+
+        // ==========================================
+        // 事件資料讀取與分頁渲染邏輯優化
+        // ==========================================
+        function switchEventSubTab(tabName) {
+            currentEventSubTab = tabName;
+            // 更新按鈕 active 樣式
+            document.getElementById('subtab-hidden').classList.toggle('active', tabName === 'hidden');
+            document.getElementById('subtab-visible').classList.toggle('active', tabName === 'visible');
+            // 重新依照目前狀態渲染卡片 (不需重新打 API)
+            renderEvents();
         }
 
         async function loadEvents() {
@@ -385,8 +404,32 @@
             if (error) return console.error(error);
             
             window.currentEvents = data;
+            renderEvents(); // 抓取完畢後呼叫獨立的渲染函式
+        }
+
+        function renderEvents() {
+            if (!window.currentEvents) return;
+
+            // 1. 拆分資料陣列
+            const hiddenEvents = window.currentEvents.filter(e => !e.is_visible);
+            const visibleEvents = window.currentEvents.filter(e => e.is_visible);
+
+            // 2. 動態更新子頁籤上的計數器數字
+            document.getElementById('subtab-hidden').innerText = `待審核 (${hiddenEvents.length})`;
+            document.getElementById('subtab-visible').innerText = `已顯示 (${visibleEvents.length})`;
+
+            // 3. 決定要渲染的資料來源
+            const eventsToRender = currentEventSubTab === 'hidden' ? hiddenEvents : visibleEvents;
             const container = document.getElementById('events-container');
-            container.innerHTML = data.map(e => {
+
+            // 4. 無資料時的防呆提示
+            if (eventsToRender.length === 0) {
+                container.innerHTML = `<div style="padding: 20px; text-align: center; color: #6b7280; border: 1px dashed var(--border); border-radius: 8px;">目前沒有符合此狀態的事件資料。</div>`;
+                return;
+            }
+
+            // 5. 輸出卡片 (100% 繼承原有 UI 與資料欄位)
+            container.innerHTML = eventsToRender.map(e => {
                 let polNames = e.event_politician_map?.map(m => m.politicians?.name).filter(Boolean).join(', ') || '尚未綁定人物';
                 let issueNames = e.event_issue_map?.map(m => m.issues?.name).filter(Boolean).join(', ') || '無綁定議題';
 
@@ -425,7 +468,7 @@
                         <button class="btn-danger" onclick="deleteEvent('${e.id}')">永久刪除</button>
                     </div>
                 </div>
-            `}).join('');
+                `}).join('');
         }
 
         function toggleContext(id) {
@@ -485,7 +528,7 @@
                 loadPoliticians();
                 loadIssues();
                 loadEvents();
-                document.getElementById('json-upload').value = ''; // 匯入成功後清空文字框
+                document.getElementById('json-upload').value = ''; 
                 
             } catch (error) {
                 alert('JSON 解析失敗或寫入錯誤：' + error.message);
@@ -548,13 +591,16 @@
             const date = document.getElementById('manual-date').value || new Date().toISOString().split('T')[0];
             const category = document.getElementById('manual-category').value.trim() || '未分類';
             const severity = document.getElementById('manual-severity').value || 1;
+            
             if (!polId) return alert('請選擇關聯的政治人物！');
             if (!quote || !context) return alert('標題與脈絡內容不能為空！');
             if (!sourceUrl) sourceUrl = null;
+
             // 1. 新增事件主體 (預設隱藏)
             const { data: newEvent, error: evError } = await supabase.from('events').insert([{
                 quote, context, source_url: sourceUrl, date, category, severity, is_visible: false 
             }]).select().single();
+            
             if (evError) return alert('新增事件失敗: ' + evError.message);
 
             // 2. 寫入中介關聯
@@ -564,6 +610,7 @@
             }
 
             alert('手動新增成功！新事件預設為隱藏狀態，請確認後開放顯示。');
+            
             // 3. 清空表單並重新載入
             document.getElementById('manual-quote').value = '';
             document.getElementById('manual-context').value = '';
@@ -575,7 +622,7 @@
 
         async function toggleEventVisibility(id, currentStatus) {
             await supabase.from('events').update({ is_visible: !currentStatus }).eq('id', id);
-            loadEvents();
+            loadEvents(); // 更新完畢後重新抓取資料並利用目前的子頁籤狀態自動渲染
         }
 
         async function deleteEvent(id) {
@@ -594,12 +641,15 @@
             document.getElementById('edit-event-id').value = event.id;
             document.getElementById('edit-quote').value = event.quote || '';
             document.getElementById('edit-context').value = event.context || '';
+            
             const urlVal = (event.source_url && event.source_url !== 'null') ? event.source_url : '';
             document.getElementById('edit-url').value = urlVal;
+            
             // 渲染議題下拉選單
             const issueSelect = document.getElementById('edit-issue');
             issueSelect.innerHTML = '<option value="">📌 無綁定議題</option>' + 
                 (window.currentIssues || []).map(i => `<option value="${i.id}"># ${i.name}</option>`).join('');
+            
             const currentIssueMap = event.event_issue_map?.[0]; 
             if (currentIssueMap && currentIssueMap.issue_id) {
                 issueSelect.value = currentIssueMap.issue_id;
@@ -620,6 +670,7 @@
                     </label>
                 `;
             }).join('');
+            
             document.getElementById('edit-modal').style.display = 'flex';
         }
 
@@ -633,6 +684,7 @@
             const context = document.getElementById('edit-context').value.trim();
             let source_url = document.getElementById('edit-url').value.trim();
             const issueId = document.getElementById('edit-issue').value;
+            
             // 抓取所有被勾選的政治人物 UUID
             const checkedPolCheckboxes = document.querySelectorAll('#edit-pol-checkboxes input[type="checkbox"]:checked');
             const newPolIds = Array.from(checkedPolCheckboxes).map(cb => cb.value);
@@ -647,6 +699,7 @@
                 context, 
                 source_url 
             }).eq('id', id);
+            
             if (error) {
                 alert('更新事件失敗: ' + error.message);
                 return;
@@ -676,7 +729,8 @@
             addPolitician, togglePolVisibility, deletePolitician, renderPolActions,
             addIssue, toggleIssueVisibility, deleteIssue,
             submitManualEvent, toggleContext, toggleEventVisibility, deleteEvent, 
-            openEditModal, closeEditModal, saveEventEdit
+            openEditModal, closeEditModal, saveEventEdit,
+            switchEventSubTab // 將新增的子頁籤切換函式暴露至全域
         });
     </script>
 </body>
