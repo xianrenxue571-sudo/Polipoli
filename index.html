@@ -1,22 +1,40 @@
+```html
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Polipoli 啪哩啪哩追蹤站 | 專門收錄「裝作啪哩啪哩，做事卻兩光」的政治人物。</title>
-    <meta name="description" content="專注記錄台灣政治人物言行與重大社會議題。透過標籤化管理，快速檢驗雙標言論，追蹤熱門人物的事件與爭議。">
-    <meta name="keywords" content="政治人物,社會議題,言行審查,雙標對決,台灣政治,爭議事件">
+    
+    <!-- 【SEO 優化】核心標題與描述，佈局長尾關鍵字 -->
+    <title>Polipoli 啪哩啪哩追蹤站 | 台灣政治人物言行紀錄與社會議題懶人包</title>
+    <meta name="description" content="專注記錄台灣政治人物言行、爭議事件與重大社會議題。透過標籤化管理，快速檢驗雙標言論，追蹤熱門人物的歷史發言與事件真相。">
+    <meta name="keywords" content="政治人物, 社會議題, 言行審查, 雙標對決, 台灣政治, 爭議事件, 懶人包">
+    
+    <!-- 【技術 SEO】預先連線至資料庫，加速 LCP (最大內容繪製) -->
+    <link rel="preconnect" href="https://tzjcwvbxoqikqxzpzxkj.supabase.co" crossorigin>
+    
+    <!-- 標準網址，避免加上參數後產生重複內容問題 (Duplicate Content) -->
+    <link rel="canonical" href="https://你的網址.com.tw/">
+
+    <!-- Open Graph for 社群分享 -->
     <meta property="og:title" content="Polipoli 啪哩啪哩追蹤站 | 政治人物言行紀錄">
     <meta property="og:description" content="快速檢驗雙標言論，追蹤熱門政治人物的事件與爭議。">
     <meta property="og:type" content="website">
+
+    <!-- ⚠️ 【致命錯誤修復】載入 Supabase 核心庫，否則 JS 會直接當機 -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <style>
-        /* 基礎樣式保留 */
-        body { margin: 0; background: #f8fafc; color: #1e293b; line-height: 1.6; font-family: sans-serif; }
-        :root { --primary: #1e293b; --bg: #f8fafc; --text-main: #0f172a; --card-bg: #ffffff; --border: #e2e8f0; --text-muted: #64748b; --accent: #2563eb; --danger: #ef4444; --warning: #f59e0b; }
+        /* 基礎樣式與變數 */
+        body { margin: 0; background: #f8fafc; color: #1e293b; line-height: 1.6; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+        :root { --primary: #1e293b; --bg: #f8fafc; --text-main: #0f172a; --card-bg: #ffffff; --border: #e2e8f0; --text-muted: #64748b; --accent: #2563eb; --danger: #ef4444; }
         
-        header { background: var(--primary); color: white; padding: 0.5rem 1rem; position: sticky; top: 0; z-index: 100; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); display: flex; justify-content: center; align-items: center; transition: transform 0.3s ease-in-out; }
+        /* 頁首樣式 */
+        header { background: var(--primary); color: white; padding: 1rem; position: sticky; top: 0; z-index: 100; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); display: flex; justify-content: center; align-items: center; transition: transform 0.3s ease-in-out; }
         header.hidden { transform: translateY(-100%); }
-        header h1 { margin: 0; font-size: 1.5rem; cursor: pointer; display: inline-block; }
+        /* 【SEO 優化】H1 樣式調整，保留 SEO 權重，視覺上簡潔 */
+        header h1 { margin: 0; font-size: 1.5rem; cursor: pointer; display: flex; flex-direction: column; align-items: center; }
+        header h1 .seo-text { font-size: 0.8rem; font-weight: normal; color: #cbd5e1; opacity: 0.8; }
         
         .main-tabs { display: flex; justify-content: center; background: var(--card-bg); border-bottom: 1px solid var(--border); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         .main-tab-btn { flex: 1; max-width: 300px; padding: 15px; text-align: center; font-size: 1.1rem; font-weight: bold; color: var(--text-muted); cursor: pointer; border: none; background: transparent; border-bottom: 3px solid transparent; transition: all 0.2s; }
@@ -26,6 +44,7 @@
         .container { display: grid; grid-template-columns: 1fr; gap: 2rem; max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
         @media (min-width: 768px) { .container { grid-template-columns: 300px 1fr; } }
         
+        /* 側邊欄樣式 */
         aside { background: var(--card-bg); padding: 1.5rem; border-radius: 12px; height: fit-content; border: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
         aside h2 { margin-top: 0; font-size: 1.2rem; border-bottom: 2px solid var(--border); padding-bottom: 0.5rem; }
         .search-container { margin-bottom: 15px; }
@@ -40,6 +59,7 @@
         @media (max-width: 767px) { .desktop-issue-tags { display: none !important; } .mobile-issue-select.active-tab { display: block; } }
         @media (min-width: 768px) { .mobile-issue-select { display: none !important; } }
         
+        /* 主要內容區塊 */
         main { display: flex; flex-direction: column; gap: 1.5rem; }
         .feed-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); padding-bottom: 0.5rem; }
         .feed-header h2 { margin: 0; color: var(--accent); }
@@ -49,23 +69,26 @@
         
         .tag-row { margin-bottom: 10px; display: flex; flex-wrap: wrap; gap: 8px; }
         .info-tag { font-size: 0.85rem; font-weight: bold; background: #e0e7ff; color: #3730a3; padding: 4px 8px; border-radius: 6px; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; text-decoration: none; }
-        .info-tag:hover { background: #c7d2fe; transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .info-tag:hover { background: #c7d2fe; transform: translateY(-1px); }
         .issue-tag { background: #dcfce7; color: #166534; }
         .issue-tag:hover { background: #bbf7d0; }
         
         .event-quote { font-size: 1.25rem; font-weight: bold; margin: 10px 0 1rem 0; color: var(--text-main); }
-        .event-img-container { margin-top: 1rem; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); max-height: 300px; cursor: pointer; }
+        
+        /* 【技術 SEO】預留圖片高度比例 (aspect-ratio)，防止載入時版面跳動 (CLS) */
+        .event-img-container { margin-top: 1rem; border-radius: 8px; overflow: hidden; background: #e2e8f0; aspect-ratio: 16/9; max-height: 400px; cursor: pointer; }
         .event-img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.3s; }
         .event-img-container:hover .event-img { transform: scale(1.02); }
         
         .event-actions { display: flex; justify-content: flex-end; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); }
-        .source-link { color: var(--accent); text-decoration: none; font-weight: bold; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 4px; }
+        .source-link { color: var(--accent); text-decoration: none; font-weight: bold; font-size: 0.9rem; }
         .source-link:hover { text-decoration: underline; }
         
         #loader { text-align: center; padding: 2rem; color: var(--text-muted); font-weight: bold; display: none; }
         #loader.visible { display: block; }
         .end-message { text-align: center; padding: 2rem; color: var(--text-muted); display: none; }
         
+        /* Modal */
         #image-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; justify-content: center; align-items: center; padding: 2rem; cursor: zoom-out; }
         #image-modal.active { display: flex; }
         #modal-img { max-width: 100%; max-height: 100%; border-radius: 8px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
@@ -73,8 +96,18 @@
 </head>
 <body>
 
+    <!-- 【SEO 優化】如果爬蟲不吃 JS，至少看得到這些靜態內容 -->
+    <noscript>
+        <h1>Polipoli 啪哩啪哩追蹤站</h1>
+        <p>這是一個專注記錄台灣政治人物言行與社會議題的網站。請啟用 JavaScript 以獲得完整體驗。</p>
+    </noscript>
+
     <header id="main-header">
-        <h1 onclick="resetToLatest()">言行審查 • 雙標對決站</h1>
+        <!-- 【SEO 優化】豐富 H1 內容，讓爬蟲抓取，但視覺上保持簡潔 -->
+        <h1 onclick="resetToLatest()">
+            <span class="seo-text">Polipoli 政治人物言行與社會議題追蹤</span>
+            言行審查 • 雙標對決站
+        </h1>
     </header>
 
     <div class="main-tabs">
@@ -97,7 +130,7 @@
                 <h2 id="feed-title">綜合最新事件牆</h2>
             </div>
             <div id="events-feed"></div>
-            <div id="loader">載入中...</div>
+            <div id="loader">資料載入中...</div>
             <div id="end-message" class="end-message">沒有更多資料了</div>
         </main>
     </div>
@@ -107,12 +140,19 @@
     </div>
 
     <script>
-        // 初始化 Supabase (請替換為你的真實金鑰)
+        // ==========================================
+        // 1. 初始化設定與全域變數
+        // ==========================================
+        // 請務必替換成你的真實金鑰
         const SUPABASE_URL = '你的_SUPABASE_URL'; 
         const ANON_KEY = '你的_ANON_KEY';
+        
+        // 【錯誤修復】確保 Supabase 庫已載入才執行
+        if (typeof window.supabase === 'undefined') {
+            console.error("致命錯誤: 找不到 Supabase 庫。請確認 <script> 標籤有正確載入。");
+        }
         const supabase = window.supabase.createClient(SUPABASE_URL, ANON_KEY);
 
-        // 系統狀態控制
         let currentTab = 'politicians';
         let currentMode = 'latest';
         let currentFilterId = null;
@@ -136,7 +176,7 @@
         const tagsContainer = document.getElementById('quick-tags-container');
         const mobileSelect = document.getElementById('mobile-issue-select');
 
-        // 向下捲動時隱藏 Header
+        // 向下捲動隱藏 Header
         let lastScrollTop = 0;
         window.addEventListener('scroll', () => {
             let currentScroll = window.pageYOffset || document.documentElement.scrollTop;
@@ -149,20 +189,104 @@
             lastScrollTop = currentScroll <= 0 ? 0 : currentScroll;
         });
 
+        // 頁面載入起點
         window.onload = async () => {
+            // 寫入基礎 WebSite Schema
+            injectBaseSchema();
+            
             await fetchSidebarData();
+            
+            // 【SEO 優化】處理直接進入特定 URL 的情況 (例如使用者分享了 /?politician=123)
+            const urlParams = new URLSearchParams(window.location.search);
+            const polId = urlParams.get('politician');
+            const issueId = urlParams.get('issue');
+
             renderSidebar();
-            loadLatestEvents();
+
+            if (polId) {
+                const pol = cachePoliticians.find(p => p.id === polId) || { name: '指定人物' };
+                loadSpecificData('politician', polId, pol.name);
+            } else if (issueId) {
+                const issue = cacheIssues.find(i => i.id === issueId) || { name: '指定議題' };
+                loadSpecificData('issue', issueId, issue.name);
+            } else {
+                loadLatestEvents();
+            }
+            
             setupIntersectionObserver();
         };
 
-        // 【SEO 優化 1】攔截點擊並使用 History API 推送網址
+        // ==========================================
+        // 2. SEO 動態更新與 Schema Markup
+        // ==========================================
+        
+        // 更新網頁標題與描述
+        function updateMeta(title, description) {
+            document.title = `${title} | Polipoli 追蹤站`;
+            const metaDesc = document.querySelector('meta[name="description"]');
+            if(metaDesc) {
+                metaDesc.setAttribute("content", description);
+            }
+        }
+
+        // 基礎 WebSite Schema
+        function injectBaseSchema() {
+            const schema = {
+                "@context": "https://schema.org",
+                "@type": "WebSite",
+                "name": "Polipoli 啪哩啪哩追蹤站",
+                "url": window.location.origin,
+                "description": "政治人物言行紀錄與社會議題懶人包"
+            };
+            appendSchemaScript('schema-website', schema);
+        }
+
+        // 列表 ItemList Schema (對爬蟲友善)
+        function injectFeedSchema(eventsData, pageTitle) {
+            if (!eventsData || eventsData.length === 0) return;
+            
+            const itemList = {
+                "@context": "https://schema.org",
+                "@type": "ItemList",
+                "name": pageTitle,
+                "itemListElement": eventsData.map((e, index) => ({
+                    "@type": "ListItem",
+                    "position": index + 1,
+                    "item": {
+                        "@type": "Event",
+                        "name": e.quote ? e.quote.substring(0, 50) + "..." : "政治事件",
+                        "startDate": e.date || new Date().toISOString(),
+                        "url": window.location.href
+                    }
+                }))
+            };
+            appendSchemaScript('schema-itemlist', itemList);
+        }
+
+        function appendSchemaScript(id, schemaObj) {
+            let script = document.getElementById(id);
+            if (script) {
+                script.text = JSON.stringify(schemaObj);
+            } else {
+                script = document.createElement('script');
+                script.id = id;
+                script.type = 'application/ld+json';
+                script.text = JSON.stringify(schemaObj);
+                document.head.appendChild(script);
+            }
+        }
+
+        // 處理內部連結點擊，不重整頁面但更新 URL 與 Meta
         window.handleLinkClick = function(event, type, id, name) {
             event.preventDefault();
             const newUrl = `/?${type}=${id}`;
             window.history.pushState({ path: newUrl }, '', newUrl);
             loadSpecificData(type, id, name);
         };
+
+        // ==========================================
+        // 3. 資料抓取與渲染邏輯
+        // ==========================================
 
         async function fetchSidebarData() {
             const [polRes, issueRes, mapRes] = await Promise.all([
@@ -231,14 +355,18 @@
 
         window.handleMobileIssueSelect = function(val) {
             if (val === 'latest') {
+                window.history.pushState({},'','/');
                 resetToLatest();
             } else {
                 const issue = cacheIssues.find(i => i.id === val);
-                if (issue) loadSpecificData('issue', issue.id, issue.name);
+                if (issue) {
+                    const newUrl = `/?issue=${issue.id}`;
+                    window.history.pushState({}, '', newUrl);
+                    loadSpecificData('issue', issue.id, issue.name);
+                }
             }
         };
 
-        // 【SEO 優化 2】側邊欄按鈕轉化為真實 <a> 標籤，建立爬蟲內部連結網路
         function renderSidebarButtons() {
             const isLatestActive = currentMode === 'latest' ? 'active' : '';
             let html = '';
@@ -301,6 +429,8 @@
             isFetching = true;
             loader.classList.add('visible');
             
+            updateMeta("最新綜合事件", "追蹤台灣政治人物最新言行與社會議題，每日更新。");
+            
             const start = page * PAGE_SIZE;
             const end = start + PAGE_SIZE - 1;
             
@@ -311,7 +441,7 @@
                 .order('date', { ascending: false })
                 .range(start, end);
                 
-            handleDataResponse(data, error);
+            handleDataResponse(data, error, "最新綜合事件");
         }
 
         window.loadSpecificData = async function(type, id, name) {
@@ -319,6 +449,10 @@
             currentFilterId = id;
             currentTargetName = (type === 'politician') ? name : null;
             
+            // 更新 Meta 讓爬蟲知道這頁變了
+            const desc = type === 'politician' ? `查看 ${name} 的歷史言行紀錄與爭議事件整理。` : `深入了解 ${name} 相關的政治言論與社會影響。`;
+            updateMeta(`${name} 相關紀錄`, desc);
+
             if (type === 'politician' && currentTab !== 'politicians') {
                 switchMainTab('politicians', true);
                 document.getElementById('sidebar-search').value = name;
@@ -326,10 +460,13 @@
                 switchMainTab('issues', true);
             }
             
-            feedTitle.textContent = `${name} 相關事件`;
+            const pageTitle = `${name} 相關事件`;
+            feedTitle.textContent = pageTitle;
             page = 0;
             hasMoreData = true;
             feedContainer.innerHTML = '';
+            loader.classList.add('visible');
+            endMessage.style.display = 'none';
             
             let queryResult;
             if (type === 'politician') {
@@ -350,13 +487,13 @@
             
             const eventsData = queryResult.data.map(item => item.events).sort((a, b) => new Date(b.date || '1970-01-01') - new Date(a.date || '1970-01-01'));
             
-            renderEvents(eventsData);
+            renderEvents(eventsData, pageTitle);
             hasMoreData = false;
             loader.classList.remove('visible');
             endMessage.style.display = 'block';
         };
 
-        function handleDataResponse(data, error) {
+        function handleDataResponse(data, error, pageTitle) {
             if (error) {
                 console.error('事件載入失敗:', error);
                 isFetching = false;
@@ -367,42 +504,15 @@
                 hasMoreData = false;
                 endMessage.style.display = 'block';
             }
-            renderEvents(data);
+            renderEvents(data, pageTitle);
             page++;
             isFetching = false;
             loader.classList.remove('visible');
         }
 
-        // 【SEO 優化 3】動態注入 Schema Markup
-        function injectSchema(eventsData) {
-            const oldSchema = document.getElementById('dynamic-schema');
-            if (oldSchema) oldSchema.remove();
-
-            if (!eventsData || eventsData.length === 0) return;
-
-            const mainEvent = eventsData[0];
-            const schema = {
-                "@context": "https://schema.org",
-                "@type": "Event",
-                "name": mainEvent.quote || "政治事件紀錄",
-                "startDate": mainEvent.date || new Date().toISOString(),
-                "description": `關於政治人物的最新言行與社會議題紀錄。`,
-                "url": window.location.href,
-            };
-
-            if (mainEvent.image_url) { schema.image = [mainEvent.image_url]; }
-
-            const script = document.createElement('script');
-            script.id = 'dynamic-schema';
-            script.type = 'application/ld+json';
-            script.text = JSON.stringify(schema);
-            document.head.appendChild(script);
-        }
-
-        // 【SEO 優化 4】重構 renderEvents：加入 loading="lazy"、alt 與 <a> 標籤
-        function renderEvents(events) {
+        function renderEvents(events, pageTitle) {
             if (events && events.length > 0) {
-                injectSchema(events);
+                injectFeedSchema(events, pageTitle);
             }
 
             const html = events.map(e => {
@@ -414,7 +524,9 @@
                     `<a href="/?politician=${m.politician_id}" class="info-tag" onclick="handleLinkClick(event, 'politician', '${m.politician_id}', '${m.politicians.name}')">👤 ${m.politicians.name}</a>`
                 ).join('') || ''; 
 
-                const altText = `${e.quote || '政治人物言行事件'} 的相關圖片`;
+                const altText = e.quote ? `${e.quote.substring(0, 20)}... 的相關圖片` : '政治事件紀錄圖片';
+                
+                // 【SEO & 效能】加入 loading="lazy" 與 alt
                 const imageHtml = e.image_url ? `
                     <div class="event-img-container" onclick="openImageModal('${e.image_url}')">
                         <img src="${e.image_url}" class="event-img" alt="${altText}" loading="lazy" />
@@ -437,7 +549,10 @@
         }
 
         window.resetToLatest = function() {
-            if (currentMode === 'latest' && page === 0) return;
+            // 【邏輯卡死防呆修復】如果 page 為 0 但其實是點擊了強制刷新，就不要 return
+            if (currentMode === 'latest' && page === 0 && !isFetching) return; 
+            
+            window.history.pushState({},'','/');
             currentMode = 'latest';
             currentFilterId = null;
             currentTargetName = null;
@@ -452,7 +567,7 @@
         };
 
         function setupIntersectionObserver() {
-            const options = { root: null, rootMargin: '0px', threshold: 0.1 };
+            const options = { root: null, rootMargin: '100px', threshold: 0.1 }; // 提早 100px 載入，體驗更好
             const observer = new IntersectionObserver((entries) => {
                 if (entries[0].isIntersecting && currentMode === 'latest' && hasMoreData && !isFetching) {
                     loadLatestEvents();
@@ -474,3 +589,5 @@
     </script>
 </body>
 </html>
+
+```
