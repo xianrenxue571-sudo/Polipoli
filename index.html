@@ -13,17 +13,17 @@
     <meta property="og:description" content="幫你記住政治人物說過的話。快速檢驗雙標言論，追蹤熱門人物的事件與爭議。">
     <meta property="og:type" content="website">
 
-<!-- 1. 網頁標籤分頁 Favicon (512x512) -->
-<link rel="icon" type="image/png" href="/polipoli_favicon_512x512.png">
+   <!-- 1. 網頁標籤分頁 Favicon (512x512) -->
+   <link rel="icon" type="image/png" href="/polipoli_favicon_512x512.png">
 
-<!-- 2. Apple iOS / Android 桌面上架 App 圖標 -->
-<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+   <!-- 2. Apple iOS / Android 桌面上架 App 圖標 -->
+   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 
-<!-- 3. LINE / FB 完美的社群分享大圖 (1024x1024) -->
-<meta property="og:image" content="https://polipoli.cc/polipoli_og_share_1024x1024.png">
-<meta property="og:image:width" content="1024">
-<meta property="og:image:height" content="1024">
-<meta property="og:type" content="website">
+   <!-- 3. LINE / FB 完美的社群分享大圖 (1024x1024) -->
+   <meta property="og:image" content="https://polipoli.cc/polipoli_og_share_1024x1024.png">
+   <meta property="og:image:width" content="1024">
+   <meta property="og:image:height" content="1024">
+   <meta property="og:type" content="website">
 
     
     <!-- 技術 SEO：提早解析 Supabase 網域，加快資料載入速度 -->
@@ -57,7 +57,20 @@
             transition: transform 0.3s ease-in-out;
         }
         header.hidden { transform: translateY(-100%); }
-        header .logo-container { cursor: pointer; display: inline-flex; align-items: center; }
+        header .logo-container { cursor: pointer; display: inline-flex; align-items: center; text-align: left; }
+        
+        /* === 新增：Header Logo 與文字區塊樣式 === */
+        .header-logo-img {
+            width: 48px;
+            height: 48px;
+            margin-right: 12px;
+            border-radius: 8px;
+            object-fit: contain;
+        }
+        .header-text-group { display: flex; flex-direction: column; justify-content: center; }
+        .header-title { font-size: 1.25rem; font-weight: bold; line-height: 1.2; color: #ffffff; }
+        .header-slogan { font-size: 0.85rem; color: #d1d5db; margin-top: 2px; }
+        .header-subtitle { font-size: 0.75rem; color: #9ca3af; margin-top: 2px; }
 
         .main-tabs { 
             display: flex; justify-content: center; background: var(--card-bg); 
@@ -103,9 +116,14 @@
         .quick-tag-btn:hover, .quick-tag-btn.active { background: #e0e7ff; border-color: #c7d2fe; color: var(--accent); font-weight: bold; box-shadow: 0 2px 4px rgba(37, 99, 235, 0.1); }
         .section-label { font-size: 0.8rem; color: var(--text-muted); margin: 12px 0 4px 4px; width: 100%; font-weight: bold; }
 
+        /* === 方案 B：手機版隱藏 Slogan 與小標題 === */
         @media (max-width: 767px) {
             .desktop-issue-tags { display: none !important; }
             .mobile-issue-select.active-tab { display: block; }
+            
+            .header-slogan, .header-subtitle { display: none; }
+            .header-logo-img { width: 36px; height: 36px; margin-right: 10px; }
+            .header-title { font-size: 1.1rem; }
         }
         @media (min-width: 768px) {
             .mobile-issue-select { display: none !important; }
@@ -163,7 +181,6 @@
         #image-modal.active { display: flex; }
         #modal-img { max-width: 100%; max-height: 100%; border-radius: 8px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
     </style>
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'><rect width='120' height='120' fill='%230e131f'/><g transform='translate(20, 15)'><path d='M32 45 L58 45 L54 20 L36 20 Z' fill='%23fbc02d'/><path d='M25 45 L65 45 A 6 6 0 0 0 65 51 L25 51 A 6 6 0 0 0 25 45' fill='%23f59e0b'/><rect x='34' y='39' width='23' height='6' fill='%23ef4444'/><path d='M28 64 C28 56 38 56 38 64' stroke='%2306b6d4' stroke-width='5' stroke-linecap='round' fill='none'/><path d='M52 64 C52 56 62 56 62 64' stroke='%2306b6d4' stroke-width='5' stroke-linecap='round' fill='none'/><path d='M20 75 C16 71 14 76 17 78 Q45 99 73 78 C76 76 74 71 70 75 Q45 94 20 75' fill='%23db2777'/></g></svg>">
 </head>
 <body>
     <!-- SEO 優化：對爬蟲宣示這是本頁最重要的標題 -->
@@ -171,7 +188,13 @@
 
     <header id="main-header">
         <div class="logo-container" onclick="resetToLatest(true)">
-
+            <!-- 方案 B：左側圖片，右側文字（手機版自動隱藏副標與小標） -->
+            <img src="/polipoli_favicon_512x512.png" alt="Polipoli Logo" class="header-logo-img">
+            <div class="header-text-group">
+                <div class="header-title">Polipoli 啪哩啪哩追蹤站</div>
+                <div class="header-slogan">把政治人物的虛偽外衣，扒得清清楚楚。</div>
+                <div class="header-subtitle">專門收錄裝作啪哩啪哩，做事卻兩光的政治人物。</div>
+            </div>
         </div>
     </header>
 
@@ -689,3 +712,4 @@
     </script>
 </body>
 </html>
+
