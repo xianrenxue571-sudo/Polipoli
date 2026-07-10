@@ -12,13 +12,10 @@
     <meta property="og:type" content="website">
 
    <link rel="icon" type="image/png" href="/polipoli_favicon_512x512.png">
-
    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-
    <meta property="og:image" content="https://polipoli.cc/polipoli_og_share_1024x1024.png">
    <meta property="og:image:width" content="1024">
    <meta property="og:image:height" content="1024">
-   <meta property="og:type" content="website">
 
     <link rel="preconnect" href="https://ymrpsmrxnoyypayzujlm.supabase.co">
     
@@ -33,32 +30,22 @@
             --border: #e5e7eb;
             --danger: #dc2626;
             --warning: #d97706;
+            --success: #059669;
+            --purple: #7c3aed;
         }
         * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
         body { margin: 0; background: var(--bg); color: var(--text-main); line-height: 1.6; }
-        
-        /* 視覺隱藏但對爬蟲可見的標籤 (SEO 優化) */
-        .sr-only {
-            position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
-            overflow: hidden; clip: rect(0, 0, 0, 0); border: 0;
-        }
+        .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0; }
 
         header { 
             background: var(--primary); color: white; padding: 0.5rem 1rem;
             position: sticky; top: 0; z-index: 100; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
-            display: flex; justify-content: center; align-items: center;
-            transition: transform 0.3s ease-in-out;
+            display: flex; justify-content: center; align-items: center; transition: transform 0.3s ease-in-out;
         }
         header.hidden { transform: translateY(-100%); }
         header .logo-container { cursor: pointer; display: inline-flex; align-items: center; text-align: left; }
         
-        /* === Header Logo 與文字區塊樣式 === */
-        .header-logo-img {
-            width: 48px; height: 48px;
-            margin-right: 12px;
-            border-radius: 8px;
-            object-fit: contain;
-        }
+        .header-logo-img { width: 48px; height: 48px; margin-right: 12px; border-radius: 8px; object-fit: contain; }
         .header-text-group { display: flex; flex-direction: column; justify-content: center; }
         .header-title { font-size: 1.25rem; font-weight: bold; line-height: 1.2; color: #ffffff; }
         .header-slogan { font-size: 0.85rem; color: #d1d5db; margin-top: 2px; }
@@ -76,25 +63,15 @@
         .main-tab-btn:hover { color: var(--accent); background: #f8fafc; }
         .main-tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
 
-        .container { 
-            display: grid; grid-template-columns: 1fr; gap: 2rem; 
-            max-width: 1200px; margin: 2rem auto; padding: 0 1rem;
-        }
+        .container { display: grid; grid-template-columns: 1fr; gap: 2rem; max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
         @media (min-width: 768px) { .container { grid-template-columns: 300px 1fr; } }
 
-        aside { 
-            background: var(--card-bg); padding: 1.5rem; border-radius: 12px; 
-            height: fit-content; border: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        }
+        aside { background: var(--card-bg); padding: 1.5rem; border-radius: 12px; height: fit-content; border: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
         aside h2 { margin-top: 0; font-size: 1.2rem; border-bottom: 2px solid var(--border); padding-bottom: 0.5rem; }
         
         .search-container { margin-bottom: 15px; }
         .search-input { width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem; margin-bottom: 5px; }
-        
-        .mobile-issue-select { 
-            display: none; width: 100%; padding: 10px; border: 1px solid var(--border); 
-            border-radius: 6px; font-size: 1rem; margin-bottom: 15px; background: #f9fafb;
-        }
+        .mobile-issue-select { display: none; width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 1rem; margin-bottom: 15px; background: #f9fafb; }
         
         .sidebar-list { max-height: 60vh; overflow-y: auto; padding-right: 5px; }
         .sidebar-list::-webkit-scrollbar { width: 4px; }
@@ -103,8 +80,7 @@
         .quick-tags-container { display: flex; flex-wrap: wrap; gap: 8px; }
         .quick-tag-btn { 
             font-size: 0.9rem; background: #f3f4f6; color: var(--text-main); border: 1px solid var(--border); 
-            padding: 6px 12px; border-radius: 20px; cursor: pointer; transition: all 0.2s; font-weight: 500;
-            display: inline-flex; align-items: center;
+            padding: 6px 12px; border-radius: 20px; cursor: pointer; transition: all 0.2s; font-weight: 500; display: inline-flex; align-items: center;
         }
         .quick-tag-btn:hover, .quick-tag-btn.active { background: #e0e7ff; border-color: #c7d2fe; color: var(--accent); font-weight: bold; box-shadow: 0 2px 4px rgba(37, 99, 235, 0.1); }
         .section-label { font-size: 0.8rem; color: var(--text-muted); margin: 12px 0 4px 4px; width: 100%; font-weight: bold; }
@@ -116,94 +92,82 @@
             .header-logo-img { width: 36px; height: 36px; margin-right: 10px; }
             .header-title { font-size: 1.1rem; }
         }
-        @media (min-width: 768px) {
-            .mobile-issue-select { display: none !important; }
-        }
+        @media (min-width: 768px) { .mobile-issue-select { display: none !important; } }
 
         main { display: flex; flex-direction: column; gap: 1.5rem; }
         .feed-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); padding-bottom: 0.5rem; }
         .feed-header h2 { margin: 0; color: var(--accent); }
 
-        /* === 數據統計儀表板樣式 === */
-        #stat-dashboard {
-            display: none; 
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 1rem;
-            margin-bottom: 0.5rem;
-        }
-        .stat-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 1.2rem;
-            text-align: center;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            transition: transform 0.2s;
-        }
+        #stat-dashboard { display: none; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 0.5rem; }
+        .stat-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 1.2rem; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.02); display: flex; flex-direction: column; justify-content: center; transition: transform 0.2s; }
         .stat-card:hover { transform: translateY(-2px); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
-        .stat-value {
-            font-size: 1.8rem;
-            font-weight: bold;
-            color: var(--accent);
-            line-height: 1.2;
-        }
+        .stat-value { font-size: 1.8rem; font-weight: bold; color: var(--accent); line-height: 1.2; }
         .stat-value.danger { color: var(--danger); }
-        .stat-label {
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            margin-top: 4px;
-            font-weight: 500;
-        }
+        .stat-label { font-size: 0.85rem; color: var(--text-muted); margin-top: 4px; font-weight: 500; }
 
-        .event-card { 
-            background: var(--card-bg); border-radius: 12px; padding: 1.5rem; 
-            border: 1px solid var(--border); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); transition: transform 0.2s;
-        }
+        /* === 階段三升級：事件卡片與新標籤 === */
+        .event-card { background: var(--card-bg); border-radius: 12px; padding: 1.5rem; border: 1px solid var(--border); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); transition: transform 0.2s; }
         .event-card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
         
         .tag-row { margin-bottom: 10px; display: flex; flex-wrap: wrap; gap: 8px; }
-        .info-tag { 
-            font-size: 0.85rem; font-weight: bold; background: #e0e7ff; color: #3730a3; 
-            padding: 4px 8px; border-radius: 6px; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center;
-        }
+        .info-tag { font-size: 0.85rem; font-weight: bold; background: #e0e7ff; color: #3730a3; padding: 4px 8px; border-radius: 6px; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; }
         .info-tag:hover { background: #c7d2fe; transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         .issue-tag { background: #dcfce7; color: #166534; }
         .issue-tag:hover { background: #bbf7d0; }
 
-        .event-meta { 
-            display: flex; gap: 10px; font-size: 0.85rem; color: var(--text-muted); 
-            margin-bottom: 1rem; flex-wrap: wrap; padding-bottom: 10px; border-bottom: 1px dashed var(--border);
-        }
-        .meta-tag { background: #f3f4f6; padding: 2px 8px; border-radius: 4px; border: 1px solid var(--border); font-weight: 500; }
-        .severity-high { color: var(--danger); background: #fef2f2; border-color: #fecaca; }
-        .severity-med { color: var(--warning); background: #fffbeb; border-color: #fde68a; }
+        .event-meta { display: flex; gap: 8px; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem; flex-wrap: wrap; padding-bottom: 10px; border-bottom: 1px dashed var(--border); }
+        .meta-tag { background: #f3f4f6; padding: 2px 8px; border-radius: 4px; border: 1px solid var(--border); font-weight: 500; display: inline-flex; align-items: center; }
         
+        /* 雙維度與新標籤色彩 */
+        .severity-tag { background: #fffbeb; border-color: #fde68a; color: var(--warning); }
+        .severity-tag.high { background: #fef2f2; border-color: #fecaca; color: var(--danger); }
+        .status-tag { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }
+        .evidence-tag { background: #f5f3ff; border-color: #ddd6fe; color: var(--purple); }
+
         .event-quote { font-size: 1.25rem; font-weight: bold; margin: 10px 0 1rem 0; color: var(--text-main); }
-        .event-context { 
-            color: #4b5563; font-size: 0.95rem; margin-bottom: 1rem; background: #f8fafc; 
-            padding: 1rem; border-left: 4px solid var(--accent); border-radius: 0 8px 8px 0;
-        }
+        .event-context { color: #4b5563; font-size: 0.95rem; margin-bottom: 1rem; background: #f8fafc; padding: 1rem; border-left: 4px solid var(--accent); border-radius: 0 8px 8px 0; }
         
         .event-img-container { margin-top: 1rem; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); max-height: 300px; cursor: pointer; }
         .event-img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.3s; }
         .event-img-container:hover .event-img { transform: scale(1.02); }
 
-        .event-actions { display: flex; justify-content: flex-end; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); }
-        .source-link { color: var(--accent); text-decoration: none; font-weight: bold; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 4px; }
-        .source-link:hover { text-decoration: underline; }
+        .event-actions { display: flex; justify-content: flex-end; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); flex-direction: column; align-items: flex-end; gap: 6px; }
+        .source-link { color: var(--accent); text-decoration: none; font-weight: bold; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 4px; background: #f0fdf4; padding: 4px 10px; border-radius: 20px; border: 1px solid #bbf7d0; transition: all 0.2s; }
+        .source-link:hover { background: #dcfce7; text-decoration: none; transform: translateX(-2px); }
+
+        /* === 階段三升級：方案 B 左側單線時間軸視圖 === */
+        .timeline-view {
+            border-left: 3px solid var(--accent);
+            padding-left: 25px;
+            margin-left: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem; /* 拉開卡片間距 */
+        }
+        .timeline-view .event-card {
+            position: relative;
+            margin: 0; /* 覆蓋原有 margin */
+        }
+        /* 魔法偽元素：繪製時間軸上的圓點 */
+        .timeline-view .event-card::before {
+            content: '';
+            position: absolute;
+            left: -33px; /* 剛好對齊左側粗線 */
+            top: 24px;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--accent);
+            border: 3px solid white;
+            box-shadow: 0 0 0 1px var(--accent);
+            z-index: 2;
+        }
 
         #loader { text-align: center; padding: 2rem; color: var(--text-muted); font-weight: bold; display: none; }
         #loader.visible { display: block; }
         .end-message { text-align: center; padding: 2rem; color: var(--text-muted); display: none; }
 
-        #image-modal { 
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: rgba(0,0,0,0.85); z-index: 1000; justify-content: center; align-items: center; padding: 2rem;
-            cursor: zoom-out; 
-        }
+        #image-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; justify-content: center; align-items: center; padding: 2rem; cursor: zoom-out; }
         #image-modal.active { display: flex; }
         #modal-img { max-width: 100%; max-height: 100%; border-radius: 8px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
     </style>
@@ -235,8 +199,7 @@
                 <input type="text" id="sidebar-search" class="search-input" placeholder="輸入姓名搜尋人物..." oninput="filterSidebar()">
             </div>
             
-            <select id="mobile-issue-select" class="mobile-issue-select" onchange="handleMobileIssueSelect(this.value)">
-            </select>
+            <select id="mobile-issue-select" class="mobile-issue-select" onchange="handleMobileIssueSelect(this.value)"></select>
 
             <div class="sidebar-list">
                 <div id="quick-tags-container" class="quick-tags-container">
@@ -251,6 +214,12 @@
             </div>
          
             <div id="stat-dashboard"></div>
+
+            <div id="view-controls" style="display: none; justify-content: flex-end; margin-bottom: 1rem;">
+                <button id="btn-toggle-timeline" onclick="toggleTimeline()" class="quick-tag-btn" style="background: var(--primary); color: white; border: none; padding: 8px 16px;">
+                    ⏳ 切換為時間軸視圖
+                </button>
+            </div>
             
             <div id="events-feed"></div>
             
