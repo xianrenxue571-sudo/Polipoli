@@ -3,30 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- SEO 優化：精準 Title 與 Description -->
     <title>Polipoli 啪哩啪哩 | 台灣政治人物爭議事件與雙標言行資料庫</title>
     <meta name="description" content="專注記錄台灣政治人物言行、失言與重大社會議題。透過人物標籤快速檢驗雙標言論，提供完整的新聞脈絡與爭議事件懶人包。">
     <meta name="keywords" content="政治人物 爭議, 失言紀錄, 雙標言論, 社會議題, 台灣政治, 事實查核, 懶人包">
     
-    <!-- OG Tags 社交分享優化 -->
     <meta property="og:title" content="Polipoli 啪哩啪哩 | 政治人物言行審查資料庫">
     <meta property="og:description" content="幫你記住政治人物說過的話。快速檢驗雙標言論，追蹤熱門人物的事件與爭議。">
     <meta property="og:type" content="website">
 
-   <!-- 1. 網頁標籤分頁 Favicon (512x512) -->
    <link rel="icon" type="image/png" href="/polipoli_favicon_512x512.png">
 
-   <!-- 2. Apple iOS / Android 桌面上架 App 圖標 -->
    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 
-   <!-- 3. LINE / FB 完美的社群分享大圖 (1024x1024) -->
    <meta property="og:image" content="https://polipoli.cc/polipoli_og_share_1024x1024.png">
    <meta property="og:image:width" content="1024">
    <meta property="og:image:height" content="1024">
    <meta property="og:type" content="website">
 
-    
-    <!-- 技術 SEO：提早解析 Supabase 網域，加快資料載入速度 -->
     <link rel="preconnect" href="https://ymrpsmrxnoyypayzujlm.supabase.co">
     
     <style>
@@ -59,10 +52,9 @@
         header.hidden { transform: translateY(-100%); }
         header .logo-container { cursor: pointer; display: inline-flex; align-items: center; text-align: left; }
         
-        /* === 新增：Header Logo 與文字區塊樣式 === */
+        /* === Header Logo 與文字區塊樣式 === */
         .header-logo-img {
-            width: 48px;
-            height: 48px;
+            width: 48px; height: 48px;
             margin-right: 12px;
             border-radius: 8px;
             object-fit: contain;
@@ -111,16 +103,15 @@
         .quick-tags-container { display: flex; flex-wrap: wrap; gap: 8px; }
         .quick-tag-btn { 
             font-size: 0.9rem; background: #f3f4f6; color: var(--text-main); border: 1px solid var(--border); 
-            padding: 6px 12px; border-radius: 20px; cursor: pointer; transition: all 0.2s; font-weight: 500; display: inline-flex; align-items: center;
+            padding: 6px 12px; border-radius: 20px; cursor: pointer; transition: all 0.2s; font-weight: 500;
+            display: inline-flex; align-items: center;
         }
         .quick-tag-btn:hover, .quick-tag-btn.active { background: #e0e7ff; border-color: #c7d2fe; color: var(--accent); font-weight: bold; box-shadow: 0 2px 4px rgba(37, 99, 235, 0.1); }
         .section-label { font-size: 0.8rem; color: var(--text-muted); margin: 12px 0 4px 4px; width: 100%; font-weight: bold; }
 
-        /* === 方案 B：手機版隱藏 Slogan 與小標題 === */
         @media (max-width: 767px) {
             .desktop-issue-tags { display: none !important; }
             .mobile-issue-select.active-tab { display: block; }
-            
             .header-slogan, .header-subtitle { display: none; }
             .header-logo-img { width: 36px; height: 36px; margin-right: 10px; }
             .header-title { font-size: 1.1rem; }
@@ -132,6 +123,41 @@
         main { display: flex; flex-direction: column; gap: 1.5rem; }
         .feed-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); padding-bottom: 0.5rem; }
         .feed-header h2 { margin: 0; color: var(--accent); }
+
+        /* === 新增：方案 B 數據統計儀表板樣式 === */
+        #stat-dashboard {
+            display: none; /* 預設隱藏，只在人物專屬頁面顯示 */
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        .stat-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.2rem;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            transition: transform 0.2s;
+        }
+        .stat-card:hover { transform: translateY(-2px); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: var(--accent);
+            line-height: 1.2;
+        }
+        .stat-value.danger { color: var(--danger); }
+        .stat-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+            font-weight: 500;
+        }
+        /* ===================================== */
 
         .event-card { 
             background: var(--card-bg); border-radius: 12px; padding: 1.5rem; 
@@ -150,7 +176,7 @@
 
         .event-meta { 
             display: flex; gap: 10px; font-size: 0.85rem; color: var(--text-muted); 
-            margin-bottom: 1rem; flex-wrap: wrap; padding-bottom: 10px; border-bottom: 1px dashed var(--border); 
+            margin-bottom: 1rem; flex-wrap: wrap; padding-bottom: 10px; border-bottom: 1px dashed var(--border);
         }
         .meta-tag { background: #f3f4f6; padding: 2px 8px; border-radius: 4px; border: 1px solid var(--border); font-weight: 500; }
         .severity-high { color: var(--danger); background: #fef2f2; border-color: #fecaca; }
@@ -176,19 +202,18 @@
 
         #image-modal { 
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: rgba(0,0,0,0.85); z-index: 1000; justify-content: center; align-items: center; padding: 2rem; cursor: zoom-out; 
+            background: rgba(0,0,0,0.85); z-index: 1000; justify-content: center; align-items: center; padding: 2rem;
+            cursor: zoom-out; 
         }
         #image-modal.active { display: flex; }
         #modal-img { max-width: 100%; max-height: 100%; border-radius: 8px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
     </style>
 </head>
 <body>
-    <!-- SEO 優化：對爬蟲宣示這是本頁最重要的標題 -->
     <h1 class="sr-only">Polipoli 啪哩啪哩 - 台灣政治人物言行審查與社會議題追蹤站</h1>
 
     <header id="main-header">
         <div class="logo-container" onclick="resetToLatest(true)">
-            <!-- 方案 B：左側圖片，右側文字（手機版自動隱藏副標與小標） -->
             <img src="/polipoli_favicon.png" alt="Polipoli Logo" class="header-logo-img">
             <div class="header-text-group">
                 <div class="header-title">Polipoli 啪哩啪哩追蹤站</div>
@@ -225,6 +250,8 @@
             <div class="feed-header">
                 <h2 id="feed-title">綜合最新事件牆</h2>
             </div>
+         
+            <div id="stat-dashboard"></div>
             
             <div id="events-feed"></div>
             
@@ -280,10 +307,8 @@
             lastScrollTop = currentScroll <= 0 ? 0 : currentScroll;
         });
 
-        // 頁面載入時：檢查 URL 是否有帶參數 (實體 SEO 策略)
         window.onload = async () => {
             await fetchSidebarData();
-            
             const urlParams = new URLSearchParams(window.location.search);
             const polId = urlParams.get('pol');
             const issueId = urlParams.get('issue');
@@ -325,7 +350,7 @@
             
             if (polRes.data) cachePoliticians = polRes.data;
             if (issueRes.data) cacheIssues = issueRes.data;
-            
+
             if (mapRes.data && cachePoliticians.length > 0) {
                 const counts = mapRes.data.reduce((acc, cur) => {
                     acc[cur.politician_id] = (acc[cur.politician_id] || 0) + 1;
@@ -338,7 +363,6 @@
             }
         }
 
-        // 修改：強制重置機制，修復頁籤卡死 Bug
         window.switchMainTab = function(tabName, preventReload = false) {
             if (currentTab === tabName) return;
             currentTab = tabName;
@@ -347,7 +371,7 @@
             document.getElementById(`tab-${tabName}`).classList.add('active');
             
             if (!preventReload) {
-                resetToLatest(true); // 傳入 true 強制重置
+                resetToLatest(true);
             } else {
                 renderSidebar();
             }
@@ -413,7 +437,7 @@
 
                 const visibleQuickTags = quickPolTags.filter(tag => cachePoliticians.some(p => p.name === tag));
                 const filteredQuickTags = visibleQuickTags.filter(tag => !topFivePoliticians.some(tp => tp.name === tag));
-                
+
                 if (filteredQuickTags.length > 0) {
                     html += `<div class="section-label">📌 難檢字快速查</div>`;
                     html += filteredQuickTags.map(tag => {
@@ -465,7 +489,6 @@
 
             const start = page * PAGE_SIZE;
             const end = start + PAGE_SIZE - 1;
-            
             const { data, error } = await supabase
                 .from('events')
                 .select(`
@@ -476,7 +499,6 @@
                 .eq('is_visible', true)
                 .order('date', { ascending: false })
                 .range(start, end);
-            
             handleDataResponse(data, error);
         }
 
@@ -484,12 +506,11 @@
             currentMode = 'specific';
             currentFilterId = id;
             currentTargetName = (type === 'politician') ? name : null;
-
-            // SEO 策略：動態修改網址，讓特定人物/議題可以被分享與未來索引
+            
+            // SEO 策略：動態修改網址
             if (pushHistory) {
                 const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + `?${type === 'politician' ? 'pol' : 'issue'}=${id}`;
                 window.history.pushState({path:newUrl}, '', newUrl);
-                // 動態更新網頁 Title 以利 SEO
                 document.title = `${name} 爭議與言行紀錄 | Polipoli 啪哩啪哩`;
             }
 
@@ -504,6 +525,7 @@
             hasMoreData = true;
             feedContainer.innerHTML = '';
             endMessage.style.display = 'none';
+            document.getElementById('stat-dashboard').style.display = 'none'; // 先隱藏數據儀表板
             
             renderSidebar();
             feedTitle.textContent = type === 'politician' ? `📂 ${name} 的專屬事件簿` : `📌 關於「${name}」的相關事件`;
@@ -543,6 +565,59 @@
             }
 
             const eventsData = queryResult.data.map(item => item.events).sort((a, b) => new Date(b.date || '1970-01-01') - new Date(a.date || '1970-01-01'));
+            
+            // ==========================================
+            // === 新增：動態提煉數據與渲染儀表板邏輯 ===
+            // ==========================================
+            const statDashboard = document.getElementById('stat-dashboard');
+            if (type === 'politician' && eventsData.length > 0) {
+                const totalEvents = eventsData.length;
+                let maxSeverity = 0;
+                const issueCounts = {};
+
+                // 遍歷所有事件以提煉數據
+                eventsData.forEach(e => {
+                    const sev = parseInt(e.severity) || 0;
+                    if (sev > maxSeverity) maxSeverity = sev;
+
+                    if (e.event_issue_map && Array.isArray(e.event_issue_map)) {
+                        e.event_issue_map.forEach(m => {
+                            if (m.issues && m.issues.name) {
+                                issueCounts[m.issues.name] = (issueCounts[m.issues.name] || 0) + 1;
+                            }
+                        });
+                    }
+                });
+
+                // 找出最常涉及的議題
+                let topIssue = '無特定議題';
+                let maxIssueCount = 0;
+                for (const [issueName, count] of Object.entries(issueCounts)) {
+                    if (count > maxIssueCount) {
+                        maxIssueCount = count;
+                        topIssue = issueName;
+                    }
+                }
+
+                // 渲染至儀表板並顯示
+                statDashboard.innerHTML = `
+                    <div class="stat-card">
+                        <div class="stat-value">${totalEvents}</div>
+                        <div class="stat-label">總爭議事件 (件)</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" style="font-size: 1.3rem; display: flex; align-items: center; justify-content: center; height: 100%;">${topIssue}</div>
+                        <div class="stat-label">核心爭議議題</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value danger">${maxSeverity}</div>
+                        <div class="stat-label">最高嚴重度指標</div>
+                    </div>
+                `;
+                statDashboard.style.display = 'grid';
+            }
+            // ==========================================
+
             renderEvents(eventsData);
             hasMoreData = false;
             loader.classList.remove('visible');
@@ -568,7 +643,6 @@
             loader.classList.remove('visible');
         }
 
-        // SEO 策略：動態注入 Schema Markup (JSON-LD)
         function injectSchema(events) {
             const oldSchema = document.getElementById('dynamic-schema');
             if (oldSchema) oldSchema.remove();
@@ -597,7 +671,6 @@
                     }
                 }))
             };
-
             const script = document.createElement('script');
             script.id = 'dynamic-schema';
             script.type = 'application/ld+json';
@@ -606,9 +679,7 @@
         }
 
         function renderEvents(events) {
-            // 在渲染時同步建立 Schema
             if(events.length > 0) injectSchema(events);
-
             const html = events.map(e => {
                 const severityClass = e.severity >= 4 ? 'severity-high' : (e.severity == 3 ? 'severity-med' : '');
                 
@@ -620,13 +691,12 @@
                     `<span class="info-tag" onclick="loadSpecificData('politician', '${m.politician_id}', '${m.politicians.name}')">👤 ${m.politicians.name}</span>`
                 ).join('') || '';
 
-                // SEO 優化：圖片加入 decoding="async" 與更好的 alt 敘述
                 const imageHtml = e.image_url ? `
                     <div class="event-img-container" onclick="openImageModal('${e.image_url}')">
                         <img class="event-img" src="${e.image_url}" alt="${e.quote} 相關新聞截圖或佐證" loading="lazy" decoding="async">
                     </div>
                 ` : '';
-                
+
                 const sourceHtml = e.source_url ? `
                     <div class="event-actions">
                         <a href="${e.source_url}" target="_blank" rel="noopener noreferrer" class="source-link">
@@ -635,7 +705,6 @@
                     </div>
                 ` : '';
 
-                // 使用 <article> 強化語義化
                 return `
                     <article class="event-card">
                         <div class="tag-row">
@@ -656,7 +725,7 @@
                     </article>
                 `;
             }).join('');
-            
+
             if(events.length === 0 && page === 0) {
                 feedContainer.innerHTML = '<div style="text-align:center; padding: 3rem; color: #6b7280; font-weight: bold;">目前尚無相關公開事件。</div>';
             } else {
@@ -664,24 +733,24 @@
             }
         }
 
-        // 修改：加入 force 參數打破防呆死鎖
         window.resetToLatest = function(force = false) {
-            // 原本的防呆：如果是 latest 模式且 page === 0，直接 return (這就是卡死的原因)
-            // 現在加入 force 判斷，如果 force 為 true 就無視防呆強制執行重置
             if (!force && currentMode === 'latest' && page === 0) return;
             
-            // 清除 URL 參數
             const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
             window.history.pushState({path:newUrl}, '', newUrl);
             document.title = "Polipoli 啪哩啪哩 | 台灣政治人物爭議事件與雙標言行資料庫";
 
             currentMode = 'latest';
             currentFilterId = null;
-            currentTargetName = null; 
+            currentTargetName = null;
             page = 0;
             hasMoreData = true;
             document.getElementById('sidebar-search').value = '';
             feedContainer.innerHTML = '';
+            
+            // 新增：綜合牆模式時隱藏儀表板
+            document.getElementById('stat-dashboard').style.display = 'none';
+            
             feedTitle.textContent = currentTab === 'issues' ? '全部社會議題事件' : '綜合最新事件牆';
             endMessage.style.display = 'none';
             
@@ -712,4 +781,3 @@
     </script>
 </body>
 </html>
-
