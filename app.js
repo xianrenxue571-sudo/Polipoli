@@ -205,7 +205,6 @@ window.filterSidebar = function() {
     const rawTerm = document.getElementById('sidebar-search').value.trim();
     const term = rawTerm.toLowerCase();
     
-    // 智慧模糊搜尋轉換
     let mappedTerm = term;
     for (const [key, value] of Object.entries(FUZZY_DICT)) {
         if (term.includes(key)) {
@@ -239,7 +238,6 @@ function parseContextLinks(text) {
     return text.replace(urlRegex, '<a href="$1" target="_blank" class="source-link" style="font-size:0.9em; background:none; border:none; padding:0;">🔗 參考連結</a>');
 }
 
-// === 階段三新增：時間軸切換邏輯 ===
 window.toggleTimeline = function() {
     const feed = document.getElementById('events-feed');
     const btn = document.getElementById('btn-toggle-timeline');
@@ -248,7 +246,7 @@ window.toggleTimeline = function() {
     
     if (feed.classList.contains('timeline-view')) {
         btn.innerHTML = '📋 切換回列表視圖';
-        btn.style.background = '#4b5563'; // 改變按鈕顏色作為提示
+        btn.style.background = '#4b5563'; 
     } else {
         btn.innerHTML = '⏳ 切換為時間軸視圖';
         btn.style.background = 'var(--primary)';
@@ -302,7 +300,6 @@ window.loadSpecificData = async function(type, id, name, pushHistory = true) {
     endMessage.style.display = 'none';
     document.getElementById('stat-dashboard').style.display = 'none'; 
     
-    // 預設關閉時間軸，顯示切換按鈕
     feedContainer.classList.remove('timeline-view');
     document.getElementById('view-controls').style.display = 'flex';
     document.getElementById('btn-toggle-timeline').innerHTML = '⏳ 切換為時間軸視圖';
@@ -357,7 +354,7 @@ window.loadSpecificData = async function(type, id, name, pushHistory = true) {
         const issueCounts = {};
 
         eventsData.forEach(e => {
-            const sev = parseInt(e.influence) || parseInt(e.severity) || 0; // 改看炎上影響力
+            const sev = parseInt(e.influence) || parseInt(e.severity) || 0; // 對齊討論熱度
             if (sev > maxSeverity) maxSeverity = sev;
             if (e.event_issue_map && Array.isArray(e.event_issue_map)) {
                 e.event_issue_map.forEach(m => {
@@ -377,6 +374,7 @@ window.loadSpecificData = async function(type, id, name, pushHistory = true) {
             }
         }
 
+        // === 數據儀表板更名完成 ===
         statDashboard.innerHTML = `
             <div class="stat-card">
                 <div class="stat-value">${totalEvents}</div>
@@ -388,7 +386,7 @@ window.loadSpecificData = async function(type, id, name, pushHistory = true) {
             </div>
             <div class="stat-card">
                 <div class="stat-value danger">${maxSeverity}</div>
-                <div class="stat-label">最高炎上影響力</div>
+                <div class="stat-label">最高討論熱度指標</div>
             </div>
         `;
         statDashboard.style.display = 'grid';
@@ -454,12 +452,11 @@ function injectSchema(events) {
     document.head.appendChild(script);
 }
 
-// === 階段三：渲染邏輯大升級 (納入狀態、可信度、雙維度嚴重度) ===
+// === 渲染邏輯更名優化：精簡拔除狀態、證據，套用全新白話白話名稱 ===
 function renderEvents(events) {
     if(events.length > 0) injectSchema(events);
     const html = events.map(e => {
         
-        // 1. 處理標籤列 (Issue & Politicians)
         const issueTags = e.event_issue_map?.filter(m => m.issues?.name).map(m => 
             `<span class="info-tag issue-tag" onclick="loadSpecificData('issue', '${m.issue_id}', '${m.issues.name}')">📌 ${m.issues.name}</span>`
         ).join('') || '';
@@ -468,24 +465,20 @@ function renderEvents(events) {
             `<span class="info-tag" onclick="loadSpecificData('politician', '${m.politician_id}', '${m.politicians.name}')">👤 ${m.politicians.name}</span>`
         ).join('') || '';
 
-        // 2. 處理新欄位回退邏輯 (若舊資料無此欄位，給予預設值防呆)
+        // 讀取底層欄位，若無則完美向下回退容錯
         const influence = e.influence || e.severity || '-';
         const importance = e.importance || e.severity || '-';
-        const status = e.status || '事件記錄中';
-        const evidence = e.evidence_level || '媒體報導';
 
-        // 判斷嚴重度顏色
+        // 判斷嚴重度顏色 Class
         const infClass = influence >= 4 ? 'high' : '';
         const impClass = importance >= 4 ? 'high' : '';
 
-        // 3. 圖片處理
         const imageHtml = e.image_url ? `
             <div class="event-img-container" onclick="openImageModal('${e.image_url}')">
                 <img class="event-img" src="${e.image_url}" alt="${e.quote} 相關新聞截圖或佐證" loading="lazy" decoding="async">
             </div>
         ` : '';
 
-        // 4. 多重來源處理
         let sourceHtml = '';
         if (e.event_sources && e.event_sources.length > 0) {
             sourceHtml = `<div class="event-actions">`;
@@ -507,7 +500,7 @@ function renderEvents(events) {
 
         const parsedContext = parseContextLinks(e.context);
 
-        // 5. 組裝卡片 HTML (加入雙維度與新標籤)
+        // 輸出結構：徹底拔除狀態與證據標籤，完成極簡更名
         return `
             <article class="event-card">
                 <div class="tag-row">
@@ -516,10 +509,8 @@ function renderEvents(events) {
                 </div>
                 <div class="event-meta">
                     <span class="meta-tag">📅 ${e.date || '日期未明'}</span>
-                    <span class="meta-tag status-tag">⏱️ 狀態: ${status}</span>
-                    <span class="meta-tag evidence-tag">🛡️ 證據: ${evidence}</span>
-                    <span class="meta-tag severity-tag ${infClass}">🔥 炎上影響力: ${influence}</span>
-                    <span class="meta-tag severity-tag ${impClass}">⚠️ 實質重要性: ${importance}</span>
+                    <span class="meta-tag severity-tag ${infClass}">🔥 討論熱度: ${influence}</span>
+                    <span class="meta-tag severity-tag ${impClass}">⚠️ 嚴重程度: ${importance}</span>
                 </div>
                 <h3 class="event-quote">「${e.quote}」</h3>
                 <div class="event-context">
@@ -553,7 +544,6 @@ window.resetToLatest = function(force = false) {
     document.getElementById('sidebar-search').value = '';
     feedContainer.innerHTML = '';
     
-    // 切回首頁時，隱藏儀表板與時間軸切換按鈕，並關閉時間軸模式
     document.getElementById('stat-dashboard').style.display = 'none';
     document.getElementById('view-controls').style.display = 'none';
     feedContainer.classList.remove('timeline-view');
