@@ -20,7 +20,6 @@ let topFivePoliticians = [];
 
 const quickPolTags = ['游錫堃', '鄺麗貞', '傅崐萁', '陳玉珍', '徐欣瑩', '張嘉郡', '陳智菡', '黃瀞瑩', '顏寬恒', '佀廣洋'];
 
-// 智慧模糊搜尋對照字典 (Fuzzy Dictionary)
 const FUZZY_DICT = {
     "雞蛋": "食安", "進口蛋": "食安",
     "圖利": "弊案", "貪污": "弊案",
@@ -38,7 +37,6 @@ const searchContainer = document.getElementById('sidebar-search-container');
 const tagsContainer = document.getElementById('quick-tags-container');
 const mobileSelect = document.getElementById('mobile-issue-select');
 
-// 滑動自動收合 Header
 let lastScrollTop = 0;
 window.addEventListener('scroll', () => {
     let currentScroll = window.pageYOffset || document.documentElement.scrollTop;
@@ -51,7 +49,6 @@ window.addEventListener('scroll', () => {
     lastScrollTop = currentScroll <= 0 ? 0 : currentScroll;
 });
 
-// 初始化載入
 window.onload = async () => {
     await fetchSidebarData();
     const urlParams = new URLSearchParams(window.location.search);
@@ -86,7 +83,6 @@ function initDefault() {
     loadLatestEvents();
 }
 
-// 獲取側邊欄初始核心資料
 async function fetchSidebarData() {
     const [polRes, issueRes, mapRes] = await Promise.all([
         supabase.from('politicians').select('*').eq('is_visible', true).order('name'),
@@ -97,7 +93,6 @@ async function fetchSidebarData() {
     if (polRes.data) cachePoliticians = polRes.data;
     if (issueRes.data) cacheIssues = issueRes.data;
 
-    // 動態熱門演算法：依據資料庫真實關聯數量即時計算 Top 5
     if (mapRes.data && cachePoliticians.length > 0) {
         const counts = mapRes.data.reduce((acc, cur) => {
             acc[cur.politician_id] = (acc[cur.politician_id] || 0) + 1;
@@ -110,7 +105,6 @@ async function fetchSidebarData() {
     }
 }
 
-// 切換頁籤 (由於是 ESM 模組，必須掛載到 window 供 HTML 內聯 onclick 呼叫)
 window.switchMainTab = function(tabName, preventReload = false) {
     if (currentTab === tabName) return;
     currentTab = tabName;
@@ -125,7 +119,6 @@ window.switchMainTab = function(tabName, preventReload = false) {
     }
 };
 
-// 渲染側邊欄結構
 function renderSidebar() {
     const title = document.getElementById('sidebar-title');
     const searchInput = document.getElementById('sidebar-search');
@@ -212,6 +205,15 @@ window.filterSidebar = function() {
     const rawTerm = document.getElementById('sidebar-search').value.trim();
     const term = rawTerm.toLowerCase();
     
+    // 智慧模糊搜尋轉換
+    let mappedTerm = term;
+    for (const [key, value] of Object.entries(FUZZY_DICT)) {
+        if (term.includes(key)) {
+            mappedTerm = value;
+            break;
+        }
+    }
+    
     if (!term) {
         renderSidebarButtons();
         return;
@@ -231,14 +233,28 @@ window.filterSidebar = function() {
     }
 };
 
-// 引用鏈連結解析器
 function parseContextLinks(text) {
     if (!text) return '無詳細脈絡說明。';
     const urlRegex = /(https?:\/\/[^\s]+)/g;
-    return text.replace(urlRegex, '<a href="$1" target="_blank" class="source-link" style="font-size:0.9em;">🔗參考連結</a>');
+    return text.replace(urlRegex, '<a href="$1" target="_blank" class="source-link" style="font-size:0.9em; background:none; border:none; padding:0;">🔗 參考連結</a>');
 }
 
-// 載入綜合事件牆
+// === 階段三新增：時間軸切換邏輯 ===
+window.toggleTimeline = function() {
+    const feed = document.getElementById('events-feed');
+    const btn = document.getElementById('btn-toggle-timeline');
+    
+    feed.classList.toggle('timeline-view');
+    
+    if (feed.classList.contains('timeline-view')) {
+        btn.innerHTML = '📋 切換回列表視圖';
+        btn.style.background = '#4b5563'; // 改變按鈕顏色作為提示
+    } else {
+        btn.innerHTML = '⏳ 切換為時間軸視圖';
+        btn.style.background = 'var(--primary)';
+    }
+};
+
 async function loadLatestEvents() {
     if (isFetching || !hasMoreData) return;
     isFetching = true;
@@ -247,7 +263,6 @@ async function loadLatestEvents() {
     const start = page * PAGE_SIZE;
     const end = start + PAGE_SIZE - 1;
     
-    // Join 語法：一併撈取新欄位與獨立新聞來源表
     const { data, error } = await supabase
         .from('events')
         .select(`
@@ -263,7 +278,6 @@ async function loadLatestEvents() {
     handleDataResponse(data, error, '綜合最新事件');
 }
 
-// 載入特定人物/議題資料庫
 window.loadSpecificData = async function(type, id, name, pushHistory = true) {
     currentMode = 'specific';
     currentFilterId = id;
@@ -287,6 +301,12 @@ window.loadSpecificData = async function(type, id, name, pushHistory = true) {
     feedContainer.innerHTML = '';
     endMessage.style.display = 'none';
     document.getElementById('stat-dashboard').style.display = 'none'; 
+    
+    // 預設關閉時間軸，顯示切換按鈕
+    feedContainer.classList.remove('timeline-view');
+    document.getElementById('view-controls').style.display = 'flex';
+    document.getElementById('btn-toggle-timeline').innerHTML = '⏳ 切換為時間軸視圖';
+    document.getElementById('btn-toggle-timeline').style.background = 'var(--primary)';
     
     renderSidebar();
     feedTitle.textContent = type === 'politician' ? `📂 ${name} 的專屬事件簿` : `📌 關於「${name}」的相關事件`;
@@ -329,9 +349,7 @@ window.loadSpecificData = async function(type, id, name, pushHistory = true) {
 
     const eventsData = queryResult.data.map(item => item.events).sort((a, b) => new Date(b.date || '1970-01-01') - new Date(a.date || '1970-01-01'));
     
-    console.log(`🔥 [分檔成功驗證] 成功撈取 ${name} 的事件與擴充來源:`, eventsData);
-
-    // 方案 B 數據儀表板即時運算
+    // 數據儀表板運算
     const statDashboard = document.getElementById('stat-dashboard');
     if (type === 'politician' && eventsData.length > 0) {
         const totalEvents = eventsData.length;
@@ -339,7 +357,7 @@ window.loadSpecificData = async function(type, id, name, pushHistory = true) {
         const issueCounts = {};
 
         eventsData.forEach(e => {
-            const sev = parseInt(e.severity) || 0;
+            const sev = parseInt(e.influence) || parseInt(e.severity) || 0; // 改看炎上影響力
             if (sev > maxSeverity) maxSeverity = sev;
             if (e.event_issue_map && Array.isArray(e.event_issue_map)) {
                 e.event_issue_map.forEach(m => {
@@ -370,7 +388,7 @@ window.loadSpecificData = async function(type, id, name, pushHistory = true) {
             </div>
             <div class="stat-card">
                 <div class="stat-value danger">${maxSeverity}</div>
-                <div class="stat-label">最高嚴重度指標</div>
+                <div class="stat-label">最高炎上影響力</div>
             </div>
         `;
         statDashboard.style.display = 'grid';
@@ -389,8 +407,6 @@ function handleDataResponse(data, error, logLabel = '資料') {
         loader.classList.remove('visible');
         return;
     }
-    
-    console.log(`🔥 [分檔成功驗證] 成功撈取 ${logLabel} 列表資料:`, data);
 
     if (data.length < PAGE_SIZE) {
         hasMoreData = false;
@@ -403,7 +419,6 @@ function handleDataResponse(data, error, logLabel = '資料') {
     loader.classList.remove('visible');
 }
 
-// 結構化資料 SEO 注入
 function injectSchema(events) {
     const oldSchema = document.getElementById('dynamic-schema');
     if (oldSchema) oldSchema.remove();
@@ -439,12 +454,12 @@ function injectSchema(events) {
     document.head.appendChild(script);
 }
 
-// 動態渲染 HTML 卡片
+// === 階段三：渲染邏輯大升級 (納入狀態、可信度、雙維度嚴重度) ===
 function renderEvents(events) {
     if(events.length > 0) injectSchema(events);
     const html = events.map(e => {
-        const severityClass = e.severity >= 4 ? 'severity-high' : (e.severity == 3 ? 'severity-med' : '');
         
+        // 1. 處理標籤列 (Issue & Politicians)
         const issueTags = e.event_issue_map?.filter(m => m.issues?.name).map(m => 
             `<span class="info-tag issue-tag" onclick="loadSpecificData('issue', '${m.issue_id}', '${m.issues.name}')">📌 ${m.issues.name}</span>`
         ).join('') || '';
@@ -453,25 +468,35 @@ function renderEvents(events) {
             `<span class="info-tag" onclick="loadSpecificData('politician', '${m.politician_id}', '${m.politicians.name}')">👤 ${m.politicians.name}</span>`
         ).join('') || '';
 
+        // 2. 處理新欄位回退邏輯 (若舊資料無此欄位，給予預設值防呆)
+        const influence = e.influence || e.severity || '-';
+        const importance = e.importance || e.severity || '-';
+        const status = e.status || '事件記錄中';
+        const evidence = e.evidence_level || '媒體報導';
+
+        // 判斷嚴重度顏色
+        const infClass = influence >= 4 ? 'high' : '';
+        const impClass = importance >= 4 ? 'high' : '';
+
+        // 3. 圖片處理
         const imageHtml = e.image_url ? `
             <div class="event-img-container" onclick="openImageModal('${e.image_url}')">
                 <img class="event-img" src="${e.image_url}" alt="${e.quote} 相關新聞截圖或佐證" loading="lazy" decoding="async">
             </div>
         ` : '';
 
-        // 如果資料庫有新關聯的新聞來源表，則優先採用一對多來源連結
+        // 4. 多重來源處理
         let sourceHtml = '';
         if (e.event_sources && e.event_sources.length > 0) {
-            sourceHtml = `<div class="event-actions" style="flex-direction: column; align-items: flex-end; gap: 4px;">`;
+            sourceHtml = `<div class="event-actions">`;
             e.event_sources.forEach(src => {
                 sourceHtml += `
-                    <a href="${src.url}" target="_blank" rel="noopener noreferrer" class="source-link" style="font-size:0.85rem;">
-                        🔗 [${src.media_name}] 查看原始證據新聞
+                    <a href="${src.url}" target="_blank" rel="noopener noreferrer" class="source-link">
+                        🔗 [${src.media_name}] 查看原始來源
                     </a>`;
             });
             sourceHtml += `</div>`;
         } else if (e.source_url) {
-            // 降級容錯邏輯：若無多來源資料，使用舊有單一連結
             sourceHtml = `
                 <div class="event-actions">
                     <a href="${e.source_url}" target="_blank" rel="noopener noreferrer" class="source-link">
@@ -482,6 +507,7 @@ function renderEvents(events) {
 
         const parsedContext = parseContextLinks(e.context);
 
+        // 5. 組裝卡片 HTML (加入雙維度與新標籤)
         return `
             <article class="event-card">
                 <div class="tag-row">
@@ -490,8 +516,10 @@ function renderEvents(events) {
                 </div>
                 <div class="event-meta">
                     <span class="meta-tag">📅 ${e.date || '日期未明'}</span>
-                    <span class="meta-tag">🏷️ ${e.category || '未分類'}</span>
-                    <span class="meta-tag ${severityClass}">⚠️ 嚴重度: ${e.severity || '-'}</span>
+                    <span class="meta-tag status-tag">⏱️ 狀態: ${status}</span>
+                    <span class="meta-tag evidence-tag">🛡️ 證據: ${evidence}</span>
+                    <span class="meta-tag severity-tag ${infClass}">🔥 炎上影響力: ${influence}</span>
+                    <span class="meta-tag severity-tag ${impClass}">⚠️ 實質重要性: ${importance}</span>
                 </div>
                 <h3 class="event-quote">「${e.quote}」</h3>
                 <div class="event-context">
@@ -510,7 +538,6 @@ function renderEvents(events) {
     }
 }
 
-// 重置回首頁綜合牆
 window.resetToLatest = function(force = false) {
     if (!force && currentMode === 'latest' && page === 0) return;
     
@@ -526,7 +553,10 @@ window.resetToLatest = function(force = false) {
     document.getElementById('sidebar-search').value = '';
     feedContainer.innerHTML = '';
     
+    // 切回首頁時，隱藏儀表板與時間軸切換按鈕，並關閉時間軸模式
     document.getElementById('stat-dashboard').style.display = 'none';
+    document.getElementById('view-controls').style.display = 'none';
+    feedContainer.classList.remove('timeline-view');
     
     feedTitle.textContent = currentTab === 'issues' ? '全部社會議題事件' : '綜合最新事件牆';
     endMessage.style.display = 'none';
@@ -535,7 +565,6 @@ window.resetToLatest = function(force = false) {
     loadLatestEvents();
 };
 
-// 交叉監聽器 (無限捲動)
 function setupIntersectionObserver() {
     const options = { root: null, rootMargin: '0px', threshold: 0.1 };
     const observer = new IntersectionObserver((entries) => {
@@ -546,7 +575,6 @@ function setupIntersectionObserver() {
     observer.observe(loader);
 }
 
-// 圖片燈箱 Modal 模組
 window.openImageModal = function(url) {
     const modal = document.getElementById('image-modal');
     document.getElementById('modal-img').src = url;
