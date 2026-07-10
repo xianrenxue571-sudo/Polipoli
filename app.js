@@ -253,6 +253,34 @@ window.toggleTimeline = function() {
     }
 };
 
+// === 🚀 核心升級：抓取「昔日對比事件」的獨立函式 ===
+async function attachPastEvents(events) {
+    if (!events || events.length === 0) return events;
+    const eventIds = events.map(e => e.id);
+    
+    // 查詢這些事件是否有綁定的「過去事件」
+    const { data: relations } = await supabase.from('event_relations')
+        .select('parent_event_id, child_event_id')
+        .in('parent_event_id', eventIds);
+
+    if (relations && relations.length > 0) {
+        const childIds = relations.map(r => r.child_event_id);
+        // 把對應的過去事件內容撈出來
+        const { data: childEvents } = await supabase.from('events')
+            .select('id, date, quote, source_url')
+            .in('id', childIds);
+
+        // 將子卡片資料掛載到主事件的屬性上
+        events.forEach(e => {
+            const rel = relations.find(r => r.parent_event_id === e.id);
+            if (rel && childEvents) {
+                e.past_event = childEvents.find(c => c.id === rel.child_event_id);
+            }
+        });
+    }
+    return events;
+}
+
 async function loadLatestEvents() {
     if (isFetching || !hasMoreData) return;
     isFetching = true;
@@ -346,7 +374,6 @@ window.loadSpecificData = async function(type, id, name, pushHistory = true) {
 
     const eventsData = queryResult.data.map(item => item.events).sort((a, b) => new Date(b.date || '1970-01-01') - new Date(a.date || '1970-01-01'));
     
-    // 數據儀表板運算
     const statDashboard = document.getElementById('stat-dashboard');
     if (type === 'politician' && eventsData.length > 0) {
         const totalEvents = eventsData.length;
@@ -354,7 +381,7 @@ window.loadSpecificData = async function(type, id, name, pushHistory = true) {
         const issueCounts = {};
 
         eventsData.forEach(e => {
-            const sev = parseInt(e.influence) || parseInt(e.severity) || 0; // 對齊討論熱度
+            const sev = parseInt(e.influence) || parseInt(e.severity) || 0; 
             if (sev > maxSeverity) maxSeverity = sev;
             if (e.event_issue_map && Array.isArray(e.event_issue_map)) {
                 e.event_issue_map.forEach(m => {
@@ -374,7 +401,6 @@ window.loadSpecificData = async function(type, id, name, pushHistory = true) {
             }
         }
 
-        // === 數據儀表板更名完成 ===
         statDashboard.innerHTML = `
             <div class="stat-card">
                 <div class="stat-value">${totalEvents}</div>
@@ -392,13 +418,10 @@ window.loadSpecificData = async function(type, id, name, pushHistory = true) {
         statDashboard.style.display = 'grid';
     }
 
-    renderEvents(eventsData);
-    hasMoreData = false;
-    loader.classList.remove('visible');
-    endMessage.style.display = 'block';
+    handleDataResponse(eventsData, null, '專屬事件', true);
 };
 
-function handleDataResponse(data, error, logLabel = '資料') {
+async function handleDataResponse(data, error, logLabel = '資料', isFullData = false) {
     if (error) {
         console.error(`${logLabel}載入失敗:`, error);
         isFetching = false;
@@ -406,13 +429,18 @@ function handleDataResponse(data, error, logLabel = '資料') {
         return;
     }
 
-    if (data.length < PAGE_SIZE) {
+    // 渲染前，先去抓取並組裝「昔日言論」資料
+    const enrichedData = await attachPastEvents(data);
+
+    if (enrichedData.length < PAGE_SIZE && !isFullData) {
         hasMoreData = false;
         endMessage.style.display = 'block';
+    } else if (isFullData) {
+        hasMoreData = false;
     }
 
-    renderEvents(data);
-    page++;
+    renderEvents(enrichedData);
+    if(!isFullData) page++;
     isFetching = false;
     loader.classList.remove('visible');
 }
@@ -452,7 +480,6 @@ function injectSchema(events) {
     document.head.appendChild(script);
 }
 
-// === 渲染邏輯更名優化：精簡拔除狀態、證據，套用全新白話白話名稱 ===
 function renderEvents(events) {
     if(events.length > 0) injectSchema(events);
     const html = events.map(e => {
@@ -465,11 +492,9 @@ function renderEvents(events) {
             `<span class="info-tag" onclick="loadSpecificData('politician', '${m.politician_id}', '${m.politicians.name}')">👤 ${m.politicians.name}</span>`
         ).join('') || '';
 
-        // 讀取底層欄位，若無則完美向下回退容錯
         const influence = e.influence || e.severity || '-';
         const importance = e.importance || e.severity || '-';
 
-        // 判斷嚴重度顏色 Class
         const infClass = influence >= 4 ? 'high' : '';
         const impClass = importance >= 4 ? 'high' : '';
 
@@ -500,7 +525,23 @@ function renderEvents(events) {
 
         const parsedContext = parseContextLinks(e.context);
 
-        // 輸出結構：徹底拔除狀態與證據標籤，完成極簡更名
+        // === 🚀 核心升級：渲染打臉子卡片 ===
+        let pastContrastHtml = '';
+        if (e.past_event) {
+            // 直接在主卡片內部，產生一張灰底橘線的昔日對比卡
+            pastContrastHtml = `
+                <div style="margin-top: 15px; padding: 12px 16px; background: #f8fafc; border-left: 4px solid var(--warning); border-radius: 6px;">
+                    <div style="font-size: 0.85rem; color: var(--warning); font-weight: bold; margin-bottom: 6px;">
+                        ⚡ 昔日打臉對比 (${e.past_event.date || '過去'})
+                    </div>
+                    <div style="font-style: italic; color: #475569; font-weight: 500; font-size: 1rem;">
+                        「${e.past_event.quote}」
+                    </div>
+                    ${e.past_event.source_url ? `<a href="${e.past_event.source_url}" target="_blank" style="display:inline-block; margin-top:6px; font-size: 0.8rem; color: var(--accent); text-decoration: none;">🔗 查閱當時報導</a>` : ''}
+                </div>
+            `;
+        }
+
         return `
             <article class="event-card">
                 <div class="tag-row">
@@ -509,13 +550,14 @@ function renderEvents(events) {
                 </div>
                 <div class="event-meta">
                     <span class="meta-tag">📅 ${e.date || '日期未明'}</span>
-                    <span class="meta-tag severity-tag ${infClass}">🔥 討論度: ${influence}</span>
-                    <span class="meta-tag severity-tag ${impClass}">⚠️ 嚴重度: ${importance}</span>
+                    <span class="meta-tag severity-tag ${infClass}">🔥 討論熱度: ${influence}</span>
+                    <span class="meta-tag severity-tag ${impClass}">⚠️ 嚴重程度: ${importance}</span>
                 </div>
                 <h3 class="event-quote">「${e.quote}」</h3>
                 <div class="event-context">
                     ${parsedContext}
                 </div>
+                ${pastContrastHtml}
                 ${imageHtml}
                 ${sourceHtml}
             </article>
