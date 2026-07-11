@@ -111,6 +111,7 @@
                 <label for="db-url">Supabase API 網址 (URL)</label>
                 <input type="text" id="db-url" class="form-input" placeholder="https://your-project.supabase.co">
             </div>
+    
             <div class="form-group">
                 <label for="db-key">最高權限私鑰 (service_role secret)</label>
                 <input type="password" id="db-key" class="form-input" placeholder="請貼上 service_role key 憑證">
@@ -135,11 +136,13 @@
 
         <div class="tab-content active" id="tab-content-settings">
             <div class="admin-card">
+              
                 <h3>📦 大量爭議事件匯入改版 (文字複製貼上工工坊)</h3>
                 <div class="form-group">
                     <label for="json-paste-area">請直接將 Gemini 角色產出的標準 JSON 陣列代碼複製，並貼在下方欄位：</label>
                     <textarea id="json-paste-area" class="form-input" placeholder='[{"politician_name": "人物姓名", "influence": 4, "importance": 3, "reasoning": "AI給分理由...", ...}]'></textarea>
                 </div>
+       
                 <button class="btn btn-success" id="btn-execute-import" onclick="importPastedJSON()">🚀 執行強效大數據匯入</button>
             </div>
 
@@ -212,7 +215,7 @@
                         <option value="失言爭議">失言爭議</option>
                         <option value="利益衝突">利益衝突</option>
                         <option value="其他">其他</option>
-                    </select>
+                     </select>
                 </div>
             </div>
 
@@ -250,12 +253,6 @@
             </div>
             
             <div class="form-group">
-                <label for="edit-past-event-select" style="color: var(--warning);">⚡ 綁定昔日打臉言論 (選填，直接渲染為子卡片)</label>
-                <select id="edit-past-event-select" class="form-input">
-                    </select>
-            </div>
-
-            <div class="form-group">
                 <label for="edit-context">事件脈絡敘事說歷史 (100字至200字)</label>
                 <textarea id="edit-context" class="form-input"></textarea>
             </div>
@@ -263,11 +260,6 @@
             <div class="form-group">
                 <label for="edit-source-url">可靠佐證新聞 URL</label>
                 <input type="url" id="edit-source-url" class="form-input" placeholder="https://...">
-            </div>
-
-            <div class="form-group" style="margin-bottom: 0;">
-                <label for="edit-image-url">佐證圖片網址 (可選)</label>
-                <input type="url" id="edit-image-url" class="form-input" placeholder="https://...">
             </div>
 
             <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 2rem;">
@@ -287,7 +279,6 @@
         let cachePoliticians = [];
         let cacheIssues = [];
         let currentFetchedEvents = [];
-        let allGlobalEventsForDropdown = []; // 用來存所有事件給下拉選單選
 
         window.onload = () => {
             const savedUrl = sessionStorage.getItem('polipoli_admin_url');
@@ -333,16 +324,13 @@
         };
 
         async function refreshAllAdminData() {
-            const [polRes, issueRes, allEvRes] = await Promise.all([
+            const [polRes, issueRes] = await Promise.all([
                 supabase.from('politicians').select('*').order('name'),
-                supabase.from('issues').select('*').order('name'),
-                // 一口氣把資料庫全部事件簡要撈出來，供綁定下拉選單使用
-                supabase.from('events').select('id, date, quote, category').order('date', {ascending: false})
+                supabase.from('issues').select('*').order('name')
             ]);
             
             if (polRes.data) cachePoliticians = polRes.data;
             if (issueRes.data) cacheIssues = issueRes.data;
-            if (allEvRes.data) allGlobalEventsForDropdown = allEvRes.data;
 
             renderSettingsLists();
             if (currentTab === 'review') {
@@ -381,12 +369,10 @@
                 }
 
                 if (!confirm(`偵測到 ${eventsArray.length} 筆事件，確認開始批次寫入資料庫嗎？`)) return;
-
                 btn.disabled = true;
                 btn.innerHTML = '⚡ 數據清洗與寫入中...請勿關閉視窗';
 
                 let successCount = 0;
-
                 for (const item of eventsArray) {
                     let issueId = null;
                     if (item.issue_name) {
@@ -510,7 +496,6 @@
             container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 2rem;">資料在庫安全檢索中...</div>';
 
             const isVisibleValue = currentEventFilter === 'approved';
-
             const { data, error } = await supabase
                 .from('events')
                 .select(`
@@ -527,7 +512,6 @@
             }
 
             currentFetchedEvents = data || [];
-
             if (currentFetchedEvents.length === 0) {
                 container.innerHTML = `<div style="text-align:center; padding:3rem; color:var(--text-muted); font-weight:bold;">🎉 恭喜！目前此區塊內乾乾淨淨。</div>`;
                 return;
@@ -595,9 +579,7 @@
             document.getElementById('edit-importance').value = ev.importance || ev.severity || 3;
             document.getElementById('edit-context').value = ev.context || '';
             document.getElementById('edit-source-url').value = ev.source_url || '';
-            document.getElementById('edit-image-url').value = ev.image_url || '';
-
-            // 政治人物多選
+            
             const activePolIds = ev.event_politician_map?.map(m => m.politician_id) || [];
             const checkboxContainer = document.getElementById('edit-politicians-checkboxes');
             checkboxContainer.innerHTML = cachePoliticians.map(p => {
@@ -610,7 +592,6 @@
                 `;
             }).join('');
 
-            // 議題下拉
             const currentIssueId = ev.event_issue_map?.[0]?.issue_id || '';
             const issueSelect = document.getElementById('edit-issue-select');
             let issueOptions = '<option value="">-- 未選定 / 無特定議題 --</option>';
@@ -619,23 +600,6 @@
                 issueOptions += `<option value="${i.id}" ${selected}>📌 ${i.name}</option>`;
             });
             issueSelect.innerHTML = issueOptions;
-
-            // 🚀 方案二：綁定昔日打臉事件的下拉選單
-            // 先去資料庫查詢這個事件目前有沒有綁定小孩 (child_event)
-            const { data: rels } = await supabase.from('event_relations').select('child_event_id').eq('parent_event_id', ev.id);
-            const currentChildId = rels && rels.length > 0 ? rels[0].child_event_id : '';
-            
-            const pastEventSelect = document.getElementById('edit-past-event-select');
-            let pastOptions = '<option value="">-- 不綁定對比事件 --</option>';
-            allGlobalEventsForDropdown.forEach(pastEv => {
-                // 不可以把自己綁定給自己
-                if(pastEv.id !== ev.id) {
-                    const selected = pastEv.id === currentChildId ? 'selected' : '';
-                    const label = `[${pastEv.date || '無日期'}] ${pastEv.category} - ${pastEv.quote}`;
-                    pastOptions += `<option value="${pastEv.id}" ${selected}>${label}</option>`;
-                }
-            });
-            pastEventSelect.innerHTML = pastOptions;
 
             document.getElementById('edit-modal').classList.add('active');
         };
@@ -646,7 +610,6 @@
 
         window.saveEventEdits = async function() {
             const id = document.getElementById('edit-event-id').value;
-            
             const quote = document.getElementById('edit-quote').value.trim();
             const date = document.getElementById('edit-date').value || null;
             const category = document.getElementById('edit-category').value;
@@ -654,10 +617,9 @@
             const importance = parseInt(document.getElementById('edit-importance').value);
             const context = document.getElementById('edit-context').value.trim();
             const source_url = document.getElementById('edit-source-url').value.trim() || null;
-            const image_url = document.getElementById('edit-image-url').value.trim() || null;
-
+            
             const { error: mainErr } = await supabase.from('events').update({
-                quote, date, category, influence, importance, context, source_url, image_url
+                quote, date, category, influence, importance, context, source_url
             }).eq('id', id);
 
             if (mainErr) {
@@ -671,6 +633,7 @@
                 event_id: id,
                 politician_id: box.value
             }));
+
             if (polInserts.length > 0) {
                 await supabase.from('event_politician_map').insert(polInserts);
             }
@@ -679,17 +642,6 @@
             const chosenIssueId = document.getElementById('edit-issue-select').value;
             if (chosenIssueId) {
                 await supabase.from('event_issue_map').insert({ event_id: id, issue_id: chosenIssueId });
-            }
-
-            // 🚀 儲存昔日打臉關聯
-            await supabase.from('event_relations').delete().eq('parent_event_id', id); // 先清空舊關聯
-            const pastEventId = document.getElementById('edit-past-event-select').value;
-            if (pastEventId) {
-                await supabase.from('event_relations').insert({
-                    parent_event_id: id,
-                    child_event_id: pastEventId,
-                    relation_type: '打臉對比'
-                });
             }
 
             alert('💾 事件核心資料與對比關聯儲存成功！');
