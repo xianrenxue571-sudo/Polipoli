@@ -261,7 +261,7 @@ async function fetchAndRenderReviewFeed() {
                 <div class="review-card-meta">
                     <span class="review-badge">📅 ${e.date || '日期未明'}</span>
                     <span class="review-badge">📂 分類: ${e.category || '未分類'}</span>
-                    <span class="review-badge">👤 人物: ${polNames}</span>
+                    <span class="review-badge">👤 ${polNames}</span>
                     <span class="review-badge">📌 議題: ${issueNames}</span>
                     <span class="review-badge ${hotClass}">🔥 熱度: ${inf}</span>
                     <span class="review-badge ${severeClass}">⚠️ 嚴重性: ${imp}</span>
