@@ -12,7 +12,6 @@
     <meta property="og:type" content="website">
 
    <link rel="icon" type="image/png" href="/polipoli_favicon_512x512.png">
-
    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 
    <meta property="og:image" content="https://polipoli.cc/polipoli_og_share_1024x1024.png">
@@ -114,7 +113,6 @@
         .issue-tag { background: #dcfce7; color: #166534; }
         .issue-tag:hover { background: #bbf7d0; }
 
-        /* === 資訊欄精簡：只保留日期與更名後的指標樣式 === */
         .event-meta { display: flex; gap: 8px; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem; flex-wrap: wrap; padding-bottom: 10px; border-bottom: 1px dashed var(--border); }
         .meta-tag { background: #f3f4f6; padding: 2px 8px; border-radius: 4px; border: 1px solid var(--border); font-weight: 500; display: inline-flex; align-items: center; }
         .severity-tag { background: #fffbeb; border-color: #fde68a; color: var(--warning); }
@@ -123,29 +121,13 @@
         .event-quote { font-size: 1.25rem; font-weight: bold; margin: 10px 0 1rem 0; color: var(--text-main); }
         .event-context { color: #4b5563; font-size: 0.95rem; margin-bottom: 1rem; background: #f8fafc; padding: 1rem; border-left: 4px solid var(--accent); border-radius: 0 8px 8px 0; }
         
-        .event-img-container { margin-top: 1rem; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); max-height: 300px; cursor: pointer; }
-        .event-img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.3s; }
-        .event-img-container:hover .event-img { transform: scale(1.02); }
-
         .event-actions { display: flex; justify-content: flex-end; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); flex-direction: column; align-items: flex-end; gap: 6px; }
         .source-link { color: var(--accent); text-decoration: none; font-weight: bold; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 4px; background: #f0fdf4; padding: 4px 10px; border-radius: 20px; border: 1px solid #bbf7d0; transition: all 0.2s; }
         .source-link:hover { background: #dcfce7; text-decoration: none; transform: translateX(-2px); }
 
-        /* === 方案 B 左側單線時間軸視圖 === */
-        .timeline-view { border-left: 3px solid var(--accent); padding-left: 25px; margin-left: 10px; display: flex; flex-direction: column; gap: 2rem; }
-        .timeline-view .event-card { position: relative; margin: 0; }
-        .timeline-view .event-card::before {
-            content: ''; position: absolute; left: -33px; top: 24px; width: 14px; height: 14px;
-            border-radius: 50%; background: var(--accent); border: 3px solid white; box-shadow: 0 0 0 1px var(--accent); z-index: 2;
-        }
-
         #loader { text-align: center; padding: 2rem; color: var(--text-muted); font-weight: bold; display: none; }
         #loader.visible { display: block; }
         .end-message { text-align: center; padding: 2rem; color: var(--text-muted); display: none; }
-
-        #image-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; justify-content: center; align-items: center; padding: 2rem; cursor: zoom-out; }
-        #image-modal.active { display: flex; }
-        #modal-img { max-width: 100%; max-height: 100%; border-radius: 8px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
     </style>
 </head>
 <body>
@@ -178,7 +160,7 @@
             <select id="mobile-issue-select" class="mobile-issue-select" onchange="handleMobileIssueSelect(this.value)"></select>
 
             <div class="sidebar-list">
-                <div id="quick-tags-container" class="quick-tags-container">
+               <div id="quick-tags-container" class="quick-tags-container">
                     <div style="text-align: center; color: var(--text-muted); font-size: 0.9rem; width: 100%;">資料載入中...</div>
                 </div>
             </div>
@@ -191,21 +173,11 @@
          
             <div id="stat-dashboard"></div>
 
-            <div id="view-controls" style="display: none; justify-content: flex-end; margin-bottom: 1rem;">
-                <button id="btn-toggle-timeline" onclick="toggleTimeline()" class="quick-tag-btn" style="background: var(--primary); color: white; border: none; padding: 8px 16px;">
-                    ⏳ 切換為時間軸視圖
-                </button>
-            </div>
-            
             <div id="events-feed"></div>
             
             <div id="loader">載入更多事件中...</div>
             <div id="end-message" class="end-message">已經到底囉！</div>
         </main>
-    </div>
-
-    <div id="image-modal" onclick="closeImageModal()">
-        <img id="modal-img" src="" alt="滿版預覽">
     </div>
 
     <script type="module" src="./app.js"></script>
