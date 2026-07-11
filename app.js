@@ -476,8 +476,8 @@ function renderEvents(events) {
                 </div>
                 <div class="event-meta">
                     <span class="meta-tag">📅 ${e.date || '日期未明'}</span>
-                    <span class="meta-tag severity-tag ${infClass}">🔥 討論熱度: ${influence}</span>
-                    <span class="meta-tag severity-tag ${impClass}">⚠️ 嚴重程度: ${importance}</span>
+                    <span class="meta-tag severity-tag ${infClass}">🔥 討論度: ${influence}</span>
+                    <span class="meta-tag severity-tag ${impClass}">⚠️ 嚴重度: ${importance}</span>
                 </div>
                 <h3 class="event-quote">「${e.quote}」</h3>
                 <div class="event-context">
