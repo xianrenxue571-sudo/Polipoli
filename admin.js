@@ -253,7 +253,6 @@ async function fetchAndRenderReviewFeed() {
 
         const reasoningBlock = e.reasoning ? `<div class="review-reasoning">💡 AI 理由：${e.reasoning}</div>` : '';
 
-        // 新增方案 A 來源網址渲染區塊
         const sourceLinkBlock = e.source_url 
             ? `<div style="font-size: 0.9rem; margin-bottom: 1rem;"><a href="${e.source_url}" target="_blank" rel="noopener noreferrer" style="color: #3b82f6; text-decoration: underline;">🔗 新聞來源：[點擊前往佐證連結]</a></div>`
             : `<div style="font-size: 0.9rem; color: #94a3b8; margin-bottom: 1rem;">🔗 新聞來源：[無提供連結]</div>`;
@@ -288,6 +287,42 @@ async function fetchAndRenderReviewFeed() {
 window.toggleEventVisibility = async function(id, currentStatus) {
     const { error } = await supabase.from('events').update({ is_visible: !currentStatus }).eq('id', id);
     if (error) alert('操作失敗:' + error.message);
+    await fetchAndRenderReviewFeed();
+};
+
+window.publishAllPending = async function() {
+    if (currentEventFilter !== 'pending') {
+        alert('請先切換到「待審核 / 隱藏中」列表再執行此操作。');
+        return;
+    }
+    
+    const pendingIds = currentFetchedEvents.filter(e => !e.is_visible).map(e => e.id);
+    if (pendingIds.length === 0) {
+        alert('目前沒有可以上架的待審核事件。');
+        return;
+    }
+
+    if (!confirm('確定要把目前列表上的 ' + pendingIds.length + ' 筆事件全部公開嗎？資料量大時將自動分批處理，請勿中途關閉視窗。')) return;
+
+    const batchSize = 50;
+    let successCount = 0;
+
+    for (let i = 0; i < pendingIds.length; i += batchSize) {
+        const chunk = pendingIds.slice(i, i + batchSize);
+        const { error } = await supabase
+            .from('events')
+            .update({ is_visible: true })
+            .in('id', chunk);
+
+        if (error) {
+            alert('分批上架執行中斷，已完成 ' + successCount + ' 筆，錯誤原因:' + error.message);
+            await fetchAndRenderReviewFeed();
+            return;
+        }
+        successCount += chunk.length;
+    }
+
+    alert('全部上架完成！共更新 ' + successCount + ' 筆事件。');
     await fetchAndRenderReviewFeed();
 };
 
