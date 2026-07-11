@@ -238,49 +238,6 @@ function parseContextLinks(text) {
     return text.replace(urlRegex, '<a href="$1" target="_blank" class="source-link" style="font-size:0.9em; background:none; border:none; padding:0;">🔗 參考連結</a>');
 }
 
-window.toggleTimeline = function() {
-    const feed = document.getElementById('events-feed');
-    const btn = document.getElementById('btn-toggle-timeline');
-    
-    feed.classList.toggle('timeline-view');
-    
-    if (feed.classList.contains('timeline-view')) {
-        btn.innerHTML = '📋 切換回列表視圖';
-        btn.style.background = '#4b5563'; 
-    } else {
-        btn.innerHTML = '⏳ 切換為時間軸視圖';
-        btn.style.background = 'var(--primary)';
-    }
-};
-
-// === 🚀 核心升級：抓取「昔日對比事件」的獨立函式 ===
-async function attachPastEvents(events) {
-    if (!events || events.length === 0) return events;
-    const eventIds = events.map(e => e.id);
-    
-    // 查詢這些事件是否有綁定的「過去事件」
-    const { data: relations } = await supabase.from('event_relations')
-        .select('parent_event_id, child_event_id')
-        .in('parent_event_id', eventIds);
-
-    if (relations && relations.length > 0) {
-        const childIds = relations.map(r => r.child_event_id);
-        // 把對應的過去事件內容撈出來
-        const { data: childEvents } = await supabase.from('events')
-            .select('id, date, quote, source_url')
-            .in('id', childIds);
-
-        // 將子卡片資料掛載到主事件的屬性上
-        events.forEach(e => {
-            const rel = relations.find(r => r.parent_event_id === e.id);
-            if (rel && childEvents) {
-                e.past_event = childEvents.find(c => c.id === rel.child_event_id);
-            }
-        });
-    }
-    return events;
-}
-
 async function loadLatestEvents() {
     if (isFetching || !hasMoreData) return;
     isFetching = true;
@@ -327,11 +284,6 @@ window.loadSpecificData = async function(type, id, name, pushHistory = true) {
     feedContainer.innerHTML = '';
     endMessage.style.display = 'none';
     document.getElementById('stat-dashboard').style.display = 'none'; 
-    
-    feedContainer.classList.remove('timeline-view');
-    document.getElementById('view-controls').style.display = 'flex';
-    document.getElementById('btn-toggle-timeline').innerHTML = '⏳ 切換為時間軸視圖';
-    document.getElementById('btn-toggle-timeline').style.background = 'var(--primary)';
     
     renderSidebar();
     feedTitle.textContent = type === 'politician' ? `📂 ${name} 的專屬事件簿` : `📌 關於「${name}」的相關事件`;
@@ -429,17 +381,14 @@ async function handleDataResponse(data, error, logLabel = '資料', isFullData =
         return;
     }
 
-    // 渲染前，先去抓取並組裝「昔日言論」資料
-    const enrichedData = await attachPastEvents(data);
-
-    if (enrichedData.length < PAGE_SIZE && !isFullData) {
+    if (data.length < PAGE_SIZE && !isFullData) {
         hasMoreData = false;
         endMessage.style.display = 'block';
     } else if (isFullData) {
         hasMoreData = false;
     }
 
-    renderEvents(enrichedData);
+    renderEvents(data);
     if(!isFullData) page++;
     isFetching = false;
     loader.classList.remove('visible');
@@ -498,12 +447,6 @@ function renderEvents(events) {
         const infClass = influence >= 4 ? 'high' : '';
         const impClass = importance >= 4 ? 'high' : '';
 
-        const imageHtml = e.image_url ? `
-            <div class="event-img-container" onclick="openImageModal('${e.image_url}')">
-                <img class="event-img" src="${e.image_url}" alt="${e.quote} 相關新聞截圖或佐證" loading="lazy" decoding="async">
-            </div>
-        ` : '';
-
         let sourceHtml = '';
         if (e.event_sources && e.event_sources.length > 0) {
             sourceHtml = `<div class="event-actions">`;
@@ -525,23 +468,6 @@ function renderEvents(events) {
 
         const parsedContext = parseContextLinks(e.context);
 
-        // === 🚀 核心升級：渲染打臉子卡片 ===
-        let pastContrastHtml = '';
-        if (e.past_event) {
-            // 直接在主卡片內部，產生一張灰底橘線的昔日對比卡
-            pastContrastHtml = `
-                <div style="margin-top: 15px; padding: 12px 16px; background: #f8fafc; border-left: 4px solid var(--warning); border-radius: 6px;">
-                    <div style="font-size: 0.85rem; color: var(--warning); font-weight: bold; margin-bottom: 6px;">
-                        ⚡ 昔日打臉對比 (${e.past_event.date || '過去'})
-                    </div>
-                    <div style="font-style: italic; color: #475569; font-weight: 500; font-size: 1rem;">
-                        「${e.past_event.quote}」
-                    </div>
-                    ${e.past_event.source_url ? `<a href="${e.past_event.source_url}" target="_blank" style="display:inline-block; margin-top:6px; font-size: 0.8rem; color: var(--accent); text-decoration: none;">🔗 查閱當時報導</a>` : ''}
-                </div>
-            `;
-        }
-
         return `
             <article class="event-card">
                 <div class="tag-row">
@@ -557,8 +483,6 @@ function renderEvents(events) {
                 <div class="event-context">
                     ${parsedContext}
                 </div>
-                ${pastContrastHtml}
-                ${imageHtml}
                 ${sourceHtml}
             </article>
         `;
@@ -587,8 +511,6 @@ window.resetToLatest = function(force = false) {
     feedContainer.innerHTML = '';
     
     document.getElementById('stat-dashboard').style.display = 'none';
-    document.getElementById('view-controls').style.display = 'none';
-    feedContainer.classList.remove('timeline-view');
     
     feedTitle.textContent = currentTab === 'issues' ? '全部社會議題事件' : '綜合最新事件牆';
     endMessage.style.display = 'none';
@@ -606,14 +528,3 @@ function setupIntersectionObserver() {
     }, options);
     observer.observe(loader);
 }
-
-window.openImageModal = function(url) {
-    const modal = document.getElementById('image-modal');
-    document.getElementById('modal-img').src = url;
-    modal.classList.add('active');
-};
-
-window.closeImageModal = function() {
-    document.getElementById('image-modal').classList.remove('active');
-    setTimeout(() => document.getElementById('modal-img').src = '', 300);
-};
