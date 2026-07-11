@@ -253,6 +253,11 @@ async function fetchAndRenderReviewFeed() {
 
         const reasoningBlock = e.reasoning ? `<div class="review-reasoning">💡 AI 理由：${e.reasoning}</div>` : '';
 
+        // 新增方案 A 來源網址渲染區塊
+        const sourceLinkBlock = e.source_url 
+            ? `<div style="font-size: 0.9rem; margin-bottom: 1rem;"><a href="${e.source_url}" target="_blank" rel="noopener noreferrer" style="color: #3b82f6; text-decoration: underline;">🔗 新聞來源：[點擊前往佐證連結]</a></div>`
+            : `<div style="font-size: 0.9rem; color: #94a3b8; margin-bottom: 1rem;">🔗 新聞來源：[無提供連結]</div>`;
+
         const toggleBtnText = e.is_visible ? '🔴 下架隱藏' : '🟢 開放顯示';
         const toggleBtnStyle = e.is_visible ? 'btn-secondary' : 'btn-success';
 
@@ -268,6 +273,7 @@ async function fetchAndRenderReviewFeed() {
                 </div>
                 <h3 style="margin: 10px 0; font-size:1.2rem;">「${e.quote}」</h3>
                 <p style="color: #475569; font-size:0.95rem; margin-bottom:1rem;">${e.context || '無描述脈絡。'}</p>
+                ${sourceLinkBlock}
                 ${reasoningBlock}
                 <div class="review-actions">
                     <button class="btn btn-secondary" style="padding:6px 12px; font-size:0.85rem;" onclick="openEditModal('${e.id}')">✏️ 編輯校正</button>
@@ -291,6 +297,7 @@ window.deleteEventAbsolute = async function(id) {
         await fetchAndRenderReviewFeed();
     }
 };
+
 window.openEditModal = async function(eventId) {
     const ev = currentFetchedEvents.find(e => e.id === eventId);
     if (!ev) return;
