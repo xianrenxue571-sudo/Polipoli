@@ -318,7 +318,7 @@ function renderFilterUI() {
                 ${cachePoliticians.map(p => `<option value="${p.id}" ${currentPolFilter === p.id ? 'selected' : ''}>${p.name}</option>`).join('')}
             </select>
             <span style="font-size: 0.85rem; color: #64748b; margin-left: auto;">
-                當前顯示筆數：<span id="filtered-count">0</span>
+                筆數：<span id="filtered-count">0</span>
             </span>
         </div>
     `;
@@ -360,7 +360,7 @@ function renderFilteredReviewList() {
                     <span class="review-badge">📂 ${e.category || '未分類'}</span>
                     <span class="review-badge">👤 ${polNames}</span>
                     <span class="review-badge">📌 ${issueNames}</span>
-                    <span class="review-badge ${hotClass}">🔥 熱度: ${inf}</span>
+                    <span class="review-badge ${hotClass}">🔥 討論度: ${inf}</span>
                     <span class="review-badge ${severeClass}">⚠️ 嚴重性: ${imp}</span>
                 </div>
                 <h3 style="margin: 10px 0; font-size:1.15rem;">「${e.quote}」</h3>
