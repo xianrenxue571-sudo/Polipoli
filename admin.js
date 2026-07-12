@@ -4,10 +4,14 @@ let supabase = null;
 let currentTab = 'settings';
 let currentEventFilter = 'pending';
 
+// 系統快取資料
 let cachePoliticians = [];
 let cacheIssues = [];
 let currentFetchedEvents = [];
 
+// ==========================================
+// 1. 初始化與安全登入邏輯
+// ==========================================
 window.onload = () => {
     const savedUrl = sessionStorage.getItem('polipoli_admin_url');
     const savedKey = sessionStorage.getItem('polipoli_admin_key');
@@ -29,6 +33,7 @@ window.attemptUnlock = async function() {
 
     try {
         supabase = createClient(url, key, { auth: { persistSession: false } });
+        // 測試連線
         const { error } = await supabase.from('politicians').select('id').limit(1);
         if (error) throw error;
 
@@ -40,14 +45,29 @@ window.attemptUnlock = async function() {
         
         await refreshAllAdminData();
     } catch (err) {
-        alert('連線失敗！請確認 Supabase 網址正確且貼上的是最高權限私鑰。\n' + err.message);
+        alert('連線或驗證失敗，請檢查憑證與網址是否包含空白：' + err.message);
     }
 };
 
 window.lockAndLogOut = function() {
-    if(confirm('確認安全登出控制台並清除本地暫存憑證嗎？')) {
-        sessionStorage.clear();
-        window.location.reload();
+    sessionStorage.removeItem('polipoli_admin_url');
+    sessionStorage.removeItem('polipoli_admin_key');
+    location.reload();
+};
+
+// ==========================================
+// 2. 頁籤切換與資料重整
+// ==========================================
+window.switchTab = function(tabId) {
+    currentTab = tabId;
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+    
+    document.getElementById(`tab-btn-${tabId}`).classList.add('active');
+    document.getElementById(`tab-${tabId}`).classList.add('active');
+
+    if (tabId === 'review') {
+        fetchAndRenderReviewFeed();
     }
 };
 
@@ -56,166 +76,215 @@ async function refreshAllAdminData() {
         supabase.from('politicians').select('*').order('name'),
         supabase.from('issues').select('*').order('name')
     ]);
+    
     if (polRes.data) cachePoliticians = polRes.data;
     if (issueRes.data) cacheIssues = issueRes.data;
 
     renderSettingsLists();
+    updatePoliticianFilterDropdown(); // 更新審核牆的下拉選單
+
     if (currentTab === 'review') {
         await fetchAndRenderReviewFeed();
     }
 }
 
-window.switchAdminTab = function(tabName) {
-    currentTab = tabName;
-    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-    document.getElementById(`tab-btn-${tabName}`).classList.add('active');
-    
-    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-    document.getElementById(`tab-content-${tabName}`).classList.add('active');
-
-    if (tabName === 'review') {
-        fetchAndRenderReviewFeed();
-    }
-};
-
-window.importPastedJSON = async function() {
-    const textarea = document.getElementById('json-paste-area');
-    const rawText = textarea.value.trim();
-    const btn = document.getElementById('btn-execute-import');
-
-    if (!rawText) {
-        alert('請先貼上 JSON 格式的數據文字！');
-        return;
-    }
-
-    try {
-        const eventsArray = JSON.parse(rawText);
-        if (!Array.isArray(eventsArray)) {
-            alert('匯入格式有誤：外層必須是方括號包覆的陣列 [ ... ]！');
-            return;
-        }
-
-        if (!confirm(`偵測到 ${eventsArray.length} 筆事件，確認開始批次寫入資料庫嗎？`)) return;
-        btn.disabled = true;
-        btn.innerHTML = '⚡ 數據清洗與寫入中...請勿關閉視窗';
-
-        let successCount = 0;
-        for (const item of eventsArray) {
-            let issueId = null;
-            if (item.issue_name) {
-                let issue = cacheIssues.find(i => i.name === item.issue_name.trim());
-                if (!issue) {
-                    const { data } = await supabase.from('issues').insert({ name: item.issue_name.trim() }).select().single();
-                    if (data) {
-                        cacheIssues.push(data);
-                        issue = data;
-                    }
-                }
-                if (issue) issueId = issue.id;
-            }
-
-            const { data: newEvent, error: evErr } = await supabase.from('events').insert({
-                quote: item.quote || '未命名爭議事件',
-                context: item.context || '',
-                date: item.date || null,
-                category: item.category || '其他',
-                influence: item.influence ? parseInt(item.influence) : (item.severity ? parseInt(item.severity) : 3),
-                importance: item.importance ? parseInt(item.importance) : (item.severity ? parseInt(item.severity) : 3),
-                reasoning: item.reasoning || '無 AI 理由備註',
-                source_url: item.source_url || null,
-                is_visible: false 
-            }).select().single();
-
-            if (evErr) {
-                console.error('主事件寫入失敗:', evErr);
-                continue;
-            }
-
-            if (newEvent) {
-                if (issueId) {
-                    await supabase.from('event_issue_map').insert({ event_id: newEvent.id, issue_id: issueId });
-                }
-                if (item.politician_name) {
-                    const politician = cachePoliticians.find(p => p.name === item.politician_name.trim());
-                    if (politician) {
-                        await supabase.from('event_politician_map').insert({ event_id: newEvent.id, politician_id: politician.id });
-                    }
-                }
-                successCount++;
-            }
-        }
-
-        alert(`🎉 批次操作大成功！一共成功上架 ${successCount} 筆事件至待審核區。`);
-        textarea.value = '';
-        await refreshAllAdminData();
-    } catch (err) {
-        alert('JSON 解析失敗！請確認複製的代碼結構完整無破損。\n詳情描述：' + err.message);
-    } finally {
-        btn.disabled = false;
-        btn.innerHTML = '🚀 執行強效大數據匯入';
-    }
-};
-
+// ==========================================
+// 3. 基本設定模組 (人物與議題)
+// ==========================================
 function renderSettingsLists() {
-    const polList = document.getElementById('list-politicians');
-    polList.innerHTML = cachePoliticians.map(p => `
-        <div class="item-row">
-            <div class="item-row-left">
-                <span class="item-title">👤 ${p.name}</span>
-                <span class="item-sub">${p.party || '未知政黨'}</span>
+    const polList = document.getElementById('politician-list');
+    if(polList) {
+        polList.innerHTML = cachePoliticians.map(p => `
+            <div class="item-row">
+                <div class="item-row-left">
+                    <span class="item-title">${p.name} (${p.party})</span>
+                    <span class="item-sub">狀態: ${p.is_visible ? '🟢 顯示中' : '🔴 已隱藏'}</span>
+                </div>
+                <div>
+                    <button class="btn btn-secondary" onclick="togglePoliticianVisibility('${p.id}', ${p.is_visible})">${p.is_visible ? '隱藏' : '顯示'}</button>
+                    <button class="btn btn-danger" onclick="deletePolitician('${p.id}')">刪除</button>
+                </div>
             </div>
-            <button class="btn btn-danger" style="padding: 4px 8px; font-size:0.8rem;" onclick="deletePolitician('${p.id}')">刪除</button>
-        </div>
-    `).join('');
-    const issueList = document.getElementById('list-issues');
-    issueList.innerHTML = cacheIssues.map(i => `
-        <div class="item-row">
-            <div class="item-row-left">
-                <span class="item-title">📌 ${i.name}</span>
+        `).join('');
+    }
+
+    const issueList = document.getElementById('issue-list');
+    if(issueList) {
+        issueList.innerHTML = cacheIssues.map(i => `
+            <div class="item-row">
+                <div class="item-row-left">
+                    <span class="item-title">${i.name}</span>
+                </div>
+                <div>
+                    <button class="btn btn-danger" onclick="deleteIssue('${i.id}')">刪除</button>
+                </div>
             </div>
-            <button class="btn btn-danger" style="padding: 4px 8px; font-size:0.8rem;" onclick="deleteIssue('${i.id}')">刪除</button>
-        </div>
-    `).join('');
+        `).join('');
+    }
 }
 
 window.addPolitician = async function() {
     const name = document.getElementById('new-pol-name').value.trim();
     const party = document.getElementById('new-pol-party').value.trim();
-    if (!name) return;
-    await supabase.from('politicians').insert({ name, party });
-    document.getElementById('new-pol-name').value = '';
-    document.getElementById('new-pol-party').value = '';
-    await refreshAllAdminData();
+    if(!name || !party) return alert('請填寫完整資訊');
+    
+    const {error} = await supabase.from('politicians').insert({name, party});
+    if(error) alert('新增失敗: ' + error.message);
+    else {
+        document.getElementById('new-pol-name').value = '';
+        document.getElementById('new-pol-party').value = '';
+        refreshAllAdminData();
+    }
+};
+
+window.togglePoliticianVisibility = async function(id, currentStatus) {
+    await supabase.from('politicians').update({is_visible: !currentStatus}).eq('id', id);
+    refreshAllAdminData();
+};
+
+window.deletePolitician = async function(id) {
+    if(!confirm('確定刪除人物？相關事件的「人物關聯標籤」也會一併清除（但事件本體不會被刪除）。')) return;
+    await supabase.from('politicians').delete().eq('id', id);
+    refreshAllAdminData();
 };
 
 window.addIssue = async function() {
     const name = document.getElementById('new-issue-name').value.trim();
-    if (!name) return;
-    await supabase.from('issues').insert({ name });
-    document.getElementById('new-issue-name').value = '';
-    await refreshAllAdminData();
-};
-
-window.deletePolitician = async function(id) {
-    if (confirm('確定刪除此人物嗎？')) {
-        await supabase.from('politicians').delete().eq('id', id);
-        await refreshAllAdminData();
+    if(!name) return alert('請填寫議題名稱');
+    
+    const {error} = await supabase.from('issues').insert({name});
+    if(error) alert('新增失敗: ' + error.message);
+    else {
+        document.getElementById('new-issue-name').value = '';
+        refreshAllAdminData();
     }
 };
 
 window.deleteIssue = async function(id) {
-    if (confirm('確定刪除此議題嗎？')) {
-        await supabase.from('issues').delete().eq('id', id);
-        await refreshAllAdminData();
+    if(!confirm('確定徹底刪除此社會議題？')) return;
+    await supabase.from('issues').delete().eq('id', id);
+    refreshAllAdminData();
+};
+
+// ==========================================
+// 4. JSON 文本匯入模組
+// ==========================================
+window.importJSON = async function() {
+    const btn = document.getElementById('import-btn');
+    const originalText = btn.innerText;
+    const jsonText = document.getElementById('json-input-area').value.trim();
+
+    if (!jsonText) return alert('請在文字框中貼上 JSON 格式的內容！');
+
+    btn.innerText = '處理與寫入中...';
+    btn.disabled = true;
+
+    try {
+        const events = JSON.parse(jsonText);
+        let successCount = 0;
+        let failCount = 0;
+
+        for (const ev of events) {
+            // 1. 處理政治人物匹配
+            let polId = cachePoliticians.find(p => p.name === ev.politician_name)?.id;
+            if (!polId) {
+                const {data, error} = await supabase.from('politicians').insert({
+                    name: ev.politician_name,
+                    party: ev.party || '未知'
+                }).select().single();
+                if (error) { failCount++; continue; }
+                polId = data.id;
+                cachePoliticians.push(data); // 更新記憶體
+            }
+
+            // 2. 處理議題匹配
+            let issueId = null;
+            if (ev.issue_name && ev.issue_name !== '其他') {
+                let iObj = cacheIssues.find(i => i.name === ev.issue_name);
+                if (!iObj) {
+                    const {data, error} = await supabase.from('issues').insert({
+                        name: ev.issue_name
+                    }).select().single();
+                    if (!error) {
+                        issueId = data.id;
+                        cacheIssues.push(data);
+                    }
+                } else {
+                    issueId = iObj.id;
+                }
+            }
+
+            // 3. 寫入事件主體 (圖片網址已徹底移除)
+            const {data: evData, error: evError} = await supabase.from('events').insert({
+                quote: ev.quote,
+                date: ev.date || null,
+                category: ev.category || '未分類',
+                influence: ev.influence || 3,
+                importance: ev.importance || 3,
+                reasoning: ev.reasoning || '',
+                context: ev.context || '',
+                source_url: ev.source_url || null,
+                is_visible: false // 匯入預設待審核
+            }).select().single();
+
+            if (evError) { 
+                console.error("寫入事件失敗:", evError);
+                failCount++; 
+                continue; 
+            }
+
+            // 4. 寫入多對多關聯表
+            await supabase.from('event_politician_map').insert({
+                event_id: evData.id,
+                politician_id: polId
+            });
+
+            if (issueId) {
+                await supabase.from('event_issue_map').insert({
+                    event_id: evData.id,
+                    issue_id: issueId
+                });
+            }
+            successCount++;
+        }
+        
+        alert(`匯入完成！成功: ${successCount} 筆, 失敗: ${failCount} 筆`);
+        document.getElementById('json-input-area').value = ''; // 清空文字框
+        refreshAllAdminData();
+    } catch (err) {
+        alert('解析或匯入失敗，請確認內容是否為標準 JSON 格式：' + err.message);
+    } finally {
+        btn.innerText = originalText;
+        btn.disabled = false;
     }
 };
 
-window.setEventFilter = function(filterType) {
-    currentEventFilter = filterType;
+// ==========================================
+// 5. 事件審核牆模組 (獲取、過濾與渲染)
+// ==========================================
+window.setEventFilter = function(filter) {
+    currentEventFilter = filter;
     document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById(`filter-btn-${filterType}`).classList.add('active');
+    document.getElementById(`filter-btn-${filter}`).classList.add('active');
     fetchAndRenderReviewFeed();
 };
+
+function updatePoliticianFilterDropdown() {
+    const select = document.getElementById('filter-politician');
+    if (!select) return;
+    
+    const currentVal = select.value;
+    let html = '<option value="all">👥 全部人物</option>';
+    
+    cachePoliticians.forEach(p => {
+        html += `<option value="${p.id}">${p.name}</option>`;
+    });
+    
+    select.innerHTML = html;
+    if (cachePoliticians.some(p => p.id === currentVal)) {
+        select.value = currentVal;
+    }
+}
 
 async function fetchAndRenderReviewFeed() {
     const container = document.getElementById('review-list-container');
@@ -231,20 +300,38 @@ async function fetchAndRenderReviewFeed() {
         `)
         .eq('is_visible', isVisibleValue)
         .order('date', { ascending: false });
+        
     if (error) {
         container.innerHTML = `<div style="color:var(--danger); font-weight:bold;">資料加載失敗：${error.message}</div>`;
         return;
     }
 
     currentFetchedEvents = data || [];
-    if (currentFetchedEvents.length === 0) {
-        container.innerHTML = `<div style="text-align:center; padding:3rem; color:var(--text-muted); font-weight:bold;">🎉 恭喜！目前此區塊內乾乾淨淨。</div>`;
+    window.renderReviewFeed();
+}
+
+window.renderReviewFeed = function() {
+    const container = document.getElementById('review-list-container');
+    const selectEl = document.getElementById('filter-politician');
+    const selectedPolId = selectEl ? selectEl.value : 'all';
+
+    // 根據下拉選單進行前端過濾
+    let filteredEvents = currentFetchedEvents;
+    if (selectedPolId !== 'all') {
+        filteredEvents = currentFetchedEvents.filter(e => {
+            if (!e.event_politician_map) return false;
+            return e.event_politician_map.some(m => m.politician_id === selectedPolId);
+        });
+    }
+
+    if (filteredEvents.length === 0) {
+        container.innerHTML = `<div style="text-align:center; padding:3rem; color:var(--text-muted); font-weight:bold;">🎉 恭喜！目前此區塊內乾乾淨淨或查無該人物資料。</div>`;
         return;
     }
 
-    container.innerHTML = currentFetchedEvents.map(e => {
-        const inf = e.influence || e.severity || 3;
-        const imp = e.importance || e.severity || 3;
+    container.innerHTML = filteredEvents.map(e => {
+        const inf = e.influence || 3;
+        const imp = e.importance || 3;
         const hotClass = inf >= 4 ? 'hot' : '';
         const severeClass = imp >= 4 ? 'severe' : '';
 
@@ -252,7 +339,6 @@ async function fetchAndRenderReviewFeed() {
         const issueNames = e.event_issue_map?.map(m => m.issues?.name).filter(Boolean).join(', ') || '未設定議題';
 
         const reasoningBlock = e.reasoning ? `<div class="review-reasoning">💡 AI 理由：${e.reasoning}</div>` : '';
-
         const sourceLinkBlock = e.source_url 
             ? `<div style="font-size: 0.9rem; margin-bottom: 1rem;"><a href="${e.source_url}" target="_blank" rel="noopener noreferrer" style="color: #3b82f6; text-decoration: underline;">🔗 新聞來源：[點擊前往佐證連結]</a></div>`
             : `<div style="font-size: 0.9rem; color: #94a3b8; margin-bottom: 1rem;">🔗 新聞來源：[無提供連結]</div>`;
@@ -282,89 +368,77 @@ async function fetchAndRenderReviewFeed() {
             </div>
         `;
     }).join('');
-}
-
-window.toggleEventVisibility = async function(id, currentStatus) {
-    const { error } = await supabase.from('events').update({ is_visible: !currentStatus }).eq('id', id);
-    if (error) alert('操作失敗:' + error.message);
-    await fetchAndRenderReviewFeed();
 };
 
-window.publishAllPending = async function() {
-    if (currentEventFilter !== 'pending') {
-        alert('請先切換到「待審核 / 隱藏中」列表再執行此操作。');
-        return;
-    }
-    
-    const pendingIds = currentFetchedEvents.filter(e => !e.is_visible).map(e => e.id);
-    if (pendingIds.length === 0) {
-        alert('目前沒有可以上架的待審核事件。');
-        return;
-    }
-
-    if (!confirm('確定要把目前列表上的 ' + pendingIds.length + ' 筆事件全部公開嗎？資料量大時將自動分批處理，請勿中途關閉視窗。')) return;
-
-    const batchSize = 50;
-    let successCount = 0;
-
-    for (let i = 0; i < pendingIds.length; i += batchSize) {
-        const chunk = pendingIds.slice(i, i + batchSize);
-        const { error } = await supabase
-            .from('events')
-            .update({ is_visible: true })
-            .in('id', chunk);
-
-        if (error) {
-            alert('分批上架執行中斷，已完成 ' + successCount + ' 筆，錯誤原因:' + error.message);
-            await fetchAndRenderReviewFeed();
-            return;
-        }
-        successCount += chunk.length;
-    }
-
-    alert('全部上架完成！共更新 ' + successCount + ' 筆事件。');
-    await fetchAndRenderReviewFeed();
+window.toggleEventVisibility = async function(id, currentStatus) {
+    await supabase.from('events').update({is_visible: !currentStatus}).eq('id', id);
+    fetchAndRenderReviewFeed(); // 重抓資料讓卡片從目前狀態牆移走
 };
 
 window.deleteEventAbsolute = async function(id) {
-    if (confirm('確定要永久刪除這筆事件嗎？')) {
-        await supabase.from('events').delete().eq('id', id);
-        await fetchAndRenderReviewFeed();
+    if(!confirm('警告：這將徹底從資料庫中刪除該事件與其所有關聯，無法復原。確定要刪除嗎？')) return;
+    await supabase.from('events').delete().eq('id', id);
+    fetchAndRenderReviewFeed();
+};
+
+window.publishAllPending = async function() {
+    if(!confirm('確定要將目前列表中所有「待審核」的事件一鍵公開嗎？')) return;
+    
+    // 依據下拉選單判斷是否只要上架特定人物
+    const selectEl = document.getElementById('filter-politician');
+    const selectedPolId = selectEl ? selectEl.value : 'all';
+
+    let idsToUpdate = currentFetchedEvents.map(e => e.id);
+    if (selectedPolId !== 'all') {
+         idsToUpdate = currentFetchedEvents
+            .filter(e => e.event_politician_map?.some(m => m.politician_id === selectedPolId))
+            .map(e => e.id);
+    }
+
+    if (idsToUpdate.length === 0) return alert('沒有符合條件的可上架事件。');
+
+    const {error} = await supabase.from('events').update({is_visible: true}).in('id', idsToUpdate);
+    if(error) {
+        alert('一鍵上架失敗: ' + error.message);
+    } else {
+        alert(`成功上架 ${idsToUpdate.length} 筆事件！`);
+        fetchAndRenderReviewFeed();
     }
 };
 
-window.openEditModal = async function(eventId) {
-    const ev = currentFetchedEvents.find(e => e.id === eventId);
+// ==========================================
+// 6. 編輯 Modal 模組 (多對多關聯校正)
+// ==========================================
+window.openEditModal = async function(id) {
+    const ev = currentFetchedEvents.find(e => e.id === id);
     if (!ev) return;
 
-    document.getElementById('edit-event-id').value = ev.id;
-    document.getElementById('edit-quote').value = ev.quote;
+    // 填充主體欄位
+    document.getElementById('edit-id').value = id;
+    document.getElementById('edit-quote').value = ev.quote || '';
     document.getElementById('edit-date').value = ev.date || '';
-    document.getElementById('edit-category').value = ev.category || '其他';
-    document.getElementById('edit-influence').value = ev.influence || ev.severity || 3;
-    document.getElementById('edit-importance').value = ev.importance || ev.severity || 3;
+    document.getElementById('edit-category').value = ev.category || '';
+    document.getElementById('edit-influence').value = ev.influence || 3;
+    document.getElementById('edit-importance').value = ev.importance || 3;
     document.getElementById('edit-context').value = ev.context || '';
     document.getElementById('edit-source-url').value = ev.source_url || '';
-    
-    const activePolIds = ev.event_politician_map?.map(m => m.politician_id) || [];
-    const checkboxContainer = document.getElementById('edit-politicians-checkboxes');
-    checkboxContainer.innerHTML = cachePoliticians.map(p => {
-        const checked = activePolIds.includes(p.id) ? 'checked' : '';
-        return `
-            <label class="checkbox-label">
-                <input type="checkbox" name="edit-pol-box" value="${p.id}" ${checked}>
-                ${p.name}
-            </label>
-        `;
-    }).join('');
-    const currentIssueId = ev.event_issue_map?.[0]?.issue_id || '';
+
+    // 動態生成人物複選框 (支援多選)
+    const polBoxContainer = document.getElementById('edit-politicians-checkboxes');
+    const currentPolIds = ev.event_politician_map?.map(m => m.politician_id) || [];
+    polBoxContainer.innerHTML = cachePoliticians.map(p => `
+        <label style="display:inline-flex; align-items:center; margin-right:15px; margin-bottom:10px;">
+            <input type="checkbox" name="edit-pol-box" value="${p.id}" ${currentPolIds.includes(p.id) ? 'checked' : ''}>
+            <span style="margin-left:5px;">${p.name}</span>
+        </label>
+    `).join('');
+
+    // 動態生成議題下拉選單 (單選)
     const issueSelect = document.getElementById('edit-issue-select');
-    let issueOptions = '<option value="">-- 未選定 / 無特定議題 --</option>';
-    cacheIssues.forEach(i => {
-        const selected = i.id === currentIssueId ? 'selected' : '';
-        issueOptions += `<option value="${i.id}" ${selected}>📌 ${i.name}</option>`;
-    });
-    issueSelect.innerHTML = issueOptions;
+    const currentIssueId = ev.event_issue_map?.[0]?.issue_id || '';
+    issueSelect.innerHTML = '<option value="">(無關聯議題)</option>' + cacheIssues.map(i => `
+        <option value="${i.id}" ${i.id === currentIssueId ? 'selected' : ''}>${i.name}</option>
+    `).join('');
 
     document.getElementById('edit-modal').classList.add('active');
 };
@@ -373,8 +447,8 @@ window.closeEditModal = function() {
     document.getElementById('edit-modal').classList.remove('active');
 };
 
-window.saveEventEdits = async function() {
-    const id = document.getElementById('edit-event-id').value;
+window.saveEditEvent = async function() {
+    const id = document.getElementById('edit-id').value;
     const quote = document.getElementById('edit-quote').value.trim();
     const date = document.getElementById('edit-date').value || null;
     const category = document.getElementById('edit-category').value;
@@ -382,14 +456,18 @@ window.saveEventEdits = async function() {
     const importance = parseInt(document.getElementById('edit-importance').value);
     const context = document.getElementById('edit-context').value.trim();
     const source_url = document.getElementById('edit-source-url').value.trim() || null;
+
+    // 1. 更新主體表
     const { error: mainErr } = await supabase.from('events').update({
         quote, date, category, influence, importance, context, source_url
     }).eq('id', id);
+
     if (mainErr) {
         alert('儲存主體資料失敗: ' + mainErr.message);
         return;
     }
 
+    // 2. 更新人物關聯表 (先刪除舊有，再寫入新勾選的)
     await supabase.from('event_politician_map').delete().eq('event_id', id);
     const selectedPolBoxes = document.querySelectorAll('input[name="edit-pol-box"]:checked');
     const polInserts = Array.from(selectedPolBoxes).map(box => ({
@@ -400,13 +478,13 @@ window.saveEventEdits = async function() {
         await supabase.from('event_politician_map').insert(polInserts);
     }
 
+    // 3. 更新議題關聯表
     await supabase.from('event_issue_map').delete().eq('event_id', id);
     const chosenIssueId = document.getElementById('edit-issue-select').value;
     if (chosenIssueId) {
         await supabase.from('event_issue_map').insert({ event_id: id, issue_id: chosenIssueId });
     }
 
-    alert('💾 事件核心資料與對比關聯儲存成功！');
     closeEditModal();
-    await fetchAndRenderReviewFeed();
+    fetchAndRenderReviewFeed(); // 儲存後重整畫面
 };
