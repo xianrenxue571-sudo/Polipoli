@@ -63,13 +63,13 @@
 </div>
 <div class="tab-content" id="tab-content-review">
 <div class="filter-bar">
-<button class="filter-btn active" id="filter-btn-pending" onclick="setEventFilter('pending')">🔴 待審核</button>
-<button class="filter-btn" id="filter-btn-approved" onclick="setEventFilter('approved')">🟢 已核准</button>
+<button class="filter-btn active" id="filter-btn-pending" onclick="setEventFilter('pending')">待審</button>
+<button class="filter-btn" id="filter-btn-approved" onclick="setEventFilter('approved')">已核</button>
 <!-- 🌟 新增：人物過濾下拉選單 -->
-<select id="filter-politician" class="form-input" style="margin-left: 10px; max-width: 150px; padding: 4px 8px;" onchange="onPoliticianFilterChange()">
+<select id="filter-politician" class="form-input" style="margin-left: 10px; padding: 4px 8px;" onchange="onPoliticianFilterChange()">
 <option value="all">全部人物</option>
 </select>
-<button class="btn btn-success" style="margin-left: auto;" onclick="publishAllPending()">🚀 一鍵分批上架</button>
+<button class="btn btn-success" style="margin-left: auto;" onclick="publishAllPending()">分批上架</button>
 </div>
 <div class="review-list" id="review-list-container">
 <div style="text-align: center; color: var(--text-muted); padding: 2rem;">資料在庫檢索中...</div>
