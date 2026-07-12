@@ -296,14 +296,14 @@ function renderReviewFeed() {
     // 生成過濾下拉選單
     const polFilterHTML = `
         <div style="margin-bottom: 1.5rem; background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 10px;">
-            <label for="review-pol-filter" style="font-weight: bold; font-size: 0.9rem;">👤 人物快速過濾：</label>
+            <label for="review-pol-filter" style="font-weight: bold; font-size: 0.9rem;">人物過濾：</label>
             <select id="review-pol-filter" class="form-input" style="width: auto; margin-bottom: 0;" onchange="setPolFilter(this.value)">
-                <option value="all" ${currentPolFilter === 'all' ? 'selected' : ''}>-- 顯示所有政治人物 --</option>
+                <option value="all" ${currentPolFilter === 'all' ? 'selected' : ''}>-- 顯示所有 --</option>
                 ${cachePoliticians.map(p => `
                     <option value="${p.id}" ${currentPolFilter === p.id ? 'selected' : ''}>${p.name} (${p.party || '未知'})</option>
                 `).join('')}
             </select>
-            <span style="font-size: 0.85rem; color: #64748b; margin-left: auto;">目前符合條件：${filteredEvents.length} 筆</span>
+            <span style="font-size: 0.85rem; color: #64748b; margin-left: auto;">${filteredEvents.length} 筆</span>
         </div>
     `;
 
