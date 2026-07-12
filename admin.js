@@ -62,7 +62,7 @@ async function refreshAllAdminData() {
     }
 }
 
-// 🌟 新增：負責將所有人物塞進下拉選單
+// 🌟 負責將所有人物塞進下拉選單
 function updatePoliticianFilterDropdown() {
     const select = document.getElementById('filter-politician');
     if (!select) return;
@@ -219,12 +219,12 @@ window.setEventFilter = function(filterType) {
     fetchAndRenderReviewFeed();
 };
 
-// 🌟 新增：當下拉選單切換時，直接重新渲染（完全不呼叫 API）
+// 🌟 當下拉選單切換時，直接重新渲染（完全不呼叫 API）
 window.onPoliticianFilterChange = function() {
     renderReviewFeedUI();
 };
 
-// 🌟 重構：API 請求函式只負責抓資料
+// 🌟 API 請求函式只負責抓資料
 async function fetchAndRenderReviewFeed() {
     const container = document.getElementById('review-list-container');
     container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 2rem;">資料在庫安全檢索中...</div>';
@@ -249,7 +249,7 @@ async function fetchAndRenderReviewFeed() {
     renderReviewFeedUI(); // 抓完資料後，交給渲染專用函式
 }
 
-// 🌟 新增：純前端陣列過濾與畫面渲染
+// 🌟 純前端陣列過濾與畫面渲染
 function renderReviewFeedUI() {
     const container = document.getElementById('review-list-container');
     const selectEl = document.getElementById('filter-politician');
@@ -372,7 +372,9 @@ window.openEditModal = async function(eventId) {
         `;
     }).join('');
     
+    // 🌟 已修復：恢復為最安全的語法，確保引擎順利解析
     const currentIssueId = ev.event_issue_map?.?.issue_id || '';
+    
     const issueSelect = document.getElementById('edit-issue-select');
     let issueOptions = '<option value="">-- 未選定 / 無特定議題 --</option>';
     cacheIssues.forEach(i => {
