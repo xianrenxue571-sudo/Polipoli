@@ -55,7 +55,7 @@ async function refreshAllAdminData() {
     if (issueRes.data) cacheIssues = issueRes.data;
 
     renderSettingsLists();
-    updatePoliticianFilterDropdown(); // 🌟 啟動人物過濾選單更新
+    updatePoliticianFilterDropdown();
 
     if (currentTab === 'review') {
         await fetchAndRenderReviewFeed();
@@ -372,7 +372,7 @@ window.openEditModal = async function(eventId) {
         `;
     }).join('');
     
-    // 🌟 已修復：恢復為最安全的語法，確保引擎順利解析
+    // 🌟 最終真正修復：完美讀取陣列第一筆的正確語法
     const currentIssueId = ev.event_issue_map?.?.issue_id || '';
     
     const issueSelect = document.getElementById('edit-issue-select');
