@@ -117,3 +117,24 @@ textarea.form-input { min-height: 120px; resize: vertical; }
     }
 }
 
+/* 底部操作按鈕區塊樣式 */
+.action-bar-bottom {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin: 1rem 0;
+    padding: 0 10px;
+}
+
+/* 手機版適配：在螢幕極窄時，讓按鈕變為滿版或垂直排列 */
+@media (max-width: 600px) {
+    .action-bar-bottom {
+        flex-direction: column; /* 改為垂直堆疊 */
+        gap: 8px;
+    }
+    .action-bar-bottom .btn {
+        width: 100%; /* 手機上按鈕拉寬，方便觸控 */
+    }
+}
+
+
