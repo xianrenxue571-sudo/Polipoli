@@ -343,15 +343,16 @@ function renderFilteredReviewList() {
         const polNames = e.event_politician_map?.map(m => m.politicians?.name).filter(Boolean).join(', ') || '未掛名人物';
         const issueNames = e.event_issue_map?.map(m => m.issues?.name).filter(Boolean).join(', ') || '未設定議題';
         
+        // 🌟 核心修改區：按鈕文字加入 <span class="hide-on-mobile">
         let actionButtons = '';
         if (currentEventFilter === 'pending') {
-            actionButtons += `<button class="btn btn-secondary" onclick="updateEventState('${e.id}', true, false)">🟡 移至暫存</button>`;
-            actionButtons += `<button class="btn btn-success" onclick="updateEventState('${e.id}', true, true)">🟢 直接上架</button>`;
+            actionButtons += `<button class="btn btn-secondary" onclick="updateEventState('${e.id}', true, false)">🟡 <span class="hide-on-mobile">移至</span>暫存</button>`;
+            actionButtons += `<button class="btn btn-success" onclick="updateEventState('${e.id}', true, true)">🟢 <span class="hide-on-mobile">直接</span>上架</button>`;
         } else if (currentEventFilter === 'staged') {
-            actionButtons += `<button class="btn btn-secondary" onclick="updateEventState('${e.id}', false, false)">🔴 退回待審</button>`;
-            actionButtons += `<button class="btn btn-success" onclick="updateEventState('${e.id}', true, true)">🟢 正式上架</button>`;
+            actionButtons += `<button class="btn btn-secondary" onclick="updateEventState('${e.id}', false, false)">🔴 <span class="hide-on-mobile">退回</span>待審</button>`;
+            actionButtons += `<button class="btn btn-success" onclick="updateEventState('${e.id}', true, true)">🟢 <span class="hide-on-mobile">正式</span>上架</button>`;
         } else if (currentEventFilter === 'approved') {
-            actionButtons += `<button class="btn btn-secondary" onclick="updateEventState('${e.id}', true, false)">🟡 下架轉暫存</button>`;
+            actionButtons += `<button class="btn btn-secondary" onclick="updateEventState('${e.id}', true, false)">🟡 <span class="hide-on-mobile">下架轉</span>暫存</button>`;
         }
 
         return `
@@ -369,9 +370,9 @@ function renderFilteredReviewList() {
                 ${e.source_url ? `<div style="font-size: 0.85rem; margin-bottom: 0.5rem;"><a href="${e.source_url}" target="_blank" style="color: #3b82f6; text-decoration: underline;">🔗 來源佐證連結</a></div>` : ''}
                 ${e.reasoning ? `<div class="review-reasoning">💡 AI 理由：${e.reasoning}</div>` : ''}
                 <div class="review-actions">
-                    <button class="btn btn-secondary" onclick="openEditModal('${e.id}')">✏️ 編輯</button>
+                    <button class="btn btn-secondary" onclick="openEditModal('${e.id}')">✏️ <span class="hide-on-mobile">編輯</span></button>
                     ${actionButtons}
-                    <button class="btn btn-danger" onclick="deleteEventAbsolute('${e.id}')">🗑️ 刪除</button>
+                    <button class="btn btn-danger" onclick="deleteEventAbsolute('${e.id}')">🗑️ <span class="hide-on-mobile">刪除</span></button>
                 </div>
             </div>
         `;
