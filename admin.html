@@ -37,7 +37,7 @@
 <h3>📦 爭議事件匯入</h3>
 <div class="form-group">
 <label for="json-paste-area">請將 Gemini 產出的 JSON 陣列代碼複製並貼上：</label>
-<textarea id="json-paste-area" class="form-input"'></textarea>
+<textarea id="json-paste-area" class="form-input"></textarea>
 </div>
 <button class="btn btn-success" id="btn-execute-import" onclick="importPastedJSON()">🚀 執行強效大數據匯入</button>
 </div>
@@ -65,10 +65,12 @@
 <div class="filter-bar">
 <button class="filter-btn active" id="filter-btn-pending" onclick="setEventFilter('pending')">🔴 待審核</button>
 <button class="filter-btn" id="filter-btn-approved" onclick="setEventFilter('approved')">🟢 已核准</button>
-<!-- 🌟 新增：人物過濾下拉選單 -->
 <option value="all">全部人物</option>
 </select>
-<button class="btn btn-success" style="margin-left: auto;" onclick="publishAllPending()">一鍵分批上架</button>
+<div style="margin-left: auto; display: flex; gap: 8px;">
+<button class="btn btn-danger" onclick="deleteAllPending()">🗑️ 一鍵清空待審核</button>
+<button class="btn btn-success" onclick="publishAllPending()">一鍵分批上架</button>
+</div>
 </div>
 <div class="review-list" id="review-list-container">
 <div style="text-align: center; color: var(--text-muted); padding: 2rem;">資料在庫檢索中...</div>
