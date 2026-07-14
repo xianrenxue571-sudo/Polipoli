@@ -2,7 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 /**
  * Polipoli Admin Terminal - Core Logic
- * Senior Architect Version: Enhanced Robustness, Filter-Aware Batching, and UI Integrity
+ * Senior Architect Version: Enhanced Robustness, Filter-Aware Batching, Auto-Add Pols and UI Integrity
  */
 
 // 1. 全域變數與初始化 (Global Scope & Initialization)
@@ -128,6 +128,7 @@ window.importPastedJSON = async function() {
 
         let successCount = 0;
         let polMappingFailures = 0;
+        let autoAddedPols = 0; // 新增：紀錄自動補齊的人物數量
 
         for (const item of eventsArray) {
             let issueId = null;
@@ -170,7 +171,23 @@ window.importPastedJSON = async function() {
                 }
                 
                 if (item.politician_name) {
-                    const politician = cachePoliticians.find(p => p.name === item.politician_name.trim());
+                    let politician = cachePoliticians.find(p => p.name === item.politician_name.trim());
+                    
+                    // 🌟 自動新增未建檔人物邏輯
+                    if (!politician) {
+                        const { data: newPol, error: polErr } = await supabase
+                            .from('politicians')
+                            .insert({ name: item.politician_name.trim(), party: '未知政黨' })
+                            .select()
+                            .single();
+                        
+                        if (newPol && !polErr) {
+                            cachePoliticians.push(newPol); // 同步推入本地快取
+                            politician = newPol;
+                            autoAddedPols++;
+                        }
+                    }
+
                     if (politician) {
                         await supabase.from('event_politician_map').insert({ event_id: newEvent.id, politician_id: politician.id });
                     } else {
@@ -182,7 +199,7 @@ window.importPastedJSON = async function() {
             }
         }
 
-        alert(`🎉 批次操作完成！\n成功：${successCount} 筆\n人物配對失敗：${polMappingFailures} 筆（已上傳事件但未掛名）`);
+        alert(`🎉 批次操作完成！\n成功匯入事件：${successCount} 筆\n自動補齊新人物：${autoAddedPols} 位\n人物配對失敗：${polMappingFailures} 筆`);
         textarea.value = '';
         await refreshAllAdminData();
 
@@ -419,6 +436,58 @@ window.publishAllPending = async function() {
     alert(`✅ 已成功分批上架 ${successCount} 筆事件。`);
     await fetchAndRenderReviewFeed();
 };
+
+// 🌟 新增：一鍵清空待審核 (Delete All Pending with Filter Awareness)
+window.deleteAllPending = async function() {
+    if (currentEventFilter !== 'pending') {
+        alert('安全鎖機制：請先切換到「🔴 待審核」分頁再執行此操作，以防誤刪已上架資料。');
+        return;
+    }
+
+    let visibleEvents = currentFetchedEvents;
+    let polNameDisplay = '全部人物';
+
+    // 如果有選定特定人物，找出符合該人物的事件
+    if (currentPolFilter !== 'all') {
+        visibleEvents = currentFetchedEvents.filter(ev => 
+            ev.event_politician_map?.some(m => m.politician_id === currentPolFilter)
+        );
+        const targetPol = cachePoliticians.find(p => p.id === currentPolFilter);
+        if (targetPol) polNameDisplay = targetPol.name;
+    }
+
+    // 只挑選 status 為 !is_visible (待審核) 的 ID
+    const pendingIds = visibleEvents.filter(e => !e.is_visible).map(e => e.id);
+
+    if (pendingIds.length === 0) {
+        alert(`目前條件下沒有【${polNameDisplay}】待刪除的事件。`);
+        return;
+    }
+
+    if (!confirm(`⚠️ 極度危險操作 ⚠️\n\n您確定要永久刪除【${polNameDisplay}】共 ${pendingIds.length} 筆待審核事件嗎？\n資料庫刪除後將無法復原！`)) {
+        return;
+    }
+
+    // 發送批次刪除請求
+    const batchSize = 50;
+    let successCount = 0;
+
+    for (let i = 0; i < pendingIds.length; i += batchSize) {
+        const chunk = pendingIds.slice(i, i + batchSize);
+        const { error } = await supabase.from('events').delete().in('id', chunk);
+
+        if (error) {
+            alert(`批次刪除中斷。已刪除 ${successCount} 筆。錯誤：${error.message}`);
+            await fetchAndRenderReviewFeed();
+            return;
+        }
+        successCount += chunk.length;
+    }
+
+    alert(`🗑️ 成功清空！已刪除 ${successCount} 筆待審核資料。`);
+    await fetchAndRenderReviewFeed();
+};
+
 
 // 7. 編輯 Modal 邏輯 (Event Editing with Critical Fix)
 window.openEditModal = async function(eventId) {
