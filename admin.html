@@ -64,11 +64,10 @@
 <div class="tab-content" id="tab-content-review">
 <div class="filter-bar">
 <button class="filter-btn active" id="filter-btn-pending" onclick="setEventFilter('pending')">🔴 待審核</button>
+<button class="filter-btn" id="filter-btn-staged" onclick="setEventFilter('staged')">🟡 暫存區</button>
 <button class="filter-btn" id="filter-btn-approved" onclick="setEventFilter('approved')">🟢 已核准</button>
-<option value="all">全部人物</option>
-</select>
 <div style="margin-left: auto; display: flex; gap: 8px;">
-<button class="btn btn-danger" onclick="deleteAllPending()">🗑️ 一鍵清空待審核</button>
+<button class="btn btn-danger" onclick="deleteAllPending()">🗑️ 一鍵清空清單</button>
 <button class="btn btn-success" onclick="publishAllPending()">一鍵分批上架</button>
 </div>
 </div>
