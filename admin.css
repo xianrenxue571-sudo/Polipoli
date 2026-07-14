@@ -93,3 +93,27 @@ textarea.form-input { min-height: 120px; resize: vertical; }
 
 .checkbox-group-box { background: #f8fafc; border: 1px solid var(--border); border-radius: 6px; padding: 12px; max-height: 150px; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
 .checkbox-label { display: inline-flex; align-items: center; gap: 6px; font-size: 0.9rem; cursor: pointer; }
+
+/* =========================================
+   📱 手機版響應式優化 (方案 A：文字隱藏與按鈕縮小)
+   ========================================= */
+@media (max-width: 600px) {
+    /* 1. 隱藏可省略的文字 */
+    .hide-on-mobile {
+        display: none;
+    }
+    
+    /* 2. 將審核卡片內的按鈕內距 (padding) 與字體縮小 */
+    .review-actions .btn {
+        padding: 5px 8px;      /* 縮減上下與左右的留白 */
+        font-size: 0.85rem;    /* 稍微縮小字體 */
+        border-width: 1px;     /* 確保邊框細緻 */
+    }
+    
+    /* 3. 讓按鈕群組在極限狀態下可以稍微換行，絕對防破版 */
+    .review-actions {
+        flex-wrap: wrap; 
+        gap: 6px;
+    }
+}
+
