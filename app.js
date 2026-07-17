@@ -587,28 +587,38 @@ window.toggleLike = async function(eventId, btnElement) {
     let currentCount = parseInt(countSpan.textContent) || 0;
 
     if (isCurrentlyLiked) {
+        // --- 取消讚的邏輯 ---
         userLikedEventIds.delete(eventId);
         btnElement.classList.remove('liked');
         countSpan.textContent = Math.max(0, currentCount - 1);
         
-        const { error } = await supabase.from('event_likes').delete().match({ event_id: eventId, user_uuid: userUUID });
-        if (error) {
+        // 1. 刪除獨立誠信表 (event_likes) 的紀錄
+        const { error: likeError } = await supabase.from('event_likes').delete().match({ event_id: eventId, user_uuid: userUUID });
+        // 2. 呼叫特權通道：讓 events 主表的數字安全 -1
+        const { error: rpcError } = await supabase.rpc('decrement_likes', { event_id: eventId });
+
+        if (likeError || rpcError) {
             userLikedEventIds.add(eventId);
             btnElement.classList.add('liked');
             countSpan.textContent = currentCount;
-            console.error('收回讚失敗:', error);
+            console.error('收回讚失敗:', likeError || rpcError);
         }
     } else {
+        // --- 點讚的邏輯 ---
         userLikedEventIds.add(eventId);
         btnElement.classList.add('liked');
         countSpan.textContent = currentCount + 1;
         
-        const { error } = await supabase.from('event_likes').insert([{ event_id: eventId, user_uuid: userUUID }]);
-        if (error) {
+        // 1. 新增紀錄到獨立誠信表 (event_likes) 防重複點擊
+        const { error: likeError } = await supabase.from('event_likes').insert([{ event_id: eventId, user_uuid: userUUID }]);
+        // 2. 呼叫特權通道：讓 events 主表的數字安全 +1
+        const { error: rpcError } = await supabase.rpc('increment_likes', { event_id: eventId });
+
+        if (likeError || rpcError) {
             userLikedEventIds.delete(eventId);
             btnElement.classList.remove('liked');
             countSpan.textContent = currentCount;
-            console.error('按讚失敗:', error);
+            console.error('點讚失敗:', likeError || rpcError);
         }
     }
 };
