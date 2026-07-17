@@ -597,12 +597,16 @@ window.toggleLike = async function(eventId, btnElement) {
         // 2. 呼叫特權通道：讓 events 主表的數字安全 -1
         const { error: rpcError } = await supabase.rpc('decrement_likes', { event_id: eventId });
 
-        if (likeError || rpcError) {
-            userLikedEventIds.add(eventId);
-            btnElement.classList.add('liked');
-            countSpan.textContent = currentCount;
-            console.error('收回讚失敗:', likeError || rpcError);
-        }
+// 在點讚失敗的區塊中：
+if (likeError || rpcError) {
+    userLikedEventIds.delete(eventId);
+    btnElement.classList.remove('liked');
+    countSpan.textContent = currentCount;
+    console.error('點讚失敗:', likeError || rpcError);
+    // 👇 加入這一行，讓錯誤彈出在手機畫面上
+    alert('資料庫退件原因: ' + JSON.stringify(likeError || rpcError)); 
+}
+
     } else {
         // --- 點讚的邏輯 ---
         userLikedEventIds.add(eventId);
