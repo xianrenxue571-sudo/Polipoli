@@ -96,7 +96,7 @@ main { display: flex; flex-direction: column; gap: 1.5rem; }
 .severity-tag.high { background: #fef2f2; border-color: #fecaca; color: var(--danger); }
 
 .event-quote { font-size: 1.25rem; font-weight: bold; margin: 10px 0 1rem 0; color: var(--text-main); }
-.event-context { color: #4b5563; font-size: 1.1rem; margin-bottom: 1rem; background: #f8fafc; padding: 1rem; border-left: 4px solid var(--accent); border-radius: 0 8px 8px 0; }
+.event-context { color: #4b5563; font-size: 1.1rem; margin-bottom: 1rem; background: #f8fafc; padding: 0.8rem; border-left: 4px solid var(--accent); border-radius: 0 8px 8px 0; }
 
 .event-actions { display: flex; justify-content: flex-end; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); flex-direction: column; align-items: flex-end; gap: 6px; }
 .source-link { color: var(--accent); text-decoration: none; font-weight: bold; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 4px; background: #f0fdf4; padding: 4px 10px; border-radius: 20px; border: 1px solid #bbf7d0; transition: all 0.2s; }
