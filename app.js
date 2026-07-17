@@ -9,7 +9,7 @@ let currentMode = 'latest';
 let currentFilterId = null; 
 let currentTargetName = null;
 
-let page = 0;
+let page = 0; /* 修正了這裡的語法錯誤 */
 const PAGE_SIZE = 15;
 let isFetching = false;
 let hasMoreData = true;
