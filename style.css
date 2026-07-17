@@ -106,9 +106,6 @@ main { display: flex; flex-direction: column; gap: 1.5rem; }
 #loader.visible { display: block; }
 .end-message { text-align: center; padding: 2rem; color: var(--text-muted); display: none; }
 
-/* ==========================================================================
-   ❤️ 點讚按鈕與無縫動畫樣式
-   ========================================================================== */
 .like-btn {
     background: #f3f4f6; 
     border: 1px solid var(--border); 
@@ -123,12 +120,10 @@ main { display: flex; flex-direction: column; gap: 1.5rem; }
     font-weight: bold; 
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
-
 .like-btn:hover { 
     background: #e5e7eb; 
     transform: translateY(-2px); 
 }
-
 .like-btn svg { 
     width: 16px; 
     height: 16px; 
@@ -137,20 +132,16 @@ main { display: flex; flex-direction: column; gap: 1.5rem; }
     stroke-width: 2; 
     transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
 }
-
 .like-btn.liked { 
     color: #ef4444; 
     border-color: #fca5a5; 
     background: #fef2f2; 
 }
-
 .like-btn.liked svg { 
     fill: #ef4444; 
     stroke: #ef4444; 
     transform: scale(1.15); 
 }
-
 .like-btn:active svg {
     transform: scale(0.9);
 }
-
