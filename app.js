@@ -4,29 +4,6 @@ const SUPABASE_URL = 'https://ymrpsmrxnoyypayzujlm.supabase.co';
 const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InltcnBzbXJ4bm95eXBheXp1amxtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwNTYyMzcsImV4cCI6MjA5ODYzMjIzN30.Mp8K310jjvKUkKQszs5VaA8GwuJUzQTv3PyXfP7ZdKU';
 const supabase = createClient(SUPABASE_URL, ANON_KEY);
 
-function getUserUUID() {
-    let uuid = localStorage.getItem('polipoli_user_uuid');
-    if (!uuid) {
-        uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-            var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
-            return v.toString(16);
-        });
-        localStorage.setItem('polipoli_user_uuid', uuid);
-    }
-    return uuid;
-}
-const userUUID = getUserUUID();
-let userLikedEventIds = new Set();
-
-async function fetchUserLikes() {
-    try {
-        const { data } = await supabase.from('event_likes').select('event_id').eq('user_uuid', userUUID);
-        if (data) {
-            userLikedEventIds = new Set(data.map(item => item.event_id));
-        }
-    } catch(e) { console.error('讀取按讚紀錄失敗', e); }
-}
-
 let currentTab = 'politicians';
 let currentMode = 'latest'; 
 let currentFilterId = null; 
@@ -40,6 +17,40 @@ let hasMoreData = true;
 let cachePoliticians = [];
 let cacheIssues = [];
 let topFivePoliticians = [];
+
+function getUserUUID() {
+    const generateFallbackUUID = () => {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    };
+    try {
+        let uuid = localStorage.getItem('polipoli_user_uuid');
+        if (!uuid) {
+            uuid = generateFallbackUUID();
+            localStorage.setItem('polipoli_user_uuid', uuid);
+        }
+        return uuid;
+    } catch (e) {
+        console.warn('LocalStorage 存取受限，使用單次 Session UUID');
+        return generateFallbackUUID();
+    }
+}
+const userUUID = getUserUUID();
+let userLikedEventIds = new Set();
+
+async function fetchUserLikes() {
+    try {
+        const { data, error } = await supabase.from('event_likes').select('event_id').eq('user_uuid', userUUID);
+        if (error) throw error;
+        if (data) {
+            userLikedEventIds = new Set(data.map(item => item.event_id));
+        }
+    } catch(e) { 
+        console.error('讀取按讚紀錄失敗:', e); 
+    }
+}
 
 const quickPolTags = ['游錫堃', '鄺麗貞', '傅崐萁', '陳玉珍', '徐欣瑩', '張嘉郡', '陳智菡', '黃瀞瑩', '顏寬恒', '佀廣洋'];
 
@@ -73,8 +84,14 @@ window.addEventListener('scroll', () => {
 });
 
 window.onload = async () => {
-    await fetchUserLikes();
-    await fetchSidebarData();
+    try {
+        await fetchUserLikes();
+    } catch(e) { console.error('fetchUserLikes failed', e); }
+    
+    try {
+        await fetchSidebarData();
+    } catch(e) { console.error('fetchSidebarData failed', e); }
+
     const urlParams = new URLSearchParams(window.location.search);
     const polId = urlParams.get('pol');
     const issueId = urlParams.get('issue');
