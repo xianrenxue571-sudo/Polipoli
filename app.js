@@ -92,6 +92,22 @@ window.onload = async () => {
         await fetchSidebarData();
     } catch(e) { console.error('fetchSidebarData failed', e); }
 
+    // 靜態頁面（SSG）優先：由 build.mjs 產生的頁面會內嵌這些全域變數，
+    // 讓爬蟲看到的內容跟使用者實際互動的內容一致（hydration）
+    if (window.__SSG_POLITICIAN_ID) {
+        currentTab = 'politicians';
+        loadSpecificData('politician', window.__SSG_POLITICIAN_ID, window.__SSG_POLITICIAN_NAME, false);
+        setupIntersectionObserver();
+        return;
+    }
+    if (window.__SSG_ISSUE_ID) {
+        currentTab = 'issues';
+        loadSpecificData('issue', window.__SSG_ISSUE_ID, window.__SSG_ISSUE_NAME, false);
+        setupIntersectionObserver();
+        return;
+    }
+
+    // 舊有的 query string 路由方式，維持向下相容
     const urlParams = new URLSearchParams(window.location.search);
     const polId = urlParams.get('pol');
     const issueId = urlParams.get('issue');
