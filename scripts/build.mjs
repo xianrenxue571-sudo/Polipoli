@@ -147,6 +147,12 @@ async function main() {
         if (fs.existsSync(src)) fs.copyFileSync(src, path.join(OUT_DIR, f));
     });
 
+    // 複製後台管理面板檔案（先前遺漏，導致 SSG 上線後 admin 後台無法訪問）
+    ['admin.html', 'admin.css', 'admin.js'].forEach(f => {
+        const src = path.join(ROOT, f);
+        if (fs.existsSync(src)) fs.copyFileSync(src, path.join(OUT_DIR, f));
+    });
+
     const { politicians, issues, events } = await fetchAll();
     const sitemapUrls = [`${SITE_URL}/`];
 
