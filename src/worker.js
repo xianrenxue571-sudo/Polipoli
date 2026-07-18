@@ -17,13 +17,19 @@ export default {
         }
 
         // 驗證通過，或非 admin 路徑，照常提供靜態檔案
-        return env.ASSETS.fetch(request);
+        // 重新建構一個乾淨的請求（只保留網址跟方法），避免原始 request 帶著
+        // Authorization 等額外標頭，被資產伺服器判定為無效請求
+        const cleanRequest = new Request(url.toString(), {
+            method: request.method,
+            redirect: 'manual'
+        });
+        return env.ASSETS.fetch(cleanRequest);
     }
 };
 
 function isAuthorized(authHeader, validUser, validPass) {
     if (!authHeader || !authHeader.startsWith('Basic ')) return false;
-    if (!validUser || !validPass) return false; // 環境變數沒設定時，安全預設為拒絕
+    if (!validUser || !validPass) return false;
 
     try {
         const encoded = authHeader.slice(6);
