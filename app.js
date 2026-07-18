@@ -293,7 +293,8 @@ async function loadLatestEvents() {
             *,
             event_politician_map ( politician_id, politicians ( name ) ),
             event_issue_map ( issue_id, issues ( name ) ),
-            event_sources ( id, media_name, url, publish_date )
+            event_sources ( id, media_name, url, publish_date ),
+            event_likes ( count )
         `)
         .eq('is_visible', true)
         .order('date', { ascending: false })
@@ -345,7 +346,8 @@ window.loadSpecificData = async function(type, id, name, pushHistory = true) {
                 *,
                 event_politician_map ( politician_id, politicians ( name ) ),
                 event_issue_map ( issue_id, issues ( name ) ),
-                event_sources ( id, media_name, url, publish_date )
+                event_sources ( id, media_name, url, publish_date ),
+                event_likes ( count )
             )
         `).eq('politician_id', id).eq('events.is_visible', true);
     } else {
@@ -354,7 +356,8 @@ window.loadSpecificData = async function(type, id, name, pushHistory = true) {
                 *,
                 event_politician_map ( politician_id, politicians ( name ) ),
                 event_issue_map ( issue_id, issues ( name ) ),
-                event_sources ( id, media_name, url, publish_date )
+                event_sources ( id, media_name, url, publish_date ),
+                event_likes ( count )
             )
         `).eq('issue_id', id).eq('events.is_visible', true);
     }
@@ -489,7 +492,10 @@ function renderEvents(events) {
         const impClass = importance >= 4 ? 'high' : '';
 
         const isLiked = userLikedEventIds.has(e.id);
-        const likesCount = e.likes_count || 0;
+        // 優先使用 event_likes 表的即時聚合計數（真實來源），退回 likes_count 欄位
+        const likesCount = (e.event_likes && e.event_likes[0] && typeof e.event_likes[0].count === 'number')
+            ? e.event_likes[0].count
+            : (e.likes_count || 0);
         const likeBtnHtml = `
             <button class="like-btn ${isLiked ? 'liked' : ''}" onclick="toggleLike('${e.id}', this)">
                 <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
@@ -607,22 +613,43 @@ window.toggleLike = async function(eventId, btnElement) {
     const newCount = newLikedState ? currentCount + 1 : Math.max(0, currentCount - 1);
     syncAllButtons(newLikedState, newCount);
 
-    // 4. 與資料庫同步
+    // 同步更新本地快取，確保切換頁籤重新渲染時狀態正確
+    if (newLikedState) {
+        userLikedEventIds.add(eventId);
+    } else {
+        userLikedEventIds.delete(eventId);
+    }
+
+    // 4. 與資料庫同步（以 event_likes 表為唯一真實來源，計數由查詢時聚合取得）
     try {
         if (newLikedState) {
             // 新增讚
             const { error: likeError } = await supabase.from('event_likes').insert([{ event_id: eventId, user_uuid: userUUID }]);
-            const { error: rpcError } = await supabase.rpc('increment_likes', { event_id: eventId });
-            if (likeError || rpcError) throw new Error('點讚失敗');
+            // 23505 = 唯一鍵重複（已按過讚），視為成功，避免重複點擊造成錯誤復原
+            if (likeError && likeError.code !== '23505') throw new Error('點讚失敗: ' + likeError.message);
         } else {
             // 收回讚
             const { error: likeError } = await supabase.from('event_likes').delete().match({ event_id: eventId, user_uuid: userUUID });
-            const { error: rpcError } = await supabase.rpc('decrement_likes', { event_id: eventId });
-            if (likeError || rpcError) throw new Error('收回讚失敗');
+            if (likeError) throw new Error('收回讚失敗: ' + likeError.message);
+        }
+        // 嘗試同步 events.likes_count 欄位（若 RPC 失效也不影響顯示，僅作備援）
+        try {
+            if (newLikedState) {
+                await supabase.rpc('increment_likes', { event_id: eventId });
+            } else {
+                await supabase.rpc('decrement_likes', { event_id: eventId });
+            }
+        } catch (rpcErr) {
+            console.warn('likes_count RPC 備援更新失敗（不影響顯示）:', rpcErr);
         }
     } catch (err) {
         // 若失敗，復原至原本狀態
         console.error(err);
+        if (isCurrentlyLiked) {
+            userLikedEventIds.add(eventId);
+        } else {
+            userLikedEventIds.delete(eventId);
+        }
         alert('資料庫操作失敗，已復原。原因: ' + err.message);
         syncAllButtons(isCurrentlyLiked, currentCount);
     }
