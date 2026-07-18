@@ -581,7 +581,16 @@ function setupIntersectionObserver() {
     observer.observe(loader);
 }
 
+const likingInProgress = new Set(); // 記錄目前正在處理中的 eventId，避免重複點擊造成 race condition
+
 window.toggleLike = async function(eventId, btnElement) {
+    // 0. 防止重複點擊：同一個事件正在處理中就直接忽略
+    if (likingInProgress.has(eventId)) return;
+    likingInProgress.add(eventId);
+
+    const allButtonsForEvent = () => document.querySelectorAll(`button[onclick*="'${eventId}'"]`);
+    allButtonsForEvent().forEach(btn => btn.disabled = true);
+
     // 1. 取得當前卡片的 DOM 參考
     const countSpan = btnElement.querySelector('.like-count');
     const currentCount = parseInt(countSpan.textContent);
@@ -590,8 +599,7 @@ window.toggleLike = async function(eventId, btnElement) {
 
     // 2. 定義廣播函式：一次更新頁面上所有同 ID 的卡片
     const syncAllButtons = (isLiked, count) => {
-        const allButtons = document.querySelectorAll(`button[onclick*="'${eventId}'"]`);
-        allButtons.forEach(btn => {
+        allButtonsForEvent().forEach(btn => {
             if (isLiked) {
                 btn.classList.add('liked');
             } else {
@@ -612,19 +620,24 @@ window.toggleLike = async function(eventId, btnElement) {
         if (newLikedState) {
             // 新增讚
             const { error: likeError } = await supabase.from('event_likes').insert([{ event_id: eventId, user_uuid: userUUID }]);
+            if (likeError) throw new Error('點讚失敗: ' + likeError.message);
             const { error: rpcError } = await supabase.rpc('increment_likes', { event_id: eventId });
-            if (likeError || rpcError) throw new Error('點讚失敗');
+            if (rpcError) throw new Error('計數更新失敗: ' + rpcError.message);
         } else {
             // 收回讚
             const { error: likeError } = await supabase.from('event_likes').delete().match({ event_id: eventId, user_uuid: userUUID });
+            if (likeError) throw new Error('收回讚失敗: ' + likeError.message);
             const { error: rpcError } = await supabase.rpc('decrement_likes', { event_id: eventId });
-            if (likeError || rpcError) throw new Error('收回讚失敗');
+            if (rpcError) throw new Error('計數更新失敗: ' + rpcError.message);
         }
     } catch (err) {
         // 若失敗，復原至原本狀態
         console.error(err);
         alert('資料庫操作失敗，已復原。原因: ' + err.message);
         syncAllButtons(isCurrentlyLiked, currentCount);
+    } finally {
+        likingInProgress.delete(eventId);
+        allButtonsForEvent().forEach(btn => btn.disabled = false);
     }
 };
 
