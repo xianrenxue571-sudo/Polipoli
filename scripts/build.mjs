@@ -125,6 +125,7 @@ function renderPage({ title, description, ogTitle, ogDescription, canonicalPath,
     html = html.replace(/<meta name="description" content=".*?">/s, `<meta name="description" content="${escapeHtml(description)}">`);
     html = html.replace(/<meta property="og:title" content=".*?">/s, `<meta property="og:title" content="${escapeHtml(ogTitle)}">`);
     html = html.replace(/<meta property="og:description" content=".*?">/s, `<meta property="og:description" content="${escapeHtml(ogDescription)}">`);
+    html = html.replace('<link rel="stylesheet" href="./style.css">', '<link rel="stylesheet" href="/style.css">');
     html = html.replace('<link rel="preconnect"', `<link rel="canonical" href="${SITE_URL}${canonicalPath}">\n    <link rel="preconnect"`);
     html = html.replace('<div id="events-feed"></div>', `<div id="events-feed">${eventsHtml}</div>`);
     html = html.replace(
