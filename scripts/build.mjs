@@ -15,8 +15,11 @@ const SITE_URL = (process.env.SITE_URL || 'https://polipoli.cc').replace(/\/$/, 
 const supabase = createClient(SUPABASE_URL, ANON_KEY);
 
 function slugify(name) {
-    return encodeURIComponent(String(name).trim());
+    // 直接使用原始中文當資料夾名稱，讓 wrangler 自行處理 URL 編碼
+    // 避免預先 encodeURIComponent 再被上傳工具二次編碼，造成雙重編碼 404
+    return String(name).trim();
 }
+
 
 function escapeHtml(str) {
     if (str === null || str === undefined) return '';
