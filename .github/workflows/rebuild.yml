@@ -1,1 +1,13 @@
+name: 觸發 Cloudflare Pages 重新部署
 
+on:
+  schedule:
+    - cron: '0 18 * * *'   # UTC 18:00 = 台灣時間凌晨 02:00，每天跑一次
+  workflow_dispatch: {}     # 允許在 GitHub 網頁上手動點擊觸發
+
+jobs:
+  trigger-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 呼叫 Cloudflare Pages Deploy Hook
+        run: curl -X POST "${{ secrets.CF_DEPLOY_HOOK_URL }}"
