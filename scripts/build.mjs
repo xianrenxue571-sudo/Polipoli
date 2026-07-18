@@ -20,7 +20,6 @@ function slugify(name) {
     return String(name).trim();
 }
 
-
 function escapeHtml(str) {
     if (str === null || str === undefined) return '';
     return String(str)
@@ -178,13 +177,13 @@ async function main() {
             description: `完整收錄 ${p.name} 的爭議事件、失言紀錄與相關新聞脈絡，共 ${relatedEvents.length} 筆事件。`,
             ogTitle: `${p.name} 爭議與言行紀錄 | Polipoli 啪哩啪哩`,
             ogDescription: `完整收錄 ${p.name} 的爭議事件、失言紀錄與相關新聞脈絡。`,
-            canonicalPath: `/politician/${slug}/`,
+            canonicalPath: `/politician/${encodeURIComponent(slug)}/`,
             eventsHtml: relatedEvents.map(renderEventCardSSR).join(''),
             schemaJson: buildSchema(relatedEvents),
             hydrationScript: `<script>window.__SSG_POLITICIAN_ID = ${JSON.stringify(p.id)}; window.__SSG_POLITICIAN_NAME = ${JSON.stringify(p.name)};</script>`
         });
         fs.writeFileSync(path.join(dir, 'index.html'), html);
-        sitemapUrls.push(`${SITE_URL}/politician/${slug}/`);
+        sitemapUrls.push(`${SITE_URL}/politician/${encodeURIComponent(slug)}/`);
     }
 
     // 議題專屬頁
@@ -201,13 +200,13 @@ async function main() {
             description: `收錄與「${i.name}」議題相關的政治人物爭議事件，共 ${relatedEvents.length} 筆。`,
             ogTitle: `「${i.name}」相關事件 | Polipoli 啪哩啪哩`,
             ogDescription: `收錄與「${i.name}」議題相關的政治人物爭議事件。`,
-            canonicalPath: `/issue/${slug}/`,
+            canonicalPath: `/issue/${encodeURIComponent(slug)}/`,
             eventsHtml: relatedEvents.map(renderEventCardSSR).join(''),
             schemaJson: buildSchema(relatedEvents),
             hydrationScript: `<script>window.__SSG_ISSUE_ID = ${JSON.stringify(i.id)}; window.__SSG_ISSUE_NAME = ${JSON.stringify(i.name)};</script>`
         });
         fs.writeFileSync(path.join(dir, 'index.html'), html);
-        sitemapUrls.push(`${SITE_URL}/issue/${slug}/`);
+        sitemapUrls.push(`${SITE_URL}/issue/${encodeURIComponent(slug)}/`);
     }
 
     // sitemap.xml
