@@ -582,47 +582,49 @@ function setupIntersectionObserver() {
 }
 
 window.toggleLike = async function(eventId, btnElement) {
-    const isCurrentlyLiked = userLikedEventIds.has(eventId);
+    // 1. 取得當前卡片的 DOM 參考
     const countSpan = btnElement.querySelector('.like-count');
-    let currentCount = parseInt(countSpan.textContent) || 0;
+    const currentCount = parseInt(countSpan.textContent);
+    const userUUID = getUserUUID();
+    const isCurrentlyLiked = btnElement.classList.contains('liked');
 
-    if (isCurrentlyLiked) {
-        // --- 取消讚的邏輯 ---
-        userLikedEventIds.delete(eventId);
-        btnElement.classList.remove('liked');
-        countSpan.textContent = Math.max(0, currentCount - 1);
-        
-        // 1. 刪除獨立誠信表 (event_likes) 的紀錄
-        const { error: likeError } = await supabase.from('event_likes').delete().match({ event_id: eventId, user_uuid: userUUID });
-        // 2. 呼叫特權通道：讓 events 主表的數字安全 -1
-        const { error: rpcError } = await supabase.rpc('decrement_likes', { event_id: eventId });
+    // 2. 定義廣播函式：一次更新頁面上所有同 ID 的卡片
+    const syncAllButtons = (isLiked, count) => {
+        const allButtons = document.querySelectorAll(`button[onclick*="'${eventId}'"]`);
+        allButtons.forEach(btn => {
+            if (isLiked) {
+                btn.classList.add('liked');
+            } else {
+                btn.classList.remove('liked');
+            }
+            const span = btn.querySelector('.like-count');
+            if (span) span.textContent = count;
+        });
+    };
 
-// 在點讚失敗的區塊中：
-if (likeError || rpcError) {
-    userLikedEventIds.delete(eventId);
-    btnElement.classList.remove('liked');
-    countSpan.textContent = currentCount;
-    console.error('點讚失敗:', likeError || rpcError);
-    // 👇 加入這一行，讓錯誤彈出在手機畫面上
-    alert('資料庫退件原因: ' + JSON.stringify(likeError || rpcError)); 
-}
+    // 3. 樂觀更新 (UI 先動)
+    const newLikedState = !isCurrentlyLiked;
+    const newCount = newLikedState ? currentCount + 1 : Math.max(0, currentCount - 1);
+    syncAllButtons(newLikedState, newCount);
 
-    } else {
-        // --- 點讚的邏輯 ---
-        userLikedEventIds.add(eventId);
-        btnElement.classList.add('liked');
-        countSpan.textContent = currentCount + 1;
-        
-        // 1. 新增紀錄到獨立誠信表 (event_likes) 防重複點擊
-        const { error: likeError } = await supabase.from('event_likes').insert([{ event_id: eventId, user_uuid: userUUID }]);
-        // 2. 呼叫特權通道：讓 events 主表的數字安全 +1
-        const { error: rpcError } = await supabase.rpc('increment_likes', { event_id: eventId });
-
-        if (likeError || rpcError) {
-            userLikedEventIds.delete(eventId);
-            btnElement.classList.remove('liked');
-            countSpan.textContent = currentCount;
-            console.error('點讚失敗:', likeError || rpcError);
+    // 4. 與資料庫同步
+    try {
+        if (newLikedState) {
+            // 新增讚
+            const { error: likeError } = await supabase.from('event_likes').insert([{ event_id: eventId, user_uuid: userUUID }]);
+            const { error: rpcError } = await supabase.rpc('increment_likes', { event_id: eventId });
+            if (likeError || rpcError) throw new Error('點讚失敗');
+        } else {
+            // 收回讚
+            const { error: likeError } = await supabase.from('event_likes').delete().match({ event_id: eventId, user_uuid: userUUID });
+            const { error: rpcError } = await supabase.rpc('decrement_likes', { event_id: eventId });
+            if (likeError || rpcError) throw new Error('收回讚失敗');
         }
+    } catch (err) {
+        // 若失敗，復原至原本狀態
+        console.error(err);
+        alert('資料庫操作失敗，已復原。原因: ' + err.message);
+        syncAllButtons(isCurrentlyLiked, currentCount);
     }
 };
+
