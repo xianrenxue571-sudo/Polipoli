@@ -1,13 +1,23 @@
-name: 觸發 Cloudflare Pages 重新部署
+name: 觸發重新部署（定期抓取最新 Supabase 資料）
 
 on:
   schedule:
     - cron: '0 18 * * *'   # UTC 18:00 = 台灣時間凌晨 02:00，每天跑一次
   workflow_dispatch: {}     # 允許在 GitHub 網頁上手動點擊觸發
 
+permissions:
+  contents: write
+
 jobs:
-  trigger-deploy:
+  trigger-rebuild:
     runs-on: ubuntu-latest
     steps:
-      - name: 呼叫 Cloudflare Pages Deploy Hook
-        run: curl -X POST "${{ secrets.CF_DEPLOY_HOOK_URL }}"
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: 建立空提交以觸發 Cloudflare 重新建置
+        run: |
+          git config user.name "polipoli-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git commit --allow-empty -m "chore: 排程觸發重新建置 ($(date -u +'%Y-%m-%dT%H:%M:%SZ'))"
+          git push
