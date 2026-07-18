@@ -630,6 +630,12 @@ window.toggleLike = async function(eventId, btnElement) {
             const { error: rpcError } = await supabase.rpc('decrement_likes', { event_id: eventId });
             if (rpcError) throw new Error('計數更新失敗: ' + rpcError.message);
         }
+        // 5. 同步成功後，更新記憶體中的已讚清單，避免切換頁籤/重新渲染時讀到舊狀態
+        if (newLikedState) {
+            userLikedEventIds.add(eventId);
+        } else {
+            userLikedEventIds.delete(eventId);
+        }
     } catch (err) {
         // 若失敗，復原至原本狀態
         console.error(err);
