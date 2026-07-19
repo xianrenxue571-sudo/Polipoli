@@ -48,16 +48,28 @@ async function fetchAll() {
     return { politicians: politicians || [], issues: issues || [], events: events || [] };
 }
 
-function renderImpactBarSSR(label, icon, score) {
-    if (!score) return ''; // 0、null、undefined 都視為「無關聯」，整組（含標題）隱藏
+function renderImpactMiniBarSSR(score) {
+    if (!score) return '';
     const value = Math.min(100, Math.max(0, parseInt(score)));
     const level = value <= 20 ? 1 : value <= 40 ? 2 : value <= 60 ? 3 : value <= 80 ? 4 : 5;
     return `
-        <div class="impact-bar-item">
-            <span class="impact-bar-label">${icon} ${label}<span class="impact-bar-score">${value}</span></span>
-            <div class="impact-bar-track">
-                <div class="impact-bar-fill level-${level}" style="width: ${value}%"></div>
+        <div class="impact-mini-bar">
+            <div class="impact-mini-bar-track">
+                <div class="impact-mini-bar-fill level-${level}" style="width: ${value}%"></div>
             </div>
+            <span class="impact-mini-bar-score">${value}</span>
+        </div>`;
+}
+
+function renderImpactBoxSSR(label, icon, text, score, extraClass) {
+    if (!text && !score) return '';
+    return `
+        <div class="event-impact ${extraClass || ''}">
+            <div class="event-impact-header">
+                <strong>${icon} ${label}</strong>
+                ${renderImpactMiniBarSSR(score)}
+            </div>
+            ${text ? `<p>${escapeHtml(text)}</p>` : ''}
         </div>`;
 }
 
@@ -80,13 +92,6 @@ function renderEventCardSSR(e) {
         sourceLinks = `<a href="${escapeHtml(e.source_url)}" target="_blank" rel="noopener noreferrer" class="source-link">🔗 查看原始新聞來源</a>`;
     }
 
-    const hasImpactScore = !!e.people_impact_score || !!e.national_impact_score;
-    const impactBarsHtml = hasImpactScore ? `
-        <div class="impact-bars">
-            ${renderImpactBarSSR('對人民影響', '👥', e.people_impact_score)}
-            ${renderImpactBarSSR('對國家影響', '🛡️', e.national_impact_score)}
-        </div>` : '';
-
     return `
         <article class="event-card">
             <div class="tag-row">
@@ -95,10 +100,9 @@ function renderEventCardSSR(e) {
                 ${issueTags}
             </div>
             <h3 class="event-quote">「${escapeHtml(e.quote)}」</h3>
-            ${impactBarsHtml}
             <div class="event-context">${escapeHtml(e.context) || '無詳細脈絡說明。'}</div>
-            ${e.people_impact ? `<div class="event-impact"><strong>💥 對人民的影響</strong><p>${escapeHtml(e.people_impact)}</p></div>` : ''}
-            ${e.national_security_impact ? `<div class="event-impact event-impact-security"><strong>🛡️ 對國安的影響</strong><p>${escapeHtml(e.national_security_impact)}</p></div>` : ''}
+            ${renderImpactBoxSSR('對人民的影響', '💥', e.people_impact, e.people_impact_score)}
+            ${renderImpactBoxSSR('對國安的影響', '🛡️', e.national_security_impact, e.national_impact_score, 'event-impact-security')}
             <div class="event-actions" style="display:flex;justify-content:space-between;flex-direction:row;align-items:flex-end;">
                 <div class="like-container">
                     <button class="like-btn" onclick="toggleLike('${e.id}', this)">
