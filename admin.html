@@ -152,8 +152,16 @@
 <textarea id="edit-people-impact" class="form-input" placeholder="這件事實際上如何影響一般民眾的生活、荷包、權益等"></textarea>
 </div>
 <div class="form-group">
+<label for="edit-people-impact-score">📊 對人民影響程度 (0 - 100)</label>
+<input type="number" id="edit-people-impact-score" class="form-input" min="0" max="100" step="1" placeholder="0 到 100 的整數，留空代表未評分">
+</div>
+<div class="form-group">
 <label for="edit-national-security-impact">🛡️ 對國安的影響</label>
 <textarea id="edit-national-security-impact" class="form-input" placeholder="這件事對國家安全、主權、國防、關鍵基礎設施等造成的影響"></textarea>
+</div>
+<div class="form-group">
+<label for="edit-national-impact-score">📊 對國家影響程度 (0 - 100)</label>
+<input type="number" id="edit-national-impact-score" class="form-input" min="0" max="100" step="1" placeholder="0 到 100 的整數，留空代表未評分">
 </div>
 <div class="form-group">
 <label for="edit-source-url">可靠佐證新聞 URL</label>

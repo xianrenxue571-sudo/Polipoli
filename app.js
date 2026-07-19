@@ -295,6 +295,19 @@ function parseContextLinks(text) {
     return text.replace(urlRegex, '<a href="$1" target="_blank" class="source-link" style="font-size:0.9em; background:none; border:none; padding:0;">🔗 參考連結</a>');
 }
 
+function renderImpactBar(label, icon, score) {
+    if (score === null || score === undefined || score === '') return '';
+    const value = Math.min(100, Math.max(0, parseInt(score)));
+    const level = value <= 20 ? 1 : value <= 40 ? 2 : value <= 60 ? 3 : value <= 80 ? 4 : 5;
+    return `
+        <div class="impact-bar-item">
+            <span class="impact-bar-label">${icon} ${label}<span class="impact-bar-score">${value}</span></span>
+            <div class="impact-bar-track">
+                <div class="impact-bar-fill level-${level}" style="width: ${value}%"></div>
+            </div>
+        </div>`;
+}
+
 async function loadLatestEvents() {
     if (isFetching || !hasMoreData) return;
     isFetching = true;
@@ -498,12 +511,6 @@ function renderEvents(events) {
             `<span class="info-tag" onclick="loadSpecificData('politician', '${m.politician_id}', '${m.politicians.name}')">👤 ${m.politicians.name}</span>`
         ).join('') || '';
 
-        const influence = e.influence || e.severity || '-';
-        const importance = e.importance || e.severity || '-';
-
-        const infClass = influence >= 4 ? 'high' : '';
-        const impClass = importance >= 4 ? 'high' : '';
-
         const isLiked = userLikedEventIds.has(e.id);
         const likesCount = e.likes_count || 0;
         const likeBtnHtml = `
@@ -536,18 +543,23 @@ function renderEvents(events) {
 
         const parsedContext = parseContextLinks(e.context);
 
+        const hasImpactScore = (e.people_impact_score !== null && e.people_impact_score !== undefined) ||
+                                (e.national_impact_score !== null && e.national_impact_score !== undefined);
+        const impactBarsHtml = hasImpactScore ? `
+            <div class="impact-bars">
+                ${renderImpactBar('對人民影響', '👥', e.people_impact_score)}
+                ${renderImpactBar('對國家影響', '🛡️', e.national_impact_score)}
+            </div>` : '';
+
         return `
             <article class="event-card">
                 <div class="tag-row">
-                    ${issueTags}
-                    ${polTags}
-                </div>
-                <div class="event-meta">
                     <span class="meta-tag">📅 ${e.date || '日期未明'}</span>
-                    <span class="meta-tag severity-tag ${infClass}">🔥 討論度: ${influence}</span>
-                    <span class="meta-tag severity-tag ${impClass}">⚠️ 嚴重度: ${importance}</span>
+                    ${polTags}
+                    ${issueTags}
                 </div>
                 <h3 class="event-quote">「${e.quote}」</h3>
+                ${impactBarsHtml}
                 <div class="event-context">
                     ${parsedContext}
                 </div>

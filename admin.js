@@ -135,7 +135,9 @@ window.importPastedJSON = async function() {
                 quote: item.quote || '未命名爭議事件',
                 context: item.context || '',
                 people_impact: item.people_impact || null,
+                people_impact_score: item.people_impact_score || null,
                 national_security_impact: item.national_security_impact || null,
+                national_impact_score: item.national_impact_score || null,
                 date: item.date || null,
                 category: item.category || '其他',
                 influence: item.influence ? parseInt(item.influence) : (item.severity ? parseInt(item.severity) : 3),
@@ -496,7 +498,9 @@ window.openEditModal = async function(eventId) {
     document.getElementById('edit-importance').value = ev.importance || 3;
     document.getElementById('edit-context').value = ev.context || '';
     document.getElementById('edit-people-impact').value = ev.people_impact || '';
+    document.getElementById('edit-people-impact-score').value = (ev.people_impact_score !== null && ev.people_impact_score !== undefined) ? ev.people_impact_score : '';
     document.getElementById('edit-national-security-impact').value = ev.national_security_impact || '';
+    document.getElementById('edit-national-impact-score').value = (ev.national_impact_score !== null && ev.national_impact_score !== undefined) ? ev.national_impact_score : '';
     document.getElementById('edit-source-url').value = ev.source_url || '';
 
     const activePolIds = ev.event_politician_map?.map(m => m.politician_id) || [];
@@ -534,7 +538,9 @@ window.saveEventEdits = async function() {
         importance: parseInt(document.getElementById('edit-importance').value),
         context: document.getElementById('edit-context').value.trim(),
         people_impact: document.getElementById('edit-people-impact').value.trim() || null,
+        people_impact_score: document.getElementById('edit-people-impact-score').value ? parseInt(document.getElementById('edit-people-impact-score').value) : null,
         national_security_impact: document.getElementById('edit-national-security-impact').value.trim() || null,
+        national_impact_score: document.getElementById('edit-national-impact-score').value ? parseInt(document.getElementById('edit-national-impact-score').value) : null,
         source_url: document.getElementById('edit-source-url').value.trim() || null
     };
 
