@@ -49,7 +49,7 @@ async function fetchAll() {
 }
 
 function renderImpactBarSSR(label, icon, score) {
-    if (score === null || score === undefined || score === '') return '';
+    if (!score) return ''; // 0、null、undefined 都視為「無關聯」，整組（含標題）隱藏
     const value = Math.min(100, Math.max(0, parseInt(score)));
     const level = value <= 20 ? 1 : value <= 40 ? 2 : value <= 60 ? 3 : value <= 80 ? 4 : 5;
     return `
@@ -80,8 +80,7 @@ function renderEventCardSSR(e) {
         sourceLinks = `<a href="${escapeHtml(e.source_url)}" target="_blank" rel="noopener noreferrer" class="source-link">🔗 查看原始新聞來源</a>`;
     }
 
-    const hasImpactScore = (e.people_impact_score !== null && e.people_impact_score !== undefined) ||
-                            (e.national_impact_score !== null && e.national_impact_score !== undefined);
+    const hasImpactScore = !!e.people_impact_score || !!e.national_impact_score;
     const impactBarsHtml = hasImpactScore ? `
         <div class="impact-bars">
             ${renderImpactBarSSR('對人民影響', '👥', e.people_impact_score)}
