@@ -41,6 +41,14 @@
 </div>
 <button class="btn btn-success" id="btn-execute-import" onclick="importPastedJSON()">🚀 執行強效大數據匯入</button>
 </div>
+<div class="admin-card">
+<h3>🩹 既有事件回填（對人民 / 對國安影響）</h3>
+<div class="form-group">
+<label for="backfill-json-paste-area">請將 Gemini 依「回填 prompt」產出的 JSON 陣列（含 id）複製並貼上，只會更新對應 id 的影響欄位，不影響其他資料：</label>
+<textarea id="backfill-json-paste-area" class="form-input"></textarea>
+</div>
+<button class="btn btn-success" id="btn-execute-backfill" onclick="backfillImpactFields()">🩹 執行回填更新</button>
+</div>
 <div class="grid-2">
 <div class="admin-card">
 <h3>👤 追蹤政治人物管理</h3>

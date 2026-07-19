@@ -90,6 +90,65 @@ window.switchAdminTab = function(tabName) {
     }
 };
 
+window.backfillImpactFields = async function() {
+    const textarea = document.getElementById('backfill-json-paste-area');
+    const rawText = textarea.value.trim();
+    const btn = document.getElementById('btn-execute-backfill');
+
+    if (!rawText) {
+        alert('請先貼上 Gemini 產出的回填 JSON 陣列！');
+        return;
+    }
+
+    let itemsArray;
+    try {
+        itemsArray = JSON.parse(rawText);
+    } catch (e) {
+        alert('JSON 格式錯誤，請確認貼上的內容是完整的 JSON 陣列。');
+        return;
+    }
+
+    if (!Array.isArray(itemsArray)) {
+        alert('匯入格式有誤：外層必須是方括號包覆的陣列 [ ... ]！');
+        return;
+    }
+
+    const missingId = itemsArray.some(item => !item.id);
+    if (missingId) {
+        alert('偵測到有項目缺少 id，回填必須依 id 對應既有事件，請確認 Gemini 輸出內容完整。');
+        return;
+    }
+
+    if (!confirm(`偵測到 ${itemsArray.length} 筆回填資料，確認開始依 id 更新既有事件嗎？（只會更新影響相關欄位，不影響其他資料）`)) return;
+
+    btn.disabled = true;
+    btn.innerHTML = '⚡ 回填更新中...請勿關閉視窗';
+
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const item of itemsArray) {
+        const { error } = await supabase.from('events').update({
+            people_impact: item.people_impact || null,
+            people_impact_score: (item.people_impact_score !== undefined && item.people_impact_score !== null) ? parseInt(item.people_impact_score) : null,
+            national_security_impact: item.national_security_impact || null,
+            national_impact_score: (item.national_impact_score !== undefined && item.national_impact_score !== null) ? parseInt(item.national_impact_score) : null
+        }).eq('id', item.id);
+
+        if (error) {
+            console.error(`回填失敗 (id: ${item.id}):`, error);
+            failCount++;
+        } else {
+            successCount++;
+        }
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = '🩹 執行回填更新';
+    textarea.value = '';
+    alert(`回填完成！成功 ${successCount} 筆，失敗 ${failCount} 筆${failCount > 0 ? '（請查看 Console 確認失敗原因）' : ''}。`);
+};
+
 window.importPastedJSON = async function() {
     const textarea = document.getElementById('json-paste-area');
     const rawText = textarea.value.trim();
