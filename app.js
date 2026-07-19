@@ -551,6 +551,8 @@ function renderEvents(events) {
                 <div class="event-context">
                     ${parsedContext}
                 </div>
+                ${e.people_impact ? `<div class="event-impact"><strong>💥 對人民的影響</strong><p>${e.people_impact}</p></div>` : ''}
+                ${e.national_security_impact ? `<div class="event-impact event-impact-security"><strong>🛡️ 對國安的影響</strong><p>${e.national_security_impact}</p></div>` : ''}
                 ${sourceHtml}
             </article>
         `;

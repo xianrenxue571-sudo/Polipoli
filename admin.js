@@ -134,6 +134,8 @@ window.importPastedJSON = async function() {
             const { data: newEvent, error: evErr } = await supabase.from('events').insert({
                 quote: item.quote || '未命名爭議事件',
                 context: item.context || '',
+                people_impact: item.people_impact || null,
+                national_security_impact: item.national_security_impact || null,
                 date: item.date || null,
                 category: item.category || '其他',
                 influence: item.influence ? parseInt(item.influence) : (item.severity ? parseInt(item.severity) : 3),
@@ -373,6 +375,8 @@ function renderFilteredReviewList() {
                 </div>
                 <h3 style="margin: 10px 0; font-size:1.15rem;">「${e.quote}」</h3>
                 <p style="color: #475569; font-size:0.9rem; margin-bottom:1rem;">${e.context || '無描述脈絡。'}</p>
+                ${e.people_impact ? `<div style="background:#eff6ff; border-left:4px solid #2563eb; padding:8px 12px; font-size:0.9rem; margin-bottom:1rem; border-radius:0 6px 6px 0;">💥 對人民的影響：${e.people_impact}</div>` : ''}
+                ${e.national_security_impact ? `<div style="background:#fef2f2; border-left:4px solid #dc2626; padding:8px 12px; font-size:0.9rem; margin-bottom:1rem; border-radius:0 6px 6px 0;">🛡️ 對國安的影響：${e.national_security_impact}</div>` : ''}
                 ${e.source_url ? `<div style="font-size: 0.85rem; margin-bottom: 0.5rem;"><a href="${e.source_url}" target="_blank" style="color: #3b82f6; text-decoration: underline;">🔗 來源佐證連結</a></div>` : ''}
                 ${e.reasoning ? `<div class="review-reasoning">💡 AI 理由：${e.reasoning}</div>` : ''}
                 <div class="review-actions">
@@ -491,6 +495,8 @@ window.openEditModal = async function(eventId) {
     document.getElementById('edit-influence').value = ev.influence || 3;
     document.getElementById('edit-importance').value = ev.importance || 3;
     document.getElementById('edit-context').value = ev.context || '';
+    document.getElementById('edit-people-impact').value = ev.people_impact || '';
+    document.getElementById('edit-national-security-impact').value = ev.national_security_impact || '';
     document.getElementById('edit-source-url').value = ev.source_url || '';
 
     const activePolIds = ev.event_politician_map?.map(m => m.politician_id) || [];
@@ -527,6 +533,8 @@ window.saveEventEdits = async function() {
         influence: parseInt(document.getElementById('edit-influence').value),
         importance: parseInt(document.getElementById('edit-importance').value),
         context: document.getElementById('edit-context').value.trim(),
+        people_impact: document.getElementById('edit-people-impact').value.trim() || null,
+        national_security_impact: document.getElementById('edit-national-security-impact').value.trim() || null,
         source_url: document.getElementById('edit-source-url').value.trim() || null
     };
 
