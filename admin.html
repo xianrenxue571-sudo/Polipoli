@@ -31,6 +31,7 @@
 <nav class="admin-nav" aria-label="後台選單">
 <div class="nav-tab active" id="tab-btn-settings" onclick="switchAdminTab('settings')">🧱 匯入與基本設定</div>
 <div class="nav-tab" id="tab-btn-review" onclick="switchAdminTab('review')">⚖️ 爭議事件審核牆</div>
+<div class="nav-tab" id="tab-btn-analysis" onclick="switchAdminTab('analysis')">🔍 分析與紀錄管理</div>
 </nav>
 <div class="tab-content active" id="tab-content-settings">
 <div class="admin-card">
@@ -83,6 +84,39 @@
 
     <div class="review-list" id="review-list-container">
         <div style="text-align: center; color: var(--text-muted); padding: 2rem;">資料在庫檢索中...</div>
+    </div>
+</div>
+
+<div class="tab-content" id="tab-content-analysis">
+    <div class="admin-card">
+        <h3>👤 人物風格分析</h3>
+        <div class="form-group">
+            <label for="analysis-politician-select">選擇政治人物</label>
+            <select id="analysis-politician-select" class="form-input" onchange="loadPoliticianAnalysisIntoForm()"></select>
+        </div>
+        <div class="form-group">
+            <label for="analysis-politician-content">分析內容（這是解讀，非事實認定，請避免斷言式指控）</label>
+            <textarea id="analysis-politician-content" class="form-input" style="min-height: 160px;"></textarea>
+        </div>
+        <button class="btn btn-success" onclick="savePoliticianAnalysis()">💾 儲存人物分析</button>
+        <button class="btn btn-danger" onclick="deletePoliticianAnalysis()">🗑️ 刪除此人物的分析</button>
+        <div class="sidebar-list" style="max-height: 250px; overflow-y: auto; margin-top: 1.5rem;" id="list-politician-analysis"></div>
+    </div>
+
+    <div class="admin-card">
+        <h3>📌 事件解讀</h3>
+        <div class="form-group">
+            <label for="analysis-event-select">選擇事件（依引言搜尋）</label>
+            <input type="text" id="analysis-event-search" class="form-input" placeholder="輸入事件引言關鍵字搜尋..." oninput="filterEventAnalysisSelect()">
+            <select id="analysis-event-select" class="form-input" onchange="loadEventAnalysisIntoForm()" style="margin-top: 8px;"></select>
+        </div>
+        <div class="form-group">
+            <label for="analysis-event-content">解讀內容（這是解讀，非事實認定，請避免斷言式指控）</label>
+            <textarea id="analysis-event-content" class="form-input" style="min-height: 160px;"></textarea>
+        </div>
+        <button class="btn btn-success" onclick="saveEventAnalysis()">💾 儲存事件解讀</button>
+        <button class="btn btn-danger" onclick="deleteEventAnalysis()">🗑️ 刪除此事件的解讀</button>
+        <div class="sidebar-list" style="max-height: 250px; overflow-y: auto; margin-top: 1.5rem;" id="list-event-analysis"></div>
     </div>
 </div>
 

@@ -44,6 +44,16 @@ header .logo-container { cursor: pointer; display: inline-flex; align-items: cen
 
 .container { display: grid; grid-template-columns: 1fr; gap: 2rem; max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
 @media (min-width: 768px) { .container { grid-template-columns: 300px 1fr; } }
+.container.no-sidebar { grid-template-columns: 1fr !important; }
+
+.analysis-disclaimer { background: #fff7ed; border: 1px solid #fed7aa; color: #9a3412; padding: 0.8rem 1rem; border-radius: 8px; font-weight: bold; margin-bottom: 1.5rem; }
+.analysis-section-title { color: var(--accent); margin: 1.5rem 0 1rem; }
+.analysis-card { background: var(--card-bg); border: 1px solid var(--border); border-left: 4px solid #f59e0b; border-radius: 0 12px 12px 0; padding: 1.2rem; margin-bottom: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+.analysis-card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 0.6rem; flex-wrap: wrap; }
+.analysis-badge { background: #fef3c7; color: #92400e; font-size: 0.75rem; font-weight: bold; padding: 3px 8px; border-radius: 12px; border: 1px solid #fde68a; white-space: nowrap; }
+.analysis-target { font-weight: bold; color: var(--text-main); }
+.analysis-card p { margin: 0; color: #4b5563; line-height: 1.7; }
+.analysis-empty { text-align: center; color: var(--text-muted); padding: 1.5rem; }
 
 aside { background: var(--card-bg); padding: 1.5rem; border-radius: 12px; height: fit-content; border: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
 aside h2 { margin-top: 0; font-size: 1.2rem; border-bottom: 2px solid var(--border); padding-bottom: 0.5rem; }

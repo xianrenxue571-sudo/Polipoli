@@ -168,6 +168,12 @@ window.switchMainTab = function(tabName, preventReload = false) {
     
     document.querySelectorAll('.main-tab-btn').forEach(btn => btn.classList.remove('active'));
     document.getElementById(`tab-${tabName}`).classList.add('active');
+
+    if (tabName === 'analysis') {
+        showAnalysisView();
+        return;
+    }
+    hideAnalysisView();
     
     if (!preventReload) {
         resetToLatest(true);
@@ -175,6 +181,69 @@ window.switchMainTab = function(tabName, preventReload = false) {
         renderSidebar();
     }
 };
+
+function showAnalysisView() {
+    document.querySelector('.container').classList.add('no-sidebar');
+    document.querySelector('aside').style.display = 'none';
+    document.getElementById('events-feed').style.display = 'none';
+    document.getElementById('stat-dashboard').style.display = 'none';
+    document.getElementById('loader').classList.remove('visible');
+    document.getElementById('end-message').style.display = 'none';
+    document.getElementById('feed-title').textContent = '🔍 分析與紀錄';
+    document.getElementById('analysis-feed').style.display = 'block';
+    loadAnalysisFeed();
+}
+
+function hideAnalysisView() {
+    document.querySelector('.container').classList.remove('no-sidebar');
+    document.querySelector('aside').style.display = '';
+    document.getElementById('events-feed').style.display = '';
+    document.getElementById('analysis-feed').style.display = 'none';
+}
+
+async function loadAnalysisFeed() {
+    const container = document.getElementById('analysis-feed');
+    container.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-muted);">載入中...</div>';
+
+    const [{ data: polAnalyses }, { data: evAnalyses }] = await Promise.all([
+        supabase.from('politician_analysis').select('content, politicians(name)').eq('is_visible', true),
+        supabase.from('event_analysis').select('content, events(quote, date)').eq('is_visible', true)
+    ]);
+
+    let html = '<div class="analysis-disclaimer">⚠️ 以下內容為觀點解讀，並非事實認定，請自行判斷參考，並可對照事件原始來源自行查證。</div>';
+
+    html += '<h3 class="analysis-section-title">👤 人物風格分析</h3>';
+    if (polAnalyses && polAnalyses.length > 0) {
+        html += polAnalyses.map(a => `
+            <div class="analysis-card">
+                <div class="analysis-card-header">
+                    <span class="analysis-badge">⚠️ 觀點分析</span>
+                    <span class="analysis-target">${a.politicians?.name || '未知人物'}</span>
+                </div>
+                <p>${a.content}</p>
+            </div>
+        `).join('');
+    } else {
+        html += '<div class="analysis-empty">目前尚無人物風格分析。</div>';
+    }
+
+    html += '<h3 class="analysis-section-title">📌 事件解讀</h3>';
+    if (evAnalyses && evAnalyses.length > 0) {
+        html += evAnalyses.map(a => `
+            <div class="analysis-card">
+                <div class="analysis-card-header">
+                    <span class="analysis-badge">⚠️ 觀點分析</span>
+                    <span class="analysis-target">「${a.events?.quote || '未知事件'}」（${a.events?.date || '無日期'}）</span>
+                </div>
+                <p>${a.content}</p>
+            </div>
+        `).join('');
+    } else {
+        html += '<div class="analysis-empty">目前尚無事件解讀。</div>';
+    }
+
+    container.innerHTML = html;
+}
 
 function renderSidebar() {
     const title = document.getElementById('sidebar-title');
