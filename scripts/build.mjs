@@ -48,6 +48,19 @@ async function fetchAll() {
     return { politicians: politicians || [], issues: issues || [], events: events || [] };
 }
 
+function renderImpactBarSSR(label, icon, score) {
+    if (score === null || score === undefined || score === '') return '';
+    const value = Math.min(100, Math.max(0, parseInt(score)));
+    const level = value <= 20 ? 1 : value <= 40 ? 2 : value <= 60 ? 3 : value <= 80 ? 4 : 5;
+    return `
+        <div class="impact-bar-item">
+            <span class="impact-bar-label">${icon} ${label}<span class="impact-bar-score">${value}</span></span>
+            <div class="impact-bar-track">
+                <div class="impact-bar-fill level-${level}" style="width: ${value}%"></div>
+            </div>
+        </div>`;
+}
+
 function renderEventCardSSR(e) {
     const issueTags = (e.event_issue_map || []).filter(m => m.issues?.name).map(m =>
         `<span class="info-tag issue-tag" onclick="loadSpecificData('issue', '${m.issue_id}', '${escapeHtml(m.issues.name)}')">📌 ${escapeHtml(m.issues.name)}</span>`
@@ -57,10 +70,6 @@ function renderEventCardSSR(e) {
         `<span class="info-tag" onclick="loadSpecificData('politician', '${m.politician_id}', '${escapeHtml(m.politicians.name)}')">👤 ${escapeHtml(m.politicians.name)}</span>`
     ).join('');
 
-    const influence = e.influence || e.severity || '-';
-    const importance = e.importance || e.severity || '-';
-    const infClass = influence >= 4 ? 'high' : '';
-    const impClass = importance >= 4 ? 'high' : '';
     const likesCount = e.likes_count || 0;
 
     let sourceLinks = '';
@@ -71,15 +80,23 @@ function renderEventCardSSR(e) {
         sourceLinks = `<a href="${escapeHtml(e.source_url)}" target="_blank" rel="noopener noreferrer" class="source-link">🔗 查看原始新聞來源</a>`;
     }
 
+    const hasImpactScore = (e.people_impact_score !== null && e.people_impact_score !== undefined) ||
+                            (e.national_impact_score !== null && e.national_impact_score !== undefined);
+    const impactBarsHtml = hasImpactScore ? `
+        <div class="impact-bars">
+            ${renderImpactBarSSR('對人民影響', '👥', e.people_impact_score)}
+            ${renderImpactBarSSR('對國家影響', '🛡️', e.national_impact_score)}
+        </div>` : '';
+
     return `
         <article class="event-card">
-            <div class="tag-row">${issueTags}${polTags}</div>
-            <div class="event-meta">
+            <div class="tag-row">
                 <span class="meta-tag">📅 ${escapeHtml(e.date || '日期未明')}</span>
-                <span class="meta-tag severity-tag ${infClass}">🔥 討論度: ${influence}</span>
-                <span class="meta-tag severity-tag ${impClass}">⚠️ 嚴重度: ${importance}</span>
+                ${polTags}
+                ${issueTags}
             </div>
             <h3 class="event-quote">「${escapeHtml(e.quote)}」</h3>
+            ${impactBarsHtml}
             <div class="event-context">${escapeHtml(e.context) || '無詳細脈絡說明。'}</div>
             ${e.people_impact ? `<div class="event-impact"><strong>💥 對人民的影響</strong><p>${escapeHtml(e.people_impact)}</p></div>` : ''}
             ${e.national_security_impact ? `<div class="event-impact event-impact-security"><strong>🛡️ 對國安的影響</strong><p>${escapeHtml(e.national_security_impact)}</p></div>` : ''}
