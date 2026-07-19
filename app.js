@@ -307,6 +307,20 @@ function renderImpactMiniBar(score) {
         </div>`;
 }
 
+function renderStatBarRow(label, icon, avgScore) {
+    const value = Math.min(100, Math.max(0, avgScore || 0));
+    return `
+        <div class="stat-row">
+            <span class="stat-row-label">${icon} ${label}</span>
+            <div class="stat-row-bar">
+                <div class="impact-mini-bar-track wide">
+                    <div class="impact-mini-bar-mask" style="width: ${100 - value}%"></div>
+                </div>
+                <span class="impact-mini-bar-score">${value}</span>
+            </div>
+        </div>`;
+}
+
 function renderImpactBox(label, icon, text, score, extraClass) {
     if (!text && !score) return ''; // 文字與分數都沒有就整個不顯示
     return `
@@ -410,45 +424,21 @@ window.loadSpecificData = async function(type, id, name, pushHistory = true) {
     const statDashboard = document.getElementById('stat-dashboard');
     if (type === 'politician' && eventsData.length > 0) {
         const totalEvents = eventsData.length;
-        let maxSeverity = 0;
-        const issueCounts = {};
 
-        eventsData.forEach(e => {
-            const sev = parseInt(e.influence) || parseInt(e.severity) || 0; 
-            if (sev > maxSeverity) maxSeverity = sev;
-            if (e.event_issue_map && Array.isArray(e.event_issue_map)) {
-                e.event_issue_map.forEach(m => {
-                    if (m.issues && m.issues.name) {
-                        issueCounts[m.issues.name] = (issueCounts[m.issues.name] || 0) + 1;
-                    }
-                });
-            }
-        });
-
-        let topIssue = '無特定議題';
-        let maxIssueCount = 0;
-        for (const [issueName, count] of Object.entries(issueCounts)) {
-            if (count > maxIssueCount) {
-                maxIssueCount = count;
-                topIssue = issueName;
-            }
-        }
+        const peopleScoreSum = eventsData.reduce((sum, e) => sum + (parseInt(e.people_impact_score) || 0), 0);
+        const nationalScoreSum = eventsData.reduce((sum, e) => sum + (parseInt(e.national_impact_score) || 0), 0);
+        const avgPeopleImpact = totalEvents ? Math.round(peopleScoreSum / totalEvents) : 0;
+        const avgNationalImpact = totalEvents ? Math.round(nationalScoreSum / totalEvents) : 0;
 
         statDashboard.innerHTML = `
-            <div class="stat-card">
-                <div class="stat-value">${totalEvents}</div>
-                <div class="stat-label">總爭議事件 (件)</div>
+            <div class="stat-row">
+                <span class="stat-row-label">📊 總爭議事件 (件)</span>
+                <span class="stat-row-value">${totalEvents}</span>
             </div>
-            <div class="stat-card">
-                <div class="stat-value" style="font-size: 1.3rem; display: flex; align-items: center; justify-content: center; height: 100%;">${topIssue}</div>
-                <div class="stat-label">核心爭議議題</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value danger">${maxSeverity}</div>
-                <div class="stat-label">最高討論熱度指標</div>
-            </div>
+            ${renderStatBarRow('對人民影響分數（平均）', '👥', avgPeopleImpact)}
+            ${renderStatBarRow('對國安影響分數（平均）', '🛡️', avgNationalImpact)}
         `;
-        statDashboard.style.display = 'grid';
+        statDashboard.style.display = 'flex';
     }
 
     handleDataResponse(eventsData, null, '專屬事件', true);

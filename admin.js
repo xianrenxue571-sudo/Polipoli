@@ -198,10 +198,6 @@ window.importPastedJSON = async function() {
                 national_security_impact: item.national_security_impact || null,
                 national_impact_score: item.national_impact_score || null,
                 date: item.date || null,
-                category: item.category || '其他',
-                influence: item.influence ? parseInt(item.influence) : (item.severity ? parseInt(item.severity) : 3),
-                importance: item.importance ? parseInt(item.importance) : (item.severity ? parseInt(item.severity) : 3),
-                reasoning: item.reasoning || '無 AI 理由備註',
                 source_url: item.source_url || null,
                 is_visible: false,
                 is_reviewed: false
@@ -406,10 +402,6 @@ function renderFilteredReviewList() {
     }
 
     container.innerHTML = filtered.map(e => {
-        const inf = e.influence || 3;
-        const imp = e.importance || 3;
-        const hotClass = inf >= 4 ? 'hot' : '';
-        const severeClass = imp >= 4 ? 'severe' : '';
         const polNames = e.event_politician_map?.map(m => m.politicians?.name).filter(Boolean).join(', ') || '未掛名人物';
         const issueNames = e.event_issue_map?.map(m => m.issues?.name).filter(Boolean).join(', ') || '未設定議題';
         
@@ -428,18 +420,14 @@ function renderFilteredReviewList() {
             <div class="review-card">
                 <div class="review-card-meta">
                     <span class="review-badge">📅 ${e.date || '日期未明'}</span>
-                    <span class="review-badge">📂 ${e.category || '未分類'}</span>
                     <span class="review-badge">👤 ${polNames}</span>
                     <span class="review-badge">📌 ${issueNames}</span>
-                    <span class="review-badge ${hotClass}">🔥 討論度: ${inf}</span>
-                    <span class="review-badge ${severeClass}">⚠️ 嚴重性: ${imp}</span>
                 </div>
                 <h3 style="margin: 10px 0; font-size:1.15rem;">「${e.quote}」</h3>
                 <p style="color: #475569; font-size:0.9rem; margin-bottom:1rem;">${e.context || '無描述脈絡。'}</p>
                 ${e.people_impact ? `<div style="background:#eff6ff; border-left:4px solid #2563eb; padding:8px 12px; font-size:0.9rem; margin-bottom:1rem; border-radius:0 6px 6px 0;">💥 對人民的影響：${e.people_impact}</div>` : ''}
                 ${e.national_security_impact ? `<div style="background:#fef2f2; border-left:4px solid #dc2626; padding:8px 12px; font-size:0.9rem; margin-bottom:1rem; border-radius:0 6px 6px 0;">🛡️ 對國安的影響：${e.national_security_impact}</div>` : ''}
                 ${e.source_url ? `<div style="font-size: 0.85rem; margin-bottom: 0.5rem;"><a href="${e.source_url}" target="_blank" style="color: #3b82f6; text-decoration: underline;">🔗 來源佐證連結</a></div>` : ''}
-                ${e.reasoning ? `<div class="review-reasoning">💡 AI 理由：${e.reasoning}</div>` : ''}
                 <div class="review-actions">
                     <button class="btn btn-secondary" onclick="openEditModal('${e.id}')">✏️ <span class="hide-on-mobile">編輯</span></button>
                     ${actionButtons}
@@ -552,9 +540,6 @@ window.openEditModal = async function(eventId) {
     document.getElementById('edit-event-id').value = ev.id;
     document.getElementById('edit-quote').value = ev.quote;
     document.getElementById('edit-date').value = ev.date || '';
-    document.getElementById('edit-category').value = ev.category || '其他';
-    document.getElementById('edit-influence').value = ev.influence || 3;
-    document.getElementById('edit-importance').value = ev.importance || 3;
     document.getElementById('edit-context').value = ev.context || '';
     document.getElementById('edit-people-impact').value = ev.people_impact || '';
     document.getElementById('edit-people-impact-score').value = (ev.people_impact_score !== null && ev.people_impact_score !== undefined) ? ev.people_impact_score : '';
@@ -592,9 +577,6 @@ window.saveEventEdits = async function() {
     const updatePayload = {
         quote: document.getElementById('edit-quote').value.trim(),
         date: document.getElementById('edit-date').value || null,
-        category: document.getElementById('edit-category').value,
-        influence: parseInt(document.getElementById('edit-influence').value),
-        importance: parseInt(document.getElementById('edit-importance').value),
         context: document.getElementById('edit-context').value.trim(),
         people_impact: document.getElementById('edit-people-impact').value.trim() || null,
         people_impact_score: document.getElementById('edit-people-impact-score').value ? parseInt(document.getElementById('edit-people-impact-score').value) : null,
