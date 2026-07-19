@@ -298,11 +298,10 @@ function parseContextLinks(text) {
 function renderImpactMiniBar(score) {
     if (!score) return '';
     const value = Math.min(100, Math.max(0, parseInt(score)));
-    const level = value <= 20 ? 1 : value <= 40 ? 2 : value <= 60 ? 3 : value <= 80 ? 4 : 5;
     return `
         <div class="impact-mini-bar">
             <div class="impact-mini-bar-track">
-                <div class="impact-mini-bar-fill level-${level}" style="width: ${value}%"></div>
+                <div class="impact-mini-bar-mask" style="width: ${100 - value}%"></div>
             </div>
             <span class="impact-mini-bar-score">${value}</span>
         </div>`;
