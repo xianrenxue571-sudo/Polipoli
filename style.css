@@ -74,12 +74,17 @@ main { display: flex; flex-direction: column; gap: 1.5rem; }
 .feed-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); padding-bottom: 0.5rem; }
 .feed-header h2 { margin: 0; color: var(--accent); }
 
-#stat-dashboard { display: none; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 0.5rem; }
-.stat-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 1.2rem; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.02); display: flex; flex-direction: column; justify-content: center; transition: transform 0.2s; }
-.stat-card:hover { transform: translateY(-2px); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
-.stat-value { font-size: 1.8rem; font-weight: bold; color: var(--accent); line-height: 1.2; }
-.stat-value.danger { color: var(--danger); }
-.stat-label { font-size: 0.85rem; color: var(--text-muted); margin-top: 4px; font-weight: 500; }
+#stat-dashboard {
+    display: none; flex-direction: column; gap: 0.9rem; margin-bottom: 0.5rem;
+    background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px;
+    padding: 1.2rem 1.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+.stat-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.stat-row-label { font-size: 0.95rem; font-weight: bold; color: var(--text-muted); white-space: nowrap; }
+.stat-row-value { font-size: 1.4rem; font-weight: bold; color: var(--accent); }
+.stat-row-bar { display: flex; align-items: center; gap: 10px; flex: 1; max-width: 300px; }
+.impact-mini-bar-track.wide { width: 100%; height: 12px; }
+.stat-row-bar .impact-mini-bar-score { font-size: 1.15rem; min-width: 32px; }
 
 .event-card { background: var(--card-bg); border-radius: 12px; padding: 1.5rem; border: 1px solid var(--border); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); transition: transform 0.2s; }
 .event-card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
