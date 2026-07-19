@@ -81,6 +81,8 @@ function renderEventCardSSR(e) {
             </div>
             <h3 class="event-quote">「${escapeHtml(e.quote)}」</h3>
             <div class="event-context">${escapeHtml(e.context) || '無詳細脈絡說明。'}</div>
+            ${e.people_impact ? `<div class="event-impact"><strong>💥 對人民的影響</strong><p>${escapeHtml(e.people_impact)}</p></div>` : ''}
+            ${e.national_security_impact ? `<div class="event-impact event-impact-security"><strong>🛡️ 對國安的影響</strong><p>${escapeHtml(e.national_security_impact)}</p></div>` : ''}
             <div class="event-actions" style="display:flex;justify-content:space-between;flex-direction:row;align-items:flex-end;">
                 <div class="like-container">
                     <button class="like-btn" onclick="toggleLike('${e.id}', this)">
