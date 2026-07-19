@@ -98,27 +98,25 @@ main { display: flex; flex-direction: column; gap: 1.5rem; }
 .event-quote { font-size: 1.25rem; font-weight: bold; margin: 10px 0 1rem 0; color: var(--text-main); }
 .event-context { color: #4b5563; font-size: 1.1rem; margin-bottom: 1rem; background: #f8fafc; padding: 0.8rem; border-left: 4px solid var(--accent); border-radius: 0 8px 8px 0; }
 
-/* 綠黃紅漸進式影響程度色條 */
-.impact-bars { display: flex; flex-direction: column; gap: 10px; margin-bottom: 1.2rem; }
-.impact-bar-item { display: flex; flex-direction: column; gap: 4px; }
-.impact-bar-label { font-size: 0.85rem; font-weight: bold; color: var(--text-muted); display: flex; justify-content: space-between; }
-.impact-bar-score { color: var(--text-main); font-weight: bold; }
-.impact-bar-track { width: 100%; height: 10px; background: #e5e7eb; border-radius: 999px; overflow: hidden; }
-.impact-bar-fill { height: 100%; border-radius: 999px; transition: width 0.3s ease; }
-.impact-bar-fill.level-1 { background: #22c55e; }
-.impact-bar-fill.level-2 { background: #84cc16; }
-.impact-bar-fill.level-3 { background: #eab308; }
-.impact-bar-fill.level-4 { background: #f97316; }
-.impact-bar-fill.level-5 { background: #dc2626; }
-
-/* 「對人民的影響」方塊框 */
+/* 「對人民的影響」「對國安的影響」方塊框（標題列含迷你色條） */
 .event-impact { background: #eff6ff; border: 1px solid #bfdbfe; border-left: 4px solid #2563eb; border-radius: 0 8px 8px 0; padding: 0.8rem 1rem; margin-bottom: 1rem; }
-.event-impact strong { display: block; color: #1e40af; font-size: 0.95rem; margin-bottom: 4px; }
+.event-impact-header { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 4px; flex-wrap: wrap; }
+.event-impact-header strong { color: #1e40af; font-size: 0.95rem; }
 .event-impact p { margin: 0; color: #1e3a8a; font-size: 1rem; line-height: 1.5; }
 
 .event-impact-security { background: #fef2f2; border-color: #fecaca; border-left-color: #dc2626; }
-.event-impact-security strong { color: #991b1b; }
+.event-impact-security .event-impact-header strong { color: #991b1b; }
 .event-impact-security p { color: #7f1d1d; }
+
+.impact-mini-bar { display: flex; align-items: center; gap: 6px; }
+.impact-mini-bar-track { width: 100px; height: 8px; background: rgba(0,0,0,0.1); border-radius: 999px; overflow: hidden; }
+.impact-mini-bar-fill { height: 100%; border-radius: 999px; }
+.impact-mini-bar-fill.level-1 { background: #22c55e; }
+.impact-mini-bar-fill.level-2 { background: #84cc16; }
+.impact-mini-bar-fill.level-3 { background: #eab308; }
+.impact-mini-bar-fill.level-4 { background: #f97316; }
+.impact-mini-bar-fill.level-5 { background: #dc2626; }
+.impact-mini-bar-score { font-size: 0.85rem; font-weight: bold; color: var(--text-main); min-width: 24px; }
 
 .event-actions { display: flex; justify-content: flex-end; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); flex-direction: column; align-items: flex-end; gap: 6px; }
 .source-link { color: var(--accent); text-decoration: none; font-weight: bold; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 4px; background: #f0fdf4; padding: 4px 10px; border-radius: 20px; border: 1px solid #bbf7d0; transition: all 0.2s; }

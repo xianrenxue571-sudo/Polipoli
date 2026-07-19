@@ -295,16 +295,28 @@ function parseContextLinks(text) {
     return text.replace(urlRegex, '<a href="$1" target="_blank" class="source-link" style="font-size:0.9em; background:none; border:none; padding:0;">🔗 參考連結</a>');
 }
 
-function renderImpactBar(label, icon, score) {
-    if (!score) return ''; // 0、null、undefined 都視為「無關聯」，整組（含標題）隱藏
+function renderImpactMiniBar(score) {
+    if (!score) return '';
     const value = Math.min(100, Math.max(0, parseInt(score)));
     const level = value <= 20 ? 1 : value <= 40 ? 2 : value <= 60 ? 3 : value <= 80 ? 4 : 5;
     return `
-        <div class="impact-bar-item">
-            <span class="impact-bar-label">${icon} ${label}<span class="impact-bar-score">${value}</span></span>
-            <div class="impact-bar-track">
-                <div class="impact-bar-fill level-${level}" style="width: ${value}%"></div>
+        <div class="impact-mini-bar">
+            <div class="impact-mini-bar-track">
+                <div class="impact-mini-bar-fill level-${level}" style="width: ${value}%"></div>
             </div>
+            <span class="impact-mini-bar-score">${value}</span>
+        </div>`;
+}
+
+function renderImpactBox(label, icon, text, score, extraClass) {
+    if (!text && !score) return ''; // 文字與分數都沒有就整個不顯示
+    return `
+        <div class="event-impact ${extraClass || ''}">
+            <div class="event-impact-header">
+                <strong>${icon} ${label}</strong>
+                ${renderImpactMiniBar(score)}
+            </div>
+            ${text ? `<p>${text}</p>` : ''}
         </div>`;
 }
 
@@ -543,13 +555,6 @@ function renderEvents(events) {
 
         const parsedContext = parseContextLinks(e.context);
 
-        const hasImpactScore = !!e.people_impact_score || !!e.national_impact_score;
-        const impactBarsHtml = hasImpactScore ? `
-            <div class="impact-bars">
-                ${renderImpactBar('對人民影響', '👥', e.people_impact_score)}
-                ${renderImpactBar('對國家影響', '🛡️', e.national_impact_score)}
-            </div>` : '';
-
         return `
             <article class="event-card">
                 <div class="tag-row">
@@ -558,12 +563,11 @@ function renderEvents(events) {
                     ${issueTags}
                 </div>
                 <h3 class="event-quote">「${e.quote}」</h3>
-                ${impactBarsHtml}
                 <div class="event-context">
                     ${parsedContext}
                 </div>
-                ${e.people_impact ? `<div class="event-impact"><strong>💥 對人民的影響</strong><p>${e.people_impact}</p></div>` : ''}
-                ${e.national_security_impact ? `<div class="event-impact event-impact-security"><strong>🛡️ 對國安的影響</strong><p>${e.national_security_impact}</p></div>` : ''}
+                ${renderImpactBox('對人民的影響', '💥', e.people_impact, e.people_impact_score)}
+                ${renderImpactBox('對國安的影響', '🛡️', e.national_security_impact, e.national_impact_score, 'event-impact-security')}
                 ${sourceHtml}
             </article>
         `;
