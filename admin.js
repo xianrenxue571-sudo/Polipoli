@@ -326,6 +326,8 @@ window.setEventFilter = function(filterType) {
     currentEventFilter = filterType;
     document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
     document.getElementById(`filter-btn-${filterType}`).classList.add('active');
+    const dupBtn = document.getElementById('btn-check-duplicates');
+    if (dupBtn) dupBtn.style.display = filterType === 'pending' ? 'inline-flex' : 'none';
     fetchAndRenderReviewFeed();
 };
 
@@ -777,4 +779,243 @@ async function refreshAnalysisLists() {
         `).join('') : '<div style="text-align:center; color:var(--text-muted); padding:1rem;">尚無事件解讀</div>';
     }
 }
+
+// ===== 檢查重複功能 =====
+let dupPendingEvents = [];
+let dupIgnorePairs = new Set();
+let dupResults = { red: [], yellow: [] };
+let dupCurrentTier = null;
+let dupCurrentList = [];
+let dupCurrentIndex = 0;
+
+function pairKey(idA, idB) {
+    return [idA, idB].sort().join('|');
+}
+
+function charJaccardSimilarity(textA, textB) {
+    const clean = (t) => (t || '').replace(/[，。！？「」『』、：；（）()\[\]\s"'""'']/g, '');
+    const setA = new Set(clean(textA).split(''));
+    const setB = new Set(clean(textB).split(''));
+    if (setA.size === 0 || setB.size === 0) return 0;
+    let intersection = 0;
+    setA.forEach(ch => { if (setB.has(ch)) intersection++; });
+    const union = new Set([...setA, ...setB]).size;
+    return union === 0 ? 0 : intersection / union;
+}
+
+function dayDiff(dateA, dateB) {
+    if (!dateA || !dateB) return Infinity;
+    const a = new Date(dateA);
+    const b = new Date(dateB);
+    return Math.abs((a - b) / (1000 * 60 * 60 * 24));
+}
+
+window.startDuplicateCheck = async function() {
+    document.getElementById('dup-check-modal').classList.add('active');
+    document.getElementById('dup-view-overview').style.display = 'block';
+    document.getElementById('dup-view-list').style.display = 'none';
+    document.getElementById('dup-view-detail').style.display = 'none';
+    document.getElementById('dup-overview-loading').style.display = 'block';
+    document.getElementById('dup-overview-content').style.display = 'none';
+
+    const selectClause = '*, event_politician_map ( politician_id, politicians ( name ) ), event_issue_map ( issue_id, issues ( name ) )';
+
+    const [{ data: pendingData }, { data: poolData }, { data: ignoreData }] = await Promise.all([
+        supabase.from('events').select(selectClause).eq('is_visible', false).eq('is_reviewed', false),
+        supabase.from('events').select(selectClause).or('is_visible.eq.true,is_reviewed.eq.true'),
+        supabase.from('duplicate_ignore_pairs').select('event_id_a, event_id_b')
+    ]);
+
+    dupPendingEvents = pendingData || [];
+    const poolEvents = poolData || [];
+    dupIgnorePairs = new Set((ignoreData || []).map(p => pairKey(p.event_id_a, p.event_id_b)));
+
+    const stagedCount = poolEvents.filter(e => e.is_visible === false && e.is_reviewed === true).length;
+    const approvedCount = poolEvents.filter(e => e.is_visible === true).length;
+
+    dupResults = { red: [], yellow: [] };
+
+    dupPendingEvents.forEach(pending => {
+        const pendingPolNames = (pending.event_politician_map || []).map(m => m.politicians?.name).filter(Boolean);
+        const pendingIssueNames = (pending.event_issue_map || []).map(m => m.issues?.name).filter(Boolean);
+        if (pendingPolNames.length === 0) return;
+
+        let bestMatch = null;
+        let bestTier = null;
+        let bestBasis = null;
+
+        poolEvents.forEach(pool => {
+            const key = pairKey(pending.id, pool.id);
+            if (dupIgnorePairs.has(key)) return;
+
+            const poolPolNames = (pool.event_politician_map || []).map(m => m.politicians?.name).filter(Boolean);
+            const samePol = pendingPolNames.some(n => poolPolNames.includes(n));
+            if (!samePol) return;
+
+            const poolIssueNames = (pool.event_issue_map || []).map(m => m.issues?.name).filter(Boolean);
+            const sameIssue = pendingIssueNames.some(n => poolIssueNames.includes(n));
+            const diff = dayDiff(pending.date, pool.date);
+            const overlap = charJaccardSimilarity(pending.quote, pool.quote);
+            const sourceMatch = pending.source_url && pool.source_url && pending.source_url === pool.source_url;
+
+            let tier = null;
+            if (sourceMatch || (diff <= 3 && overlap >= 0.5)) {
+                tier = 'red';
+            } else if (diff <= 7 && overlap >= 0.25) {
+                tier = 'yellow';
+            }
+            if (!tier) return;
+
+            const tierRank = { red: 2, yellow: 1 };
+            if (!bestTier || tierRank[tier] > tierRank[bestTier] || (tier === bestTier && overlap > (bestBasis?.overlap || 0))) {
+                bestTier = tier;
+                bestMatch = pool;
+                bestBasis = { samePol, sameIssue, sourceMatch, diff, overlap };
+            }
+        });
+
+        if (bestTier) {
+            dupResults[bestTier].push({ pending, match: bestMatch, basis: bestBasis });
+        }
+    });
+
+    document.getElementById('dup-total-pending').textContent = dupPendingEvents.length;
+    document.getElementById('dup-total-staged').textContent = stagedCount;
+    document.getElementById('dup-total-approved').textContent = approvedCount;
+    document.getElementById('dup-count-red').textContent = dupResults.red.length;
+    document.getElementById('dup-count-yellow').textContent = dupResults.yellow.length;
+    document.getElementById('dup-count-grey').textContent = dupPendingEvents.length - dupResults.red.length - dupResults.yellow.length;
+
+    document.getElementById('dup-overview-loading').style.display = 'none';
+    document.getElementById('dup-overview-content').style.display = 'block';
+};
+
+window.closeDupCheckModal = function() {
+    document.getElementById('dup-check-modal').classList.remove('active');
+};
+
+window.backToDupOverview = function() {
+    document.getElementById('dup-view-list').style.display = 'none';
+    document.getElementById('dup-view-detail').style.display = 'none';
+    document.getElementById('dup-view-overview').style.display = 'block';
+};
+
+window.backToDupList = function() {
+    document.getElementById('dup-view-detail').style.display = 'none';
+    document.getElementById('dup-view-list').style.display = 'block';
+};
+
+window.showDupList = function(tier) {
+    dupCurrentTier = tier;
+    dupCurrentList = dupResults[tier];
+    document.getElementById('dup-view-overview').style.display = 'none';
+    document.getElementById('dup-view-list').style.display = 'block';
+
+    const container = document.getElementById('dup-list-container');
+    if (dupCurrentList.length === 0) {
+        container.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:2rem;">這個分類目前沒有項目</div>';
+        return;
+    }
+
+    const dotColor = tier === 'red' ? '🔴' : '🟡';
+    container.innerHTML = dupCurrentList.map((item, idx) => {
+        const tags = [];
+        if (item.basis.samePol) tags.push('人物✓');
+        if (item.basis.diff <= 7) tags.push('日期✓');
+        if (item.basis.sourceMatch) tags.push('來源✓');
+        tags.push(`關鍵字重疊${Math.round(item.basis.overlap * 100)}%`);
+        return `
+            <div class="review-card" style="margin-bottom:1rem;">
+                <div class="item-title">${dotColor} 待審核｜${item.pending.event_politician_map?.[0]?.politicians?.name || '未知人物'}｜${item.pending.date || '無日期'}</div>
+                <div style="margin:6px 0;">「${item.pending.quote}」</div>
+                <div style="font-size:0.85rem; color:var(--text-muted);">疑似撞：${item.match.is_visible ? '已核准' : '暫存區'} #${item.match.id.slice(0, 8)}</div>
+                <div style="font-size:0.8rem; color:var(--text-muted); margin:4px 0;">相似度依據：${tags.join('・')}</div>
+                <button class="btn btn-secondary" style="margin-top:8px;" onclick="viewDupDetail(${idx})">查看比對 ›</button>
+            </div>
+        `;
+    }).join('');
+};
+
+function renderDupEventBlock(e) {
+    return `
+        <div><strong>日期：</strong>${e.date || '無日期'}</div>
+        <div><strong>quote：</strong>${e.quote}</div>
+        <div><strong>來源：</strong>${e.source_url ? `<a href="${e.source_url}" target="_blank">${e.source_url}</a>` : '無'}</div>
+        <div style="margin-top:8px;"><strong>context：</strong></div>
+        <div style="color:#475569;">${e.context || '無'}</div>
+    `;
+}
+
+window.viewDupDetail = function(index) {
+    dupCurrentIndex = index;
+    document.getElementById('dup-view-list').style.display = 'none';
+    document.getElementById('dup-view-detail').style.display = 'block';
+    renderCurrentDupDetail();
+};
+
+function renderCurrentDupDetail() {
+    const item = dupCurrentList[dupCurrentIndex];
+    document.getElementById('dup-detail-position').textContent = `${dupCurrentIndex + 1}/${dupCurrentList.length}`;
+    document.getElementById('dup-detail-title').textContent = `${item.pending.event_politician_map?.[0]?.politicians?.name || '未知人物'}｜疑似重複`;
+
+    const tags = [];
+    if (item.basis.samePol) tags.push('人物相同');
+    if (item.basis.diff <= 7) tags.push('日期相近');
+    if (item.basis.sourceMatch) tags.push('來源網址相同');
+    tags.push(`關鍵字重疊${Math.round(item.basis.overlap * 100)}%`);
+    document.getElementById('dup-detail-basis').textContent = '相似依據：' + tags.join('・');
+
+    document.getElementById('dup-detail-new').innerHTML = renderDupEventBlock(item.pending);
+    document.getElementById('dup-detail-old').innerHTML = renderDupEventBlock(item.match);
+}
+
+window.resolveDup = async function(action) {
+    const item = dupCurrentList[dupCurrentIndex];
+    const pendingId = item.pending.id;
+    const matchId = item.match.id;
+
+    try {
+        if (action === 'keep_old') {
+            await supabase.from('events').delete().eq('id', pendingId);
+        } else if (action === 'replace_with_new') {
+            await supabase.from('events').update({
+                quote: item.pending.quote,
+                context: item.pending.context,
+                response_summary: item.pending.response_summary,
+                people_impact: item.pending.people_impact,
+                people_impact_score: item.pending.people_impact_score,
+                national_security_impact: item.pending.national_security_impact,
+                national_impact_score: item.pending.national_impact_score,
+                date: item.pending.date,
+                source_url: item.pending.source_url
+            }).eq('id', matchId);
+            await supabase.from('events').delete().eq('id', pendingId);
+        } else if (action === 'keep_both') {
+            const [a, b] = [pendingId, matchId].sort();
+            await supabase.from('duplicate_ignore_pairs').insert({ event_id_a: a, event_id_b: b });
+        } else if (action === 'flag_later') {
+            await supabase.from('events').update({ flagged_for_review: true }).eq('id', pendingId);
+        }
+    } catch (err) {
+        alert('處理失敗：' + err.message);
+        return;
+    }
+
+    dupCurrentList.splice(dupCurrentIndex, 1);
+    dupResults[dupCurrentTier] = dupCurrentList;
+
+    if (dupCurrentList.length === 0) {
+        await fetchAndRenderReviewFeed();
+        backToDupList();
+        showDupList(dupCurrentTier);
+        return;
+    }
+
+    if (dupCurrentIndex >= dupCurrentList.length) {
+        dupCurrentIndex = dupCurrentList.length - 1;
+    }
+    await fetchAndRenderReviewFeed();
+    renderCurrentDupDetail();
+};
+
 

@@ -78,6 +78,7 @@
     </div>
 
     <div class="action-bar-bottom">
+        <button class="btn btn-secondary" id="btn-check-duplicates" onclick="startDuplicateCheck()">🔍 檢查重複</button>
         <button class="btn btn-danger" onclick="deleteAllPending()">🗑️ 一鍵清空清單</button>
         <button class="btn btn-success" onclick="publishAllPending()">🚀 一鍵分批上架</button>
     </div>
@@ -118,6 +119,63 @@
         <button class="btn btn-danger" onclick="deleteEventAnalysis()">🗑️ 刪除此事件的解讀</button>
         <div class="sidebar-list" style="max-height: 250px; overflow-y: auto; margin-top: 1.5rem;" id="list-event-analysis"></div>
     </div>
+</div>
+
+<div class="modal" id="dup-check-modal">
+<div class="modal-content" style="max-width: 700px;">
+<div class="modal-header">
+<h4>🔍 檢查重複</h4>
+<button class="btn btn-danger" style="padding: 4px 10px;" onclick="closeDupCheckModal()">✕</button>
+</div>
+
+<!-- 第一層：總覽 -->
+<div id="dup-view-overview">
+    <div id="dup-overview-loading" style="text-align:center; padding:2rem; color:var(--text-muted);">掃描中，請稍候...</div>
+    <div id="dup-overview-content" style="display:none;">
+        <p style="color:var(--text-muted);">待審核區共 <strong id="dup-total-pending">0</strong> 筆，已比對暫存區（<strong id="dup-total-staged">0</strong>筆）＋已核准區（<strong id="dup-total-approved">0</strong>筆）</p>
+        <div class="item-row"><div class="item-row-left"><span class="item-title">🔴 高度疑似重複</span></div><strong id="dup-count-red">0</strong> 筆</div>
+        <div class="item-row"><div class="item-row-left"><span class="item-title">🟡 可能相關</span></div><strong id="dup-count-yellow">0</strong> 筆</div>
+        <div class="item-row"><div class="item-row-left"><span class="item-title">⚪ 無疑似</span></div><strong id="dup-count-grey">0</strong> 筆</div>
+        <div style="display:flex; gap:10px; margin-top:1.5rem; flex-wrap:wrap;">
+            <button class="btn btn-danger" onclick="showDupList('red')">查看高度疑似</button>
+            <button class="btn" style="background:#d97706;" onclick="showDupList('yellow')">查看可能相關</button>
+        </div>
+    </div>
+</div>
+
+<!-- 第二層：清單頁 -->
+<div id="dup-view-list" style="display:none;">
+    <button class="btn btn-secondary" onclick="backToDupOverview()">← 返回總覽</button>
+    <div id="dup-list-container" style="margin-top:1rem;"></div>
+</div>
+
+<!-- 第三層：單筆對照頁 -->
+<div id="dup-view-detail" style="display:none;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+        <button class="btn btn-secondary" onclick="backToDupList()">← 返回清單</button>
+        <span id="dup-detail-position" style="color:var(--text-muted); font-size:0.9rem;"></span>
+    </div>
+    <h4 id="dup-detail-title" style="margin-bottom:0.5rem;"></h4>
+    <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:1rem;" id="dup-detail-basis"></p>
+
+    <div class="admin-card" style="border-left:4px solid var(--danger);">
+        <h3 style="color:var(--danger);">新（待審核）</h3>
+        <div id="dup-detail-new"></div>
+    </div>
+    <div class="admin-card" style="border-left:4px solid var(--text-muted);">
+        <h3>舊（既有資料）</h3>
+        <div id="dup-detail-old"></div>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:8px; margin-top:1rem;">
+        <button class="btn btn-secondary" onclick="resolveDup('keep_old')">合併，保留已核准版本</button>
+        <button class="btn btn-success" onclick="resolveDup('replace_with_new')">合併，用新內容取代</button>
+        <button class="btn" style="background:#0891b2;" onclick="resolveDup('keep_both')">兩者皆保留（不同事件）</button>
+        <button class="btn" style="background:#64748b;" onclick="resolveDup('flag_later')">標記待議，稍後處理</button>
+    </div>
+</div>
+
+</div>
 </div>
 
 <div class="modal" id="edit-modal">
