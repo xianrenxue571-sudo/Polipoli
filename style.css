@@ -116,6 +116,8 @@ main { display: flex; flex-direction: column; gap: 1.5rem; }
 .event-quote { font-size: 1.25rem; font-weight: bold; margin: 10px 0 1rem 0; color: var(--text-main); }
 .event-context { color: #4b5563; font-size: 1.1rem; margin-bottom: 1rem; background: #f8fafc; padding: 0.8rem; border-left: 4px solid var(--accent); border-radius: 0 8px 8px 0; }
 
+.event-response { color: var(--text-muted); font-size: 0.9rem; font-style: italic; margin-bottom: 1rem; }
+
 /* 「對人民的影響」「對國安的影響」方塊框（標題列含迷你色條） */
 .event-impact { background: #eff6ff; border: 1px solid #bfdbfe; border-left: 4px solid #2563eb; border-radius: 0 8px 8px 0; padding: 0.8rem 1rem; margin-bottom: 1rem; }
 .event-impact-header { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 4px; flex-wrap: wrap; }

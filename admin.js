@@ -196,6 +196,7 @@ window.importPastedJSON = async function() {
             const { data: newEvent, error: evErr } = await supabase.from('events').insert({
                 quote: item.quote || '未命名爭議事件',
                 context: item.context || '',
+                response_summary: item.response_summary || null,
                 people_impact: item.people_impact || null,
                 people_impact_score: item.people_impact_score || null,
                 national_security_impact: item.national_security_impact || null,
@@ -428,6 +429,7 @@ function renderFilteredReviewList() {
                 </div>
                 <h3 style="margin: 10px 0; font-size:1.15rem;">「${e.quote}」</h3>
                 <p style="color: #475569; font-size:0.9rem; margin-bottom:1rem;">${e.context || '無描述脈絡。'}</p>
+                ${e.response_summary ? `<div style="font-size:0.85rem; color:var(--text-muted); font-style:italic; margin-bottom:1rem;">🗣️ 當事人回應：${e.response_summary}</div>` : ''}
                 ${e.people_impact ? `<div style="background:#eff6ff; border-left:4px solid #2563eb; padding:8px 12px; font-size:0.9rem; margin-bottom:1rem; border-radius:0 6px 6px 0;">💥 對人民的影響：${e.people_impact}</div>` : ''}
                 ${e.national_security_impact ? `<div style="background:#fef2f2; border-left:4px solid #dc2626; padding:8px 12px; font-size:0.9rem; margin-bottom:1rem; border-radius:0 6px 6px 0;">🛡️ 對國安的影響：${e.national_security_impact}</div>` : ''}
                 ${e.source_url ? `<div style="font-size: 0.85rem; margin-bottom: 0.5rem;"><a href="${e.source_url}" target="_blank" style="color: #3b82f6; text-decoration: underline;">🔗 來源佐證連結</a></div>` : ''}
@@ -544,6 +546,7 @@ window.openEditModal = async function(eventId) {
     document.getElementById('edit-quote').value = ev.quote;
     document.getElementById('edit-date').value = ev.date || '';
     document.getElementById('edit-context').value = ev.context || '';
+    document.getElementById('edit-response-summary').value = ev.response_summary || '';
     document.getElementById('edit-people-impact').value = ev.people_impact || '';
     document.getElementById('edit-people-impact-score').value = (ev.people_impact_score !== null && ev.people_impact_score !== undefined) ? ev.people_impact_score : '';
     document.getElementById('edit-national-security-impact').value = ev.national_security_impact || '';
@@ -581,6 +584,7 @@ window.saveEventEdits = async function() {
         quote: document.getElementById('edit-quote').value.trim(),
         date: document.getElementById('edit-date').value || null,
         context: document.getElementById('edit-context').value.trim(),
+        response_summary: document.getElementById('edit-response-summary').value.trim() || null,
         people_impact: document.getElementById('edit-people-impact').value.trim() || null,
         people_impact_score: document.getElementById('edit-people-impact-score').value ? parseInt(document.getElementById('edit-people-impact-score').value) : null,
         national_security_impact: document.getElementById('edit-national-security-impact').value.trim() || null,
