@@ -100,6 +100,7 @@ function renderEventCardSSR(e) {
             </div>
             <h3 class="event-quote">「${escapeHtml(e.quote)}」</h3>
             <div class="event-context">${escapeHtml(e.context) || '無詳細脈絡說明。'}</div>
+            ${e.response_summary ? `<div class="event-response">🗣️ 當事人回應：${escapeHtml(e.response_summary)}</div>` : ''}
             ${renderImpactBoxSSR('對人民的影響', '💥', e.people_impact, e.people_impact_score)}
             ${renderImpactBoxSSR('對國安的影響', '🛡️', e.national_security_impact, e.national_impact_score, 'event-impact-security')}
             <div class="event-actions" style="display:flex;justify-content:space-between;flex-direction:row;align-items:flex-end;">
