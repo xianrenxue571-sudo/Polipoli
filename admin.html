@@ -168,8 +168,20 @@
 <input type="number" id="edit-national-impact-score" class="form-input" min="0" max="100" step="1" placeholder="0 到 100 的整數，留空代表未評分">
 </div>
 <div class="form-group">
+<label for="edit-source-media">主要來源媒體名稱</label>
+<input type="text" id="edit-source-media" class="form-input" placeholder="例如：中央社、三立新聞網">
+</div>
+<div class="form-group">
 <label for="edit-source-url">可靠佐證新聞 URL</label>
 <input type="url" id="edit-source-url" class="form-input" placeholder="https://...">
+</div>
+<div class="form-group">
+<label for="edit-alt-source-media">🔄 交叉查證來源媒體名稱（建議選不同立場媒體）</label>
+<input type="text" id="edit-alt-source-media" class="form-input" placeholder="例如：中國時報、自由時報（選填）">
+</div>
+<div class="form-group">
+<label for="edit-alt-source-url">🔄 交叉查證來源 URL</label>
+<input type="url" id="edit-alt-source-url" class="form-input" placeholder="https://...（選填）">
 </div>
 <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 2rem;">
 <button class="btn btn-secondary" onclick="closeEditModal()">取消放棄</button>

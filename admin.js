@@ -213,6 +213,13 @@ window.importPastedJSON = async function() {
             }
 
             if (newEvent) {
+                const sourcesToInsert = [];
+                if (item.source_url) sourcesToInsert.push({ event_id: newEvent.id, media_name: item.source_media_name || '未命名來源', url: item.source_url });
+                if (item.alt_source_url) sourcesToInsert.push({ event_id: newEvent.id, media_name: item.alt_source_media_name || '未命名來源', url: item.alt_source_url });
+                if (sourcesToInsert.length > 0) {
+                    await supabase.from('event_sources').insert(sourcesToInsert);
+                }
+
                 if (issueId) {
                     await supabase.from('event_issue_map').insert({ event_id: newEvent.id, issue_id: issueId });
                 }
@@ -331,7 +338,7 @@ async function fetchAndRenderReviewFeed() {
     const container = document.getElementById('review-list-container');
     container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 2rem;">資料檢索中...</div>';
 
-    let query = supabase.from('events').select('*, event_politician_map ( politician_id, politicians ( name ) ), event_issue_map ( issue_id, issues ( name ) )');
+    let query = supabase.from('events').select('*, event_politician_map ( politician_id, politicians ( name ) ), event_issue_map ( issue_id, issues ( name ) ), event_sources ( id, media_name, url )');
 
     if (currentEventFilter === 'pending') {
         query = query.eq('is_visible', false).eq('is_reviewed', false);
@@ -432,7 +439,7 @@ function renderFilteredReviewList() {
                 ${e.response_summary ? `<div style="font-size:0.85rem; color:var(--text-muted); font-style:italic; margin-bottom:1rem;">🗣️ 當事人回應：${e.response_summary}</div>` : ''}
                 ${e.people_impact ? `<div style="background:#eff6ff; border-left:4px solid #2563eb; padding:8px 12px; font-size:0.9rem; margin-bottom:1rem; border-radius:0 6px 6px 0;">💥 對人民的影響：${e.people_impact}</div>` : ''}
                 ${e.national_security_impact ? `<div style="background:#fef2f2; border-left:4px solid #dc2626; padding:8px 12px; font-size:0.9rem; margin-bottom:1rem; border-radius:0 6px 6px 0;">🛡️ 對國安的影響：${e.national_security_impact}</div>` : ''}
-                ${e.source_url ? `<div style="font-size: 0.85rem; margin-bottom: 0.5rem;"><a href="${e.source_url}" target="_blank" style="color: #3b82f6; text-decoration: underline;">🔗 來源佐證連結</a></div>` : ''}
+                ${(e.event_sources && e.event_sources.length > 0) ? e.event_sources.map(src => `<div style="font-size: 0.85rem; margin-bottom: 0.5rem;"><a href="${src.url}" target="_blank" style="color: #3b82f6; text-decoration: underline;">🔗 [${src.media_name}] 來源佐證連結</a></div>`).join('') : (e.source_url ? `<div style="font-size: 0.85rem; margin-bottom: 0.5rem;"><a href="${e.source_url}" target="_blank" style="color: #3b82f6; text-decoration: underline;">🔗 來源佐證連結</a></div>` : '')}
                 <div class="review-actions">
                     <button class="btn btn-secondary" onclick="openEditModal('${e.id}')">✏️ <span class="hide-on-mobile">編輯</span></button>
                     ${actionButtons}
@@ -551,7 +558,11 @@ window.openEditModal = async function(eventId) {
     document.getElementById('edit-people-impact-score').value = (ev.people_impact_score !== null && ev.people_impact_score !== undefined) ? ev.people_impact_score : '';
     document.getElementById('edit-national-security-impact').value = ev.national_security_impact || '';
     document.getElementById('edit-national-impact-score').value = (ev.national_impact_score !== null && ev.national_impact_score !== undefined) ? ev.national_impact_score : '';
-    document.getElementById('edit-source-url').value = ev.source_url || '';
+    const sources = ev.event_sources || [];
+    document.getElementById('edit-source-media').value = sources[0]?.media_name || '';
+    document.getElementById('edit-source-url').value = sources[0]?.url || ev.source_url || '';
+    document.getElementById('edit-alt-source-media').value = sources[1]?.media_name || '';
+    document.getElementById('edit-alt-source-url').value = sources[1]?.url || '';
 
     const activePolIds = ev.event_politician_map?.map(m => m.politician_id) || [];
     const checkboxContainer = document.getElementById('edit-politicians-checkboxes');
@@ -596,6 +607,19 @@ window.saveEventEdits = async function() {
     if (mainErr) {
         alert('儲存失敗: ' + mainErr.message);
         return;
+    }
+
+    // 同步更新來源表（主要來源 + 交叉查證來源）
+    await supabase.from('event_sources').delete().eq('event_id', id);
+    const sourcesToInsert = [];
+    const mainMedia = document.getElementById('edit-source-media').value.trim();
+    const mainUrl = document.getElementById('edit-source-url').value.trim();
+    const altMedia = document.getElementById('edit-alt-source-media').value.trim();
+    const altUrl = document.getElementById('edit-alt-source-url').value.trim();
+    if (mainUrl) sourcesToInsert.push({ event_id: id, media_name: mainMedia || '未命名來源', url: mainUrl });
+    if (altUrl) sourcesToInsert.push({ event_id: id, media_name: altMedia || '未命名來源', url: altUrl });
+    if (sourcesToInsert.length > 0) {
+        await supabase.from('event_sources').insert(sourcesToInsert);
     }
 
     await supabase.from('event_politician_map').delete().eq('event_id', id);
