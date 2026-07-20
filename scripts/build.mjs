@@ -37,7 +37,8 @@ async function fetchAll() {
             *,
             event_politician_map ( politician_id, politicians ( name ) ),
             event_issue_map ( issue_id, issues ( name ) ),
-            event_sources ( id, media_name, url, publish_date )
+            event_sources ( id, media_name, url, publish_date ),
+            event_analysis ( content )
         `).eq('is_visible', true).order('date', { ascending: false })
     ]);
 
@@ -82,6 +83,7 @@ function renderEventCardSSR(e) {
     ).join('');
 
     const likesCount = e.likes_count || 0;
+    const analysisContent = Array.isArray(e.event_analysis) ? e.event_analysis[0]?.content : e.event_analysis?.content;
 
     let sourceLinks = '';
     (e.event_sources || []).forEach(src => {
@@ -101,6 +103,7 @@ function renderEventCardSSR(e) {
             <h3 class="event-quote">「${escapeHtml(e.quote)}」</h3>
             <div class="event-context">${escapeHtml(e.context) || '無詳細脈絡說明。'}</div>
             ${e.response_summary ? `<div class="event-response">🗣️ 當事人回應：${escapeHtml(e.response_summary)}</div>` : ''}
+            ${analysisContent ? `<div class="site-comment"><div class="site-comment-header"><span class="analysis-badge">⚠️ 觀點分析</span><strong>站長點評</strong></div><p>${escapeHtml(analysisContent)}</p></div>` : ''}
             ${renderImpactBoxSSR('對人民的影響', '💥', e.people_impact, e.people_impact_score)}
             ${renderImpactBoxSSR('對國安的影響', '🛡️', e.national_security_impact, e.national_impact_score, 'event-impact-security')}
             <div class="event-actions" style="display:flex;justify-content:space-between;flex-direction:row;align-items:flex-end;">
