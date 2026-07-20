@@ -551,9 +551,9 @@ function injectSchema(events) {
                 "claimReviewed": e.quote,
                 "reviewRating": {
                     "@type": "Rating",
-                    "ratingValue": e.severity,
-                    "bestRating": "5",
-                    "worstRating": "1"
+                    "ratingValue": e.people_impact_score || 0,
+                    "bestRating": "100",
+                    "worstRating": "0"
                 },
                 "author": {
                     "@type": "Organization",
