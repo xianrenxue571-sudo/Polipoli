@@ -118,6 +118,11 @@ main { display: flex; flex-direction: column; gap: 1.5rem; }
 
 .event-response { color: var(--text-muted); font-size: 0.9rem; font-style: italic; margin-bottom: 1rem; }
 
+.site-comment { background: #fffbeb; border: 1px solid #fde68a; border-left: 4px solid #f59e0b; border-radius: 0 8px 8px 0; padding: 0.8rem 1rem; margin-bottom: 1rem; }
+.site-comment-header { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.site-comment-header strong { color: #92400e; font-size: 0.95rem; }
+.site-comment p { margin: 0; color: #78350f; line-height: 1.6; }
+
 /* 「對人民的影響」「對國安的影響」方塊框（標題列含迷你色條） */
 .event-impact { background: #eff6ff; border: 1px solid #bfdbfe; border-left: 4px solid #2563eb; border-radius: 0 8px 8px 0; padding: 0.8rem 1rem; margin-bottom: 1rem; }
 .event-impact-header { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 4px; flex-wrap: wrap; }
