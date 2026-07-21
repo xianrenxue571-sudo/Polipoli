@@ -50,7 +50,7 @@ async function fetchAll() {
         supabase.from('politician_analysis').select('content, politicians(name)').eq('is_visible', true),
         supabase.from('event_analysis').select('content, events(quote, date)').eq('is_visible', true),
         supabase.from('editor_takes').select(`
-            id, title, content, created_at,
+            id, title, content, source_url, created_at,
             editor_take_politician_map ( politician_id, politicians ( name ) ),
             editor_take_event_map ( event_id, events ( quote, date ) ),
             editor_take_comments ( id, author_name, content, created_at, is_hidden )
@@ -157,6 +157,11 @@ function renderEditorTakesFeedSSR(takes) {
         const visibleComments = (t.editor_take_comments || []).filter(c => !c.is_hidden)
             .sort((a, b) => (a.created_at || '').localeCompare(b.created_at || ''));
 
+        const sourceLinkHtml = t.source_url ? `
+            <div class="event-actions" style="border-top:none; padding-top:0; margin-top:0.8rem;">
+                <a href="${escapeHtml(t.source_url)}" target="_blank" rel="noopener noreferrer" class="source-link">🔗 參考連結</a>
+            </div>` : '';
+
         return `
         <article class="event-card editor-take-card">
             <div class="tag-row">
@@ -167,6 +172,7 @@ function renderEditorTakesFeedSSR(takes) {
             </div>
             <h3 class="event-quote">${escapeHtml(t.title)}</h3>
             <div class="event-context editor-take-content">${renderTakeContentHtmlSSR(t.content)}</div>
+            ${sourceLinkHtml}
             ${renderEditorTakeCommentsHtmlSSR(t.id, visibleComments)}
         </article>`;
     }).join('');
