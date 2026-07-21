@@ -256,7 +256,7 @@ aside {
   gap: 0.5rem;
 }
 .stat-row { display: flex; align-items: center; gap: 0.6rem; }
-.stat-row-label { font-size: 0.82rem; color: var(--ink-soft); min-width: 12ch; }
+.stat-row-label { font-size: 0.92rem; color: var(--ink-soft); min-width: 12ch; }
 .stat-row-bar { display: flex; align-items: center; gap: 0.5rem; flex: 1; }
 .impact-mini-bar-track.wide { height: 10px; }
 
@@ -268,7 +268,7 @@ aside {
   padding: 1.2rem 0;
 }
 
-.editor-take-card .event-quote { font-size: 1.05rem; }
+.editor-take-card .event-quote { font-size: 1.3rem; }
 .editor-take-content p { margin: 0.4rem 0; }
 .comment-date { font-family: var(--font-mono); }
 
@@ -313,8 +313,8 @@ main { min-width: 0; }
 }
 .stat-chip {
   background: var(--archive); color: var(--paper);
-  font-family: var(--font-mono); font-size: 0.78rem;
-  padding: 0.4rem 0.7rem; border-radius: var(--radius);
+  font-family: var(--font-mono); font-size: 0.9rem;
+  padding: 0.45rem 0.8rem; border-radius: var(--radius);
 }
 .stat-chip b { color: var(--brass); }
 
@@ -350,18 +350,18 @@ main { min-width: 0; }
 }
 .meta-tag {
   font-family: var(--font-mono);
-  font-size: 0.74rem;
+  font-size: 0.85rem;
   color: var(--muted);
   letter-spacing: 0.02em;
 }
 .info-tag {
   font-family: var(--font-body);
-  font-size: 0.78rem;
+  font-size: 0.9rem;
   font-weight: 500;
   background: var(--paper-deep);
   border: 1px solid var(--line-strong);
   color: var(--ink-soft);
-  padding: 0.22rem 0.55rem;
+  padding: 0.3rem 0.65rem;
   border-radius: 999px;
   cursor: pointer;
 }
@@ -371,19 +371,21 @@ main { min-width: 0; }
 .event-quote {
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: 1.15rem;
-  line-height: 1.5;
+  font-size: 1.4rem;
+  line-height: 1.55;
   margin: 0 0 0.5rem 0.5rem;
   color: var(--ink);
 }
 .event-context {
   margin: 0 0 0.6rem 0.5rem;
   color: var(--ink-soft);
-  font-size: 0.94rem;
+  font-size: 1.1rem;
+  line-height: 1.75;
 }
 .event-response {
   margin: 0 0 0.6rem 0.5rem;
-  font-size: 0.88rem;
+  font-size: 1.02rem;
+  line-height: 1.6;
   color: var(--ink-soft);
   background: var(--paper-deep);
   border-left: 3px solid var(--brass);
@@ -400,12 +402,12 @@ main { min-width: 0; }
   border: 1px dashed var(--stamp-soft);
   border-radius: 2px;
 }
-.site-comment p, .analysis-card p { margin: 0.3rem 0 0; font-size: 0.9rem; }
+.site-comment p, .analysis-card p { margin: 0.3rem 0 0; font-size: 1.05rem; line-height: 1.65; }
 .analysis-badge, .editor-take-badge {
   display: inline-block;
   font-family: var(--font-mono);
   font-weight: 700;
-  font-size: 0.72rem;
+  font-size: 0.8rem;
   color: var(--stamp);
   border: 2px solid var(--stamp);
   border-radius: 3px;
@@ -417,7 +419,7 @@ main { min-width: 0; }
 .analysis-card-header, .site-comment-header {
   display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;
 }
-.analysis-target { font-size: 0.85rem; color: var(--ink-soft); font-weight: 700; }
+.analysis-target { font-size: 1rem; color: var(--ink-soft); font-weight: 700; }
 .analysis-section-title {
   font-family: var(--font-display);
   border-bottom: 2px dashed var(--line-strong);
@@ -425,7 +427,7 @@ main { min-width: 0; }
   margin: 1.6rem 0.2rem 0.8rem;
 }
 .analysis-disclaimer, .analysis-empty {
-  font-size: 0.85rem;
+  font-size: 0.95rem;
   color: var(--ink-soft);
   background: var(--paper-deep);
   border: 1px solid var(--line);
@@ -445,9 +447,9 @@ main { min-width: 0; }
 .event-impact-security { background: var(--archive-deep); }
 .event-impact-header {
   display: flex; align-items: center; justify-content: space-between;
-  font-size: 0.85rem; margin-bottom: 0.35rem;
+  font-size: 1rem; margin-bottom: 0.35rem;
 }
-.event-impact p { margin: 0; font-size: 0.85rem; color: rgba(239,233,220,0.85); }
+.event-impact p { margin: 0; font-size: 1rem; line-height: 1.6; color: rgba(239,233,220,0.9); }
 
 .impact-mini-bar { display: flex; align-items: center; gap: 0.5rem; flex: 1; margin-left: 1rem; }
 .impact-mini-bar-track {
@@ -499,15 +501,15 @@ main { min-width: 0; }
   display: flex; align-items: center; gap: 0.4rem;
   background: var(--paper); border: 1px solid var(--line-strong);
   color: var(--stamp); border-radius: 999px;
-  padding: 0.35rem 0.75rem; cursor: pointer;
-  font-family: var(--font-mono); font-size: 0.85rem;
+  padding: 0.4rem 0.85rem; cursor: pointer;
+  font-family: var(--font-mono); font-size: 0.95rem;
 }
-.like-btn svg { width: 16px; height: 16px; fill: none; stroke: var(--stamp); stroke-width: 2; }
+.like-btn svg { width: 18px; height: 18px; fill: none; stroke: var(--stamp); stroke-width: 2; }
 .like-btn.liked { background: var(--stamp); color: var(--paper); }
 .like-btn.liked svg { fill: var(--paper); stroke: var(--paper); }
 .source-link {
   display: block;
-  font-size: 0.8rem;
+  font-size: 0.92rem;
   color: var(--ok-green);
   text-decoration: none;
   border-bottom: 1px dotted var(--ok-green);
@@ -524,9 +526,9 @@ main { min-width: 0; }
    ============================================================ */
 .comment-section { margin: 0.8rem 0.5rem 0.2rem; border-top: 1px dashed var(--line-strong); padding-top: 0.7rem; }
 .comment-item { padding: 0.5rem 0; border-bottom: 1px solid var(--line); }
-.comment-item-header { display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--muted); }
+.comment-item-header { display: flex; justify-content: space-between; font-size: 0.9rem; color: var(--muted); }
 .comment-author { font-weight: 700; color: var(--ink-soft); }
-.comment-content { margin: 0.3rem 0; font-size: 0.88rem; }
+.comment-content { margin: 0.3rem 0; font-size: 1rem; line-height: 1.6; }
 .comment-report-btn {
   background: none; border: none; color: var(--muted); font-size: 0.75rem; cursor: pointer;
   padding: 0;
