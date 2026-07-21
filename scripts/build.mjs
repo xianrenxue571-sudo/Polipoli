@@ -30,7 +30,14 @@ function escapeHtml(str) {
 }
 
 async function fetchAll() {
-    const [{ data: politicians, error: pErr }, { data: issues, error: iErr }, { data: events, error: eErr }] = await Promise.all([
+    const [
+        { data: politicians, error: pErr },
+        { data: issues, error: iErr },
+        { data: events, error: eErr },
+        { data: polAnalyses, error: paErr },
+        { data: evAnalyses, error: eaErr },
+        { data: editorTakes, error: etErr }
+    ] = await Promise.all([
         supabase.from('politicians').select('*').eq('is_visible', true).order('name'),
         supabase.from('issues').select('*').eq('is_visible', true).order('name'),
         supabase.from('events').select(`
@@ -39,14 +46,132 @@ async function fetchAll() {
             event_issue_map ( issue_id, issues ( name ) ),
             event_sources ( id, media_name, url, publish_date ),
             event_analysis ( content )
-        `).eq('is_visible', true).order('date', { ascending: false })
+        `).eq('is_visible', true).order('date', { ascending: false }),
+        supabase.from('politician_analysis').select('content, politicians(name)').eq('is_visible', true),
+        supabase.from('event_analysis').select('content, events(quote, date)').eq('is_visible', true),
+        supabase.from('editor_takes').select(`
+            id, title, content, created_at,
+            editor_take_politician_map ( politician_id, politicians ( name ) ),
+            editor_take_event_map ( event_id, events ( quote, date ) ),
+            editor_take_comments ( id, author_name, content, created_at, is_hidden )
+        `).eq('is_visible', true).order('created_at', { ascending: false })
     ]);
 
     if (pErr) throw pErr;
     if (iErr) throw iErr;
     if (eErr) throw eErr;
+    if (paErr) throw paErr;
+    if (eaErr) throw eaErr;
+    if (etErr) throw etErr;
 
-    return { politicians: politicians || [], issues: issues || [], events: events || [] };
+    return {
+        politicians: politicians || [],
+        issues: issues || [],
+        events: events || [],
+        polAnalyses: polAnalyses || [],
+        evAnalyses: evAnalyses || [],
+        editorTakes: editorTakes || []
+    };
+}
+
+function renderTakeContentHtmlSSR(raw) {
+    const escaped = escapeHtml(raw || '');
+    const withBold = escaped.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    const paragraphs = withBold
+        .split(/\n{2,}/)
+        .map(p => p.trim())
+        .filter(Boolean)
+        .map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`)
+        .join('');
+    return paragraphs || `<p>${withBold}</p>`;
+}
+
+function renderAnalysisFeedSSR(polAnalyses, evAnalyses) {
+    let html = '<div class="analysis-disclaimer">⚠️ 以下內容為觀點解讀，並非事實認定，請自行判斷參考，並可對照事件原始來源自行查證。</div>';
+
+    html += '<h3 class="analysis-section-title">👤 人物風格分析</h3>';
+    html += (polAnalyses && polAnalyses.length > 0) ? polAnalyses.map(a => `
+        <div class="analysis-card">
+            <div class="analysis-card-header">
+                <span class="analysis-badge">⚠️ 觀點分析</span>
+                <span class="analysis-target">${escapeHtml(a.politicians?.name || '未知人物')}</span>
+            </div>
+            <p>${escapeHtml(a.content)}</p>
+        </div>
+    `).join('') : '<div class="analysis-empty">目前尚無人物風格分析。</div>';
+
+    html += '<h3 class="analysis-section-title">📌 事件解讀</h3>';
+    html += (evAnalyses && evAnalyses.length > 0) ? evAnalyses.map(a => `
+        <div class="analysis-card">
+            <div class="analysis-card-header">
+                <span class="analysis-badge">⚠️ 觀點分析</span>
+                <span class="analysis-target">「${escapeHtml(a.events?.quote || '未知事件')}」（${escapeHtml(a.events?.date || '無日期')}）</span>
+            </div>
+            <p>${escapeHtml(a.content)}</p>
+        </div>
+    `).join('') : '<div class="analysis-empty">目前尚無事件解讀。</div>';
+
+    return html;
+}
+
+function renderEditorTakeCommentsHtmlSSR(takeId, comments) {
+    const list = (comments || []).map(c => `
+        <div class="comment-item" id="comment-${c.id}">
+            <div class="comment-item-header">
+                <span class="comment-author">🙋 ${escapeHtml(c.author_name || '匿名讀者')}</span>
+                <span class="comment-date">${escapeHtml((c.created_at || '').slice(0, 10))}</span>
+            </div>
+            <p class="comment-content">${escapeHtml(c.content)}</p>
+            <button class="comment-report-btn" onclick="reportTakeComment('${c.id}', this)">🚩 檢舉</button>
+        </div>
+    `).join('');
+
+    return `
+        <div class="comment-section" id="comment-section-${takeId}">
+            <div class="comment-list" id="comment-list-${takeId}">
+                ${list || '<div class="comment-empty">目前尚無留言，成為第一個留言的讀者吧。</div>'}
+            </div>
+            <div class="comment-form">
+                <input type="text" maxlength="30" class="comment-name-input" id="comment-name-${takeId}" placeholder="暱稱（可留空）">
+                <input type="text" class="comment-honeypot" id="comment-hp-${takeId}" style="position:absolute;left:-9999px;" tabindex="-1" autocomplete="off">
+                <textarea class="comment-content-input" id="comment-content-${takeId}" maxlength="500" placeholder="留下你的看法（最多 500 字）"></textarea>
+                <button class="btn-comment-submit" onclick="submitTakeComment('${takeId}')">送出留言</button>
+            </div>
+        </div>`;
+}
+
+function renderEditorTakesFeedSSR(takes) {
+    let html = '<div class="analysis-disclaimer">⚠️ 以下內容為「站長觀點」，是站長個人的主觀想法與評論，並非本站爭議事件資料庫查證後的事實認定，請自行判斷參考。</div>';
+
+    if (!takes || takes.length === 0) {
+        return html + '<div class="analysis-empty">目前尚無站長觀點。</div>';
+    }
+
+    html += takes.map(t => {
+        const polTags = (t.editor_take_politician_map || []).filter(m => m.politicians?.name).map(m =>
+            `<span class="info-tag">👤 ${escapeHtml(m.politicians.name)}</span>`
+        ).join('');
+        const eventTags = (t.editor_take_event_map || []).filter(m => m.events?.quote).map(m =>
+            `<span class="info-tag issue-tag">📌 「${escapeHtml(m.events.quote)}」${m.events.date ? `（${escapeHtml(m.events.date)}）` : ''}</span>`
+        ).join('');
+        const visibleComments = (t.editor_take_comments || []).filter(c => !c.is_hidden)
+            .sort((a, b) => (a.created_at || '').localeCompare(b.created_at || ''));
+
+        return `
+        <article class="event-card editor-take-card">
+            <div class="tag-row">
+                <span class="editor-take-badge">🗣️ 站長觀點（主觀評論）</span>
+                <span class="meta-tag">📅 ${escapeHtml((t.created_at || '').slice(0, 10))}</span>
+                ${polTags}
+                ${eventTags}
+            </div>
+            <h3 class="event-quote">${escapeHtml(t.title)}</h3>
+            <div class="event-context editor-take-content">${renderTakeContentHtmlSSR(t.content)}</div>
+            ${renderEditorTakeCommentsHtmlSSR(t.id, visibleComments)}
+        </article>`;
+    }).join('');
+
+    return html;
 }
 
 function renderImpactMiniBarSSR(score) {
@@ -142,7 +267,7 @@ function buildSchema(events) {
     return JSON.stringify(schemaData);
 }
 
-function renderPage({ title, description, ogTitle, ogDescription, canonicalPath, eventsHtml, schemaJson, hydrationScript }) {
+function renderPage({ title, description, ogTitle, ogDescription, canonicalPath, eventsHtml, schemaJson, hydrationScript, viewMode = 'events', feedTitle }) {
     const template = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf-8');
     let html = template;
 
@@ -152,7 +277,31 @@ function renderPage({ title, description, ogTitle, ogDescription, canonicalPath,
     html = html.replace(/<meta property="og:description" content=".*?">/s, `<meta property="og:description" content="${escapeHtml(ogDescription)}">`);
     html = html.replace('<link rel="stylesheet" href="./style.css">', '<link rel="stylesheet" href="/style.css">');
     html = html.replace('<link rel="preconnect"', `<link rel="canonical" href="${SITE_URL}${canonicalPath}">\n    <link rel="preconnect"`);
-    html = html.replace('<div id="events-feed"></div>', `<div id="events-feed">${eventsHtml}</div>`);
+
+    if (viewMode === 'analysis' || viewMode === 'editorTakes') {
+        // 分析紀錄／站長觀點頁：預設隱藏事件牆與側邊欄，直接把 SSR 內容放進對應容器，
+        // 讓爬蟲與沒有執行 JS 的使用者也能看到完整內容；app.js 載入後會依 hydration 旗標重新抓取即時資料覆蓋上去。
+        html = html.replace('<div id="events-feed"></div>', '<div id="events-feed" style="display:none;"></div>');
+        html = html.replace('<div class="container">', '<div class="container no-sidebar">');
+        html = html.replace('<aside>', '<aside style="display:none;">');
+        html = html.replace('<div id="stat-dashboard"></div>', '<div id="stat-dashboard" style="display:none;"></div>');
+
+        if (viewMode === 'analysis') {
+            html = html.replace('<div id="analysis-feed" style="display:none;"></div>', `<div id="analysis-feed" style="display:block;">${eventsHtml}</div>`);
+            html = html.replace('class="main-tab-btn active" id="tab-politicians"', 'class="main-tab-btn" id="tab-politicians"');
+            html = html.replace('class="main-tab-btn" id="tab-analysis"', 'class="main-tab-btn active" id="tab-analysis"');
+        } else {
+            html = html.replace('<div id="editor-takes-feed" style="display:none;"></div>', `<div id="editor-takes-feed" style="display:block;">${eventsHtml}</div>`);
+            html = html.replace('class="main-tab-btn active" id="tab-politicians"', 'class="main-tab-btn" id="tab-politicians"');
+            html = html.replace('class="main-tab-btn" id="tab-editorTakes"', 'class="main-tab-btn active" id="tab-editorTakes"');
+        }
+        if (feedTitle) {
+            html = html.replace(/<h2 id="feed-title">.*?<\/h2>/s, `<h2 id="feed-title">${escapeHtml(feedTitle)}</h2>`);
+        }
+    } else {
+        html = html.replace('<div id="events-feed"></div>', `<div id="events-feed">${eventsHtml}</div>`);
+    }
+
     html = html.replace(
         '<script type="module" src="./app.js"></script>',
         `<script type="application/ld+json">${schemaJson}</script>\n    ${hydrationScript}\n    <script type="module" src="/app.js"></script>`
@@ -178,7 +327,7 @@ async function main() {
         if (fs.existsSync(src)) fs.copyFileSync(src, path.join(OUT_DIR, f));
     });
 
-    const { politicians, issues, events } = await fetchAll();
+    const { politicians, issues, events, polAnalyses, evAnalyses, editorTakes } = await fetchAll();
     const sitemapUrls = [`${SITE_URL}/`];
 
     // 首頁：最新事件
@@ -241,6 +390,46 @@ async function main() {
         sitemapUrls.push(`${SITE_URL}/issue/${encodeURIComponent(slug)}/`);
     }
 
+    // 分析紀錄頁（人物風格分析＋事件解讀）
+    {
+        const dir = path.join(OUT_DIR, 'analysis');
+        fs.mkdirSync(dir, { recursive: true });
+        const html = renderPage({
+            title: '分析與紀錄 | Polipoli 啪哩啪哩',
+            description: '收錄站長對政治人物風格與特定爭議事件的觀點解讀，皆為主觀分析，非事實認定。',
+            ogTitle: '分析與紀錄 | Polipoli 啪哩啪哩',
+            ogDescription: '政治人物風格分析與事件解讀，主觀觀點僅供參考。',
+            canonicalPath: '/analysis/',
+            eventsHtml: renderAnalysisFeedSSR(polAnalyses, evAnalyses),
+            schemaJson: buildSchema([]),
+            hydrationScript: `<script>window.__SSG_ANALYSIS_PAGE = true;</script>`,
+            viewMode: 'analysis',
+            feedTitle: '🔍 分析與紀錄'
+        });
+        fs.writeFileSync(path.join(dir, 'index.html'), html);
+        sitemapUrls.push(`${SITE_URL}/analysis/`);
+    }
+
+    // 站長觀點頁
+    {
+        const dir = path.join(OUT_DIR, 'editor-takes');
+        fs.mkdirSync(dir, { recursive: true });
+        const html = renderPage({
+            title: '站長觀點 | Polipoli 啪哩啪哩',
+            description: '站長個人對台灣政治人物與時事的主觀想法與評論，與查證過的爭議事件資料庫明確區隔。',
+            ogTitle: '站長觀點 | Polipoli 啪哩啪哩',
+            ogDescription: '站長的主觀評論與想法，非事實查證內容。',
+            canonicalPath: '/editor-takes/',
+            eventsHtml: renderEditorTakesFeedSSR(editorTakes),
+            schemaJson: buildSchema([]),
+            hydrationScript: `<script>window.__SSG_EDITOR_TAKES_PAGE = true;</script>`,
+            viewMode: 'editorTakes',
+            feedTitle: '🗣️ 站長觀點'
+        });
+        fs.writeFileSync(path.join(dir, 'index.html'), html);
+        sitemapUrls.push(`${SITE_URL}/editor-takes/`);
+    }
+
     // sitemap.xml
     const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${sitemapUrls.map(u => `  <url><loc>${u}</loc></url>`).join('\n')}\n</urlset>`;
     fs.writeFileSync(path.join(OUT_DIR, 'sitemap.xml'), sitemap);
@@ -248,7 +437,7 @@ async function main() {
     // robots.txt
     fs.writeFileSync(path.join(OUT_DIR, 'robots.txt'), `User-agent: *\nAllow: /\nSitemap: ${SITE_URL}/sitemap.xml\n`);
 
-    console.log(`✅ 完成：${politicians.length} 位人物、${issues.length} 個議題、${events.length} 筆事件`);
+    console.log(`✅ 完成：${politicians.length} 位人物、${issues.length} 個議題、${events.length} 筆事件、${polAnalyses.length + evAnalyses.length} 筆分析、${editorTakes.length} 篇站長觀點`);
     console.log(`✅ 產生 ${sitemapUrls.length} 個靜態頁面於 /dist`);
 }
 
