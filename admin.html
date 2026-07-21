@@ -267,6 +267,18 @@
 <input type="number" id="edit-national-impact-score" class="form-input" min="0" max="100" step="1" placeholder="0 到 100 的整數，留空代表未評分">
 </div>
 <div class="form-group">
+<label for="edit-score-reason-positive">✅ 評分理由｜加分因素 (positive_factors)</label>
+<textarea id="edit-score-reason-positive" class="form-input" placeholder="支持給分的具體查證事實，例如：有同期報導將決策失當直接歸責於當事人本人"></textarea>
+</div>
+<div class="form-group">
+<label for="edit-score-reason-limiting">⚠️ 評分理由｜限制因素 (limiting_factors)</label>
+<textarea id="edit-score-reason-limiting" class="form-input" placeholder="讓分數不能更高的限制因素，例如：僅屬個人層級行為，未查得組織性或制度性影響"></textarea>
+</div>
+<div class="form-group">
+<label for="edit-score-reason-excluded">🚫 評分理由｜未採計因素 (excluded_factors)</label>
+<textarea id="edit-score-reason-excluded" class="form-input" placeholder="曾考慮但依規則排除的因素，例如：是否進入司法程序不作為加分依據"></textarea>
+</div>
+<div class="form-group">
 <label for="edit-source-media">主要來源媒體名稱</label>
 <input type="text" id="edit-source-media" class="form-input" placeholder="例如：中央社、三立新聞網">
 </div>

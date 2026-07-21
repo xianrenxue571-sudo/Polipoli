@@ -136,7 +136,8 @@ window.backfillImpactFields = async function() {
             people_impact: item.people_impact || null,
             people_impact_score: (item.people_impact_score !== undefined && item.people_impact_score !== null) ? parseInt(item.people_impact_score) : null,
             national_security_impact: item.national_security_impact || null,
-            national_impact_score: (item.national_impact_score !== undefined && item.national_impact_score !== null) ? parseInt(item.national_impact_score) : null
+            national_impact_score: (item.national_impact_score !== undefined && item.national_impact_score !== null) ? parseInt(item.national_impact_score) : null,
+            score_reason: item.score_reason !== undefined ? item.score_reason : null
         }).eq('id', item.id);
 
         if (error) {
@@ -202,6 +203,7 @@ window.importPastedJSON = async function() {
                 people_impact_score: item.people_impact_score || null,
                 national_security_impact: item.national_security_impact || null,
                 national_impact_score: item.national_impact_score || null,
+                score_reason: item.score_reason || null,
                 date: item.date || null,
                 source_url: item.source_url || null,
                 is_visible: false,
@@ -561,6 +563,10 @@ window.openEditModal = async function(eventId) {
     document.getElementById('edit-people-impact-score').value = (ev.people_impact_score !== null && ev.people_impact_score !== undefined) ? ev.people_impact_score : '';
     document.getElementById('edit-national-security-impact').value = ev.national_security_impact || '';
     document.getElementById('edit-national-impact-score').value = (ev.national_impact_score !== null && ev.national_impact_score !== undefined) ? ev.national_impact_score : '';
+    const scoreReason = ev.score_reason || {};
+    document.getElementById('edit-score-reason-positive').value = scoreReason.positive_factors || '';
+    document.getElementById('edit-score-reason-limiting').value = scoreReason.limiting_factors || '';
+    document.getElementById('edit-score-reason-excluded').value = scoreReason.excluded_factors || '';
     const sources = ev.event_sources || [];
     document.getElementById('edit-source-media').value = sources[0]?.media_name || '';
     document.getElementById('edit-source-url').value = sources[0]?.url || ev.source_url || '';
@@ -593,8 +599,18 @@ window.closeEditModal = function() {
 window.saveEventEdits = async function() {
     if (!supabase) return;
     const id = document.getElementById('edit-event-id').value;
-    
+
+    const srPositive = document.getElementById('edit-score-reason-positive').value.trim();
+    const srLimiting = document.getElementById('edit-score-reason-limiting').value.trim();
+    const srExcluded = document.getElementById('edit-score-reason-excluded').value.trim();
+    const scoreReasonPayload = (srPositive || srLimiting || srExcluded) ? {
+        positive_factors: srPositive || null,
+        limiting_factors: srLimiting || null,
+        excluded_factors: srExcluded || null
+    } : null;
+
     const updatePayload = {
+        score_reason: scoreReasonPayload,
         quote: document.getElementById('edit-quote').value.trim(),
         date: document.getElementById('edit-date').value || null,
         context: document.getElementById('edit-context').value.trim(),
@@ -987,6 +1003,7 @@ window.resolveDup = async function(action) {
                 people_impact_score: item.pending.people_impact_score,
                 national_security_impact: item.pending.national_security_impact,
                 national_impact_score: item.pending.national_impact_score,
+                score_reason: item.pending.score_reason || null,
                 date: item.pending.date,
                 source_url: item.pending.source_url
             }).eq('id', matchId);
