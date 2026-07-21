@@ -275,7 +275,12 @@ function renderSettingsLists() {
                     <span class="item-title">👤 ${p.name}</span>
                     <span class="item-sub">${p.party || '未知政黨'}</span>
                 </div>
-                <button class="btn btn-danger" style="padding: 4px 8px; font-size:0.8rem;" onclick="deletePolitician('${p.id}')">刪除</button>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <label class="checkbox-label" style="font-size:0.8rem; white-space:nowrap;">
+                        <input type="checkbox" ${p.is_hard_to_type ? 'checked' : ''} onchange="toggleHardToType('${p.id}', this.checked)"> 難檢字
+                    </label>
+                    <button class="btn btn-danger" style="padding: 4px 8px; font-size:0.8rem;" onclick="deletePolitician('${p.id}')">刪除</button>
+                </div>
             </div>
         `).join('');
     }
@@ -293,13 +298,27 @@ function renderSettingsLists() {
     }
 }
 
+window.toggleHardToType = async function(id, checked) {
+    if (!supabase) return;
+    const { error } = await supabase.from('politicians').update({ is_hard_to_type: checked }).eq('id', id);
+    if (error) {
+        alert('更新「難檢字」標記失敗：' + error.message);
+        await refreshAllAdminData(); // 失敗時重新拉一次資料，把畫面上的勾選狀態還原成資料庫實際狀態
+        return;
+    }
+    const p = cachePoliticians.find(pol => pol.id === id);
+    if (p) p.is_hard_to_type = checked; // 直接更新本地快取，不用整包重新抓一次
+};
+
 window.addPolitician = async function() {
     const name = document.getElementById('new-pol-name').value.trim();
     const party = document.getElementById('new-pol-party').value.trim();
+    const isHardToType = document.getElementById('new-pol-hard-to-type').checked;
     if (!name || !supabase) return;
-    await supabase.from('politicians').insert({ name, party });
+    await supabase.from('politicians').insert({ name, party, is_hard_to_type: isHardToType });
     document.getElementById('new-pol-name').value = '';
     document.getElementById('new-pol-party').value = '';
+    document.getElementById('new-pol-hard-to-type').checked = false;
     await refreshAllAdminData();
 };
 

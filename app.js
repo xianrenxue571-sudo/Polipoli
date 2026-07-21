@@ -60,9 +60,6 @@ async function fetchUserLikes() {
     }
 }
 
-/* 常被檢舉「難以檢索但高關注」的人名快速標籤 */
-const quickPolTags = ['游錫堃', '鄺麗貞', '傅崐萁', '陳玉珍', '徐欣瑩', '張嘉郡', '陳智菡', '黃瀞瑩', '顏寬恒', '佀廣洋'];
-
 const feedContainer = document.getElementById('events-feed');
 const loader = document.getElementById('loader');
 const endMessage = document.getElementById('end-message');
@@ -527,15 +524,13 @@ function renderSidebarButtons() {
             ).join('');
         }
 
-        const visibleQuickTags = quickPolTags.filter(tag => cachePoliticians.some(p => p.name === tag));
-        const filteredQuickTags = visibleQuickTags.filter(tag => !topFivePoliticians.some(tp => tp.name === tag));
+        const hardToTypePoliticians = cachePoliticians.filter(p => p.is_hard_to_type && !topFivePoliticians.some(tp => tp.id === p.id));
 
-        if (filteredQuickTags.length > 0) {
+        if (hardToTypePoliticians.length > 0) {
             html += `<div class="section-label">📌 難檢字快速查</div>`;
-            html += filteredQuickTags.map(tag => {
-                const p = cachePoliticians.find(pol => pol.name === tag);
-                return navAnchor({ type: 'politician', id: p.id, name: p.name, active: currentFilterId === p.id, label: escapeHtmlClient(p.name) });
-            }).join('');
+            html += hardToTypePoliticians.map(p =>
+                navAnchor({ type: 'politician', id: p.id, name: p.name, active: currentFilterId === p.id, label: escapeHtmlClient(p.name) })
+            ).join('');
         }
     } else {
         const isLatestActive = currentMode === 'latest';

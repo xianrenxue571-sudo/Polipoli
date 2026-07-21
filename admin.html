@@ -53,9 +53,12 @@
 <div class="grid-2">
 <div class="admin-card">
 <h3>👤 追蹤政治人物管理</h3>
-<div style="display: flex; gap: 8px; margin-bottom: 1.5rem;">
+<div style="display: flex; gap: 8px; margin-bottom: 1.5rem; align-items:center; flex-wrap:wrap;">
 <input type="text" id="new-pol-name" class="form-input" placeholder="姓名，如：黃國昌" style="flex: 2;">
 <input type="text" id="new-pol-party" class="form-input" placeholder="政黨，如：民眾黨" style="flex: 1;">
+<label class="checkbox-label" style="white-space:nowrap;">
+<input type="checkbox" id="new-pol-hard-to-type"> 難檢字
+</label>
 <button class="btn" onclick="addPolitician()">新增人物</button>
 </div>
 <div class="sidebar-list" style="max-height: 250px; overflow-y: auto;" id="list-politicians"></div>
