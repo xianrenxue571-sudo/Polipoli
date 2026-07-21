@@ -119,6 +119,47 @@
         <button class="btn btn-danger" onclick="deleteEventAnalysis()">🗑️ 刪除此事件的解讀</button>
         <div class="sidebar-list" style="max-height: 250px; overflow-y: auto; margin-top: 1.5rem;" id="list-event-analysis"></div>
     </div>
+
+    <div class="admin-card">
+        <h3>🗣️ 新增站長觀點</h3>
+        <p style="color:var(--text-muted); font-size:0.9rem; margin-top:-0.5rem;">這裡是站長個人主觀想法的發表區，不受爭議事件資料庫「中性陳述、不下評價」規範限制，會以獨立樣式（紫色標籤）顯示於前台，與查證過的爭議事件明確區隔。</p>
+        <div class="form-group">
+            <label for="take-title">標題</label>
+            <input type="text" id="take-title" class="form-input" placeholder="這篇站長觀點的重點一句話">
+        </div>
+        <div class="form-group">
+            <label for="take-content">內容（可自由發表主觀看法）</label>
+            <textarea id="take-content" class="form-input" style="min-height: 160px;"></textarea>
+        </div>
+
+        <div class="form-group">
+            <label>關聯政治人物（可複選）</label>
+            <div class="checkbox-group-box" id="take-politicians-checkboxes"></div>
+            <div style="display:flex; gap:8px; margin-top:8px;">
+                <input type="text" id="take-new-politician-name" class="form-input" placeholder="輸入尚未收錄的人物姓名，加入後由研究員後續查證補齊資料">
+                <button class="btn" style="white-space:nowrap;" onclick="addNewPoliticianForTake()">➕ 加入新人物</button>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="take-event-search">關聯既有爭議事件（可選，可複選）</label>
+            <input type="text" id="take-event-search" class="form-input" placeholder="輸入事件引言關鍵字搜尋..." oninput="filterTakeEventSelect()">
+            <div style="display:flex; gap:8px; margin-top:8px;">
+                <select id="take-event-select" class="form-input"></select>
+                <button class="btn" style="white-space:nowrap;" onclick="addEventChipForTake()">➕ 加入</button>
+            </div>
+            <div class="checkbox-group-box" id="take-events-chosen" style="margin-top:8px;"></div>
+        </div>
+
+        <button class="btn btn-success" onclick="saveEditorTake()">🚀 發布站長觀點</button>
+        <div class="sidebar-list" style="max-height: 300px; overflow-y: auto; margin-top: 1.5rem;" id="list-editor-takes"></div>
+    </div>
+
+    <div class="admin-card">
+        <h3>💬 留言管理</h3>
+        <p style="color:var(--text-muted); font-size:0.9rem; margin-top:-0.5rem;">留言開放讀者自由發表、無需人工事前審核；累積 5 次讀者檢舉會自動隱藏，你可以在此複核、恢復顯示或永久刪除。</p>
+        <div class="sidebar-list" style="max-height: 400px; overflow-y: auto;" id="list-take-comments"></div>
+    </div>
 </div>
 
 <div class="modal" id="dup-check-modal">

@@ -90,6 +90,7 @@ window.switchAdminTab = function(tabName) {
     }
     if (tabName === 'analysis') {
         initAnalysisTab();
+        initEditorTakesTab();
     }
 };
 
@@ -1019,3 +1020,211 @@ window.resolveDup = async function(action) {
 };
 
 
+
+// ===== 站長觀點管理 =====
+let takeChosenEvents = [];
+
+async function initEditorTakesTab() {
+    document.getElementById('take-title').value = '';
+    document.getElementById('take-content').value = '';
+    document.getElementById('take-new-politician-name').value = '';
+    document.getElementById('take-event-search').value = '';
+    takeChosenEvents = [];
+
+    renderTakePoliticianCheckboxes();
+
+    if (cacheEventsForAnalysis.length === 0) {
+        const { data } = await supabase.from('events').select('id, quote, date').order('date', { ascending: false });
+        cacheEventsForAnalysis = data || [];
+    }
+    renderTakeEventOptions(cacheEventsForAnalysis);
+    renderTakeEventChips();
+
+    await refreshEditorTakesList();
+    await refreshTakeCommentsList();
+}
+
+function renderTakePoliticianCheckboxes() {
+    const box = document.getElementById('take-politicians-checkboxes');
+    box.innerHTML = cachePoliticians.map(p => `
+        <label class="checkbox-label">
+            <input type="checkbox" name="take-pol-box" value="${p.id}"> ${p.name}${p.is_verified === false ? ' (待查證)' : ''}
+        </label>
+    `).join('');
+}
+
+window.addNewPoliticianForTake = async function() {
+    const nameInput = document.getElementById('take-new-politician-name');
+    const name = nameInput.value.trim();
+    if (!name) { alert('請輸入人物姓名！'); return; }
+    if (cachePoliticians.some(p => p.name === name)) {
+        alert('這個姓名已經在人物清單中了，請直接勾選。');
+        nameInput.value = '';
+        return;
+    }
+
+    const { data, error } = await supabase.from('politicians')
+        .insert([{ name, is_visible: false, is_verified: false }])
+        .select()
+        .single();
+
+    if (error) { alert('新增人物失敗：' + error.message); return; }
+
+    cachePoliticians.push(data);
+    cachePoliticians.sort((a, b) => a.name.localeCompare(b.name, 'zh-Hant'));
+    renderTakePoliticianCheckboxes();
+    const box = document.getElementById('take-politicians-checkboxes');
+    const cb = box.querySelector(`input[value="${data.id}"]`);
+    if (cb) cb.checked = true;
+
+    nameInput.value = '';
+    alert(`已加入「${name}」，標記為「待查證」，暫不會出現在前台人物清單中，待研究員角色查證補齊資料後可於「匯入與基本設定」調整為公開。`);
+};
+
+function renderTakeEventOptions(list) {
+    const sel = document.getElementById('take-event-select');
+    sel.innerHTML = '<option value="">請選擇事件</option>' +
+        list.map(e => `<option value="${e.id}">「${(e.quote || '未命名事件').slice(0, 30)}」（${e.date || '無日期'}）</option>`).join('');
+}
+
+window.filterTakeEventSelect = function() {
+    const term = document.getElementById('take-event-search').value.trim().toLowerCase();
+    const filtered = term ? cacheEventsForAnalysis.filter(e => (e.quote || '').toLowerCase().includes(term)) : cacheEventsForAnalysis;
+    renderTakeEventOptions(filtered);
+};
+
+window.addEventChipForTake = function() {
+    const sel = document.getElementById('take-event-select');
+    const evId = sel.value;
+    if (!evId) { alert('請先選擇事件！'); return; }
+    if (takeChosenEvents.some(e => e.id === evId)) { alert('這則事件已經加入清單了。'); return; }
+    const ev = cacheEventsForAnalysis.find(e => e.id === evId);
+    if (ev) takeChosenEvents.push(ev);
+    renderTakeEventChips();
+};
+
+window.removeTakeEventChip = function(evId) {
+    takeChosenEvents = takeChosenEvents.filter(e => e.id !== evId);
+    renderTakeEventChips();
+};
+
+function renderTakeEventChips() {
+    const box = document.getElementById('take-events-chosen');
+    box.innerHTML = takeChosenEvents.length > 0 ? takeChosenEvents.map(e => `
+        <span class="checkbox-label" style="background:#ede9fe; padding:4px 8px; border-radius:12px;">
+            📌 「${(e.quote || '').slice(0, 20)}」
+            <button type="button" style="border:none;background:none;color:#dc2626;cursor:pointer;font-weight:bold;" onclick="removeTakeEventChip('${e.id}')">✕</button>
+        </span>
+    `).join('') : '<span style="color:var(--text-muted); font-size:0.85rem;">尚未關聯任何既有事件</span>';
+}
+
+window.saveEditorTake = async function() {
+    const title = document.getElementById('take-title').value.trim();
+    const content = document.getElementById('take-content').value.trim();
+    const checkedPolIds = Array.from(document.querySelectorAll('input[name="take-pol-box"]:checked')).map(cb => cb.value);
+
+    if (!title) { alert('請輸入標題！'); return; }
+    if (!content) { alert('請輸入內容！'); return; }
+
+    const { data: takeData, error: takeError } = await supabase.from('editor_takes')
+        .insert([{ title, content, is_visible: true }])
+        .select()
+        .single();
+
+    if (takeError) { alert('發布失敗：' + takeError.message); return; }
+
+    const takeId = takeData.id;
+
+    if (checkedPolIds.length > 0) {
+        const { error: polMapError } = await supabase.from('editor_take_politician_map')
+            .insert(checkedPolIds.map(pid => ({ editor_take_id: takeId, politician_id: pid })));
+        if (polMapError) console.error('關聯政治人物失敗:', polMapError);
+    }
+
+    if (takeChosenEvents.length > 0) {
+        const { error: evMapError } = await supabase.from('editor_take_event_map')
+            .insert(takeChosenEvents.map(e => ({ editor_take_id: takeId, event_id: e.id })));
+        if (evMapError) console.error('關聯事件失敗:', evMapError);
+    }
+
+    alert('站長觀點已發布！');
+    await initEditorTakesTab();
+};
+
+async function refreshEditorTakesList() {
+    const listEl = document.getElementById('list-editor-takes');
+    const { data, error } = await supabase.from('editor_takes')
+        .select(`
+            id, title, content, is_visible, created_at,
+            editor_take_politician_map ( politicians ( name ) ),
+            editor_take_event_map ( events ( quote ) )
+        `)
+        .order('created_at', { ascending: false });
+
+    if (error) { listEl.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:1rem;">載入失敗</div>'; return; }
+
+    listEl.innerHTML = (data && data.length > 0) ? data.map(t => {
+        const pols = (t.editor_take_politician_map || []).map(m => m.politicians?.name).filter(Boolean).join('、');
+        return `
+        <div class="item-row">
+            <div class="item-row-left">
+                <span class="item-title">${t.is_visible ? '' : '🙈 [已隱藏] '}${t.title}</span>
+                <span class="item-sub">${pols ? '關聯人物：' + pols + '　' : ''}${(t.content || '').slice(0, 40)}...</span>
+            </div>
+            <div style="display:flex; gap:6px;">
+                <button class="btn btn-secondary" style="padding:4px 10px;" onclick="toggleEditorTakeVisibility('${t.id}', ${t.is_visible})">${t.is_visible ? '隱藏' : '恢復顯示'}</button>
+                <button class="btn btn-danger" style="padding:4px 10px;" onclick="deleteEditorTake('${t.id}')">🗑️</button>
+            </div>
+        </div>`;
+    }).join('') : '<div style="text-align:center; color:var(--text-muted); padding:1rem;">尚無站長觀點</div>';
+}
+
+window.toggleEditorTakeVisibility = async function(id, currentVisible) {
+    const { error } = await supabase.from('editor_takes').update({ is_visible: !currentVisible }).eq('id', id);
+    if (error) { alert('更新失敗：' + error.message); return; }
+    await refreshEditorTakesList();
+};
+
+window.deleteEditorTake = async function(id) {
+    if (!confirm('確定要刪除這篇站長觀點嗎？相關留言也會一併刪除，此動作無法復原。')) return;
+    const { error } = await supabase.from('editor_takes').delete().eq('id', id);
+    if (error) { alert('刪除失敗：' + error.message); return; }
+    await refreshEditorTakesList();
+    await refreshTakeCommentsList();
+};
+
+async function refreshTakeCommentsList() {
+    const listEl = document.getElementById('list-take-comments');
+    const { data, error } = await supabase.from('editor_take_comments')
+        .select('id, author_name, content, created_at, is_hidden, report_count, editor_takes(title)')
+        .order('report_count', { ascending: false })
+        .order('created_at', { ascending: false });
+
+    if (error) { listEl.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:1rem;">載入失敗</div>'; return; }
+
+    listEl.innerHTML = (data && data.length > 0) ? data.map(c => `
+        <div class="item-row">
+            <div class="item-row-left">
+                <span class="item-title">${c.is_hidden ? '🙈 [已隱藏] ' : ''}${c.author_name || '匿名讀者'}　${c.report_count > 0 ? `🚩x${c.report_count}` : ''}</span>
+                <span class="item-sub">於「${c.editor_takes?.title || '未知文章'}」留言：${(c.content || '').slice(0, 50)}</span>
+            </div>
+            <div style="display:flex; gap:6px;">
+                <button class="btn btn-secondary" style="padding:4px 10px;" onclick="toggleTakeCommentVisibility('${c.id}', ${c.is_hidden})">${c.is_hidden ? '恢復顯示' : '隱藏'}</button>
+                <button class="btn btn-danger" style="padding:4px 10px;" onclick="deleteTakeComment('${c.id}')">🗑️</button>
+            </div>
+        </div>
+    `).join('') : '<div style="text-align:center; color:var(--text-muted); padding:1rem;">尚無留言</div>';
+}
+
+window.toggleTakeCommentVisibility = async function(id, currentHidden) {
+    const { error } = await supabase.from('editor_take_comments').update({ is_hidden: !currentHidden }).eq('id', id);
+    if (error) { alert('更新失敗：' + error.message); return; }
+    await refreshTakeCommentsList();
+};
+
+window.deleteTakeComment = async function(id) {
+    if (!confirm('確定要永久刪除這則留言嗎？')) return;
+    const { error } = await supabase.from('editor_take_comments').delete().eq('id', id);
+    if (error) { alert('刪除失敗：' + error.message); return; }
+    await refreshTakeCommentsList();
+};

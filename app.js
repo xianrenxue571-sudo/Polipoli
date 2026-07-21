@@ -170,10 +170,17 @@ window.switchMainTab = function(tabName, preventReload = false) {
     document.getElementById(`tab-${tabName}`).classList.add('active');
 
     if (tabName === 'analysis') {
+        hideEditorTakesView();
         showAnalysisView();
         return;
     }
+    if (tabName === 'editorTakes') {
+        hideAnalysisView();
+        showEditorTakesView();
+        return;
+    }
     hideAnalysisView();
+    hideEditorTakesView();
     
     if (!preventReload) {
         resetToLatest(true);
@@ -200,6 +207,222 @@ function hideAnalysisView() {
     document.getElementById('events-feed').style.display = '';
     document.getElementById('analysis-feed').style.display = 'none';
 }
+
+function showEditorTakesView() {
+    document.querySelector('.container').classList.add('no-sidebar');
+    document.querySelector('aside').style.display = 'none';
+    document.getElementById('events-feed').style.display = 'none';
+    document.getElementById('stat-dashboard').style.display = 'none';
+    document.getElementById('loader').classList.remove('visible');
+    document.getElementById('end-message').style.display = 'none';
+    document.getElementById('feed-title').textContent = '🗣️ 站長觀點';
+    document.getElementById('editor-takes-feed').style.display = 'block';
+    loadEditorTakesFeed();
+}
+
+function hideEditorTakesView() {
+    const feed = document.getElementById('editor-takes-feed');
+    if (feed) feed.style.display = 'none';
+}
+
+// ===== 站長觀點：留言防護參數 =====
+const TAKE_COMMENT_COOLDOWN_MS = 30 * 1000; // 同一裝置兩則留言間隔
+const TAKE_COMMENT_DAILY_LIMIT = 8; // 同一裝置每日留言上限
+const TAKE_COMMENT_MAX_LEN = 500;
+const SPAM_KEYWORDS = ['viagra', '博彩', '娛樂城', '色情', 'http://bit.ly', 'wechat', '加line'];
+
+function countUrls(text) {
+    const m = text.match(/https?:\/\/|www\./gi);
+    return m ? m.length : 0;
+}
+
+function commentRateLimitCheck() {
+    try {
+        const now = Date.now();
+        const lastTs = parseInt(localStorage.getItem('polipoli_last_comment_ts') || '0', 10);
+        if (now - lastTs < TAKE_COMMENT_COOLDOWN_MS) {
+            return `留言太頻繁了，請稍等 ${Math.ceil((TAKE_COMMENT_COOLDOWN_MS - (now - lastTs)) / 1000)} 秒再試。`;
+        }
+        const todayKey = 'polipoli_comment_count_' + new Date().toISOString().slice(0, 10);
+        const todayCount = parseInt(localStorage.getItem(todayKey) || '0', 10);
+        if (todayCount >= TAKE_COMMENT_DAILY_LIMIT) {
+            return '今天的留言次數已達上限，請明天再來。';
+        }
+        return null;
+    } catch (e) {
+        return null;
+    }
+}
+
+function commentRateLimitCommit() {
+    try {
+        const now = Date.now();
+        localStorage.setItem('polipoli_last_comment_ts', String(now));
+        const todayKey = 'polipoli_comment_count_' + new Date().toISOString().slice(0, 10);
+        const todayCount = parseInt(localStorage.getItem(todayKey) || '0', 10);
+        localStorage.setItem(todayKey, String(todayCount + 1));
+    } catch (e) { /* localStorage 不可用時略過限流紀錄 */ }
+}
+
+function renderEditorTakeCommentsHtml(takeId, comments) {
+    const list = (comments || []).map(c => `
+        <div class="comment-item" id="comment-${c.id}">
+            <div class="comment-item-header">
+                <span class="comment-author">🙋 ${escapeHtmlClient(c.author_name || '匿名讀者')}</span>
+                <span class="comment-date">${(c.created_at || '').slice(0, 10)}</span>
+            </div>
+            <p class="comment-content">${escapeHtmlClient(c.content)}</p>
+            <button class="comment-report-btn" onclick="reportTakeComment('${c.id}', this)">🚩 檢舉</button>
+        </div>
+    `).join('');
+
+    return `
+        <div class="comment-section" id="comment-section-${takeId}">
+            <div class="comment-list" id="comment-list-${takeId}">
+                ${list || '<div class="comment-empty">目前尚無留言，成為第一個留言的讀者吧。</div>'}
+            </div>
+            <div class="comment-form">
+                <input type="text" maxlength="30" class="comment-name-input" id="comment-name-${takeId}" placeholder="暱稱（可留空）">
+                <input type="text" class="comment-honeypot" id="comment-hp-${takeId}" style="position:absolute;left:-9999px;" tabindex="-1" autocomplete="off">
+                <textarea class="comment-content-input" id="comment-content-${takeId}" maxlength="${TAKE_COMMENT_MAX_LEN}" placeholder="留下你的看法（最多 ${TAKE_COMMENT_MAX_LEN} 字）"></textarea>
+                <button class="btn-comment-submit" onclick="submitTakeComment('${takeId}')">送出留言</button>
+            </div>
+        </div>`;
+}
+
+function escapeHtmlClient(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+async function loadEditorTakesFeed() {
+    const container = document.getElementById('editor-takes-feed');
+    container.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-muted);">載入中...</div>';
+
+    const { data: takes, error } = await supabase.from('editor_takes')
+        .select(`
+            id, title, content, created_at,
+            editor_take_politician_map ( politician_id, politicians ( name ) ),
+            editor_take_event_map ( event_id, events ( quote, date ) ),
+            editor_take_comments ( id, author_name, content, created_at, is_hidden )
+        `)
+        .eq('is_visible', true)
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        container.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-muted);">載入失敗，請稍後再試。</div>';
+        console.error(error);
+        return;
+    }
+
+    let html = '<div class="analysis-disclaimer">⚠️ 以下內容為「站長觀點」，是站長個人的主觀想法與評論，並非本站爭議事件資料庫查證後的事實認定，請自行判斷參考。</div>';
+
+    if (!takes || takes.length === 0) {
+        html += '<div class="analysis-empty">目前尚無站長觀點。</div>';
+        container.innerHTML = html;
+        return;
+    }
+
+    html += takes.map(t => {
+        const polTags = (t.editor_take_politician_map || []).filter(m => m.politicians?.name).map(m =>
+            `<span class="info-tag">👤 ${escapeHtmlClient(m.politicians.name)}</span>`
+        ).join('');
+        const eventTags = (t.editor_take_event_map || []).filter(m => m.events?.quote).map(m =>
+            `<span class="info-tag issue-tag">📌 「${escapeHtmlClient(m.events.quote)}」${m.events.date ? `（${escapeHtmlClient(m.events.date)}）` : ''}</span>`
+        ).join('');
+        const visibleComments = (t.editor_take_comments || []).filter(c => !c.is_hidden)
+            .sort((a, b) => (a.created_at || '').localeCompare(b.created_at || ''));
+
+        return `
+        <article class="event-card editor-take-card">
+            <div class="tag-row">
+                <span class="editor-take-badge">🗣️ 站長觀點（主觀評論）</span>
+                <span class="meta-tag">📅 ${escapeHtmlClient((t.created_at || '').slice(0, 10))}</span>
+                ${polTags}
+                ${eventTags}
+            </div>
+            <h3 class="event-quote">${escapeHtmlClient(t.title)}</h3>
+            <div class="event-context">${escapeHtmlClient(t.content)}</div>
+            ${renderEditorTakeCommentsHtml(t.id, visibleComments)}
+        </article>`;
+    }).join('');
+
+    container.innerHTML = html;
+}
+
+window.submitTakeComment = async function(takeId) {
+    const contentEl = document.getElementById(`comment-content-${takeId}`);
+    const nameEl = document.getElementById(`comment-name-${takeId}`);
+    const hpEl = document.getElementById(`comment-hp-${takeId}`);
+
+    const content = (contentEl?.value || '').trim();
+    const authorName = (nameEl?.value || '').trim().slice(0, 30) || '匿名讀者';
+
+    // 蜜罐欄位：一般使用者看不到也不會填寫，機器人常會自動填入
+    if (hpEl && hpEl.value.trim() !== '') {
+        console.warn('偵測到疑似機器人留言，已略過送出。');
+        return;
+    }
+
+    if (!content) { alert('留言內容不能是空的！'); return; }
+    if (content.length > TAKE_COMMENT_MAX_LEN) { alert(`留言請勿超過 ${TAKE_COMMENT_MAX_LEN} 字！`); return; }
+    if (countUrls(content) >= 2) { alert('留言中的連結數量過多，請簡化後再送出。'); return; }
+    const lowerContent = content.toLowerCase();
+    if (SPAM_KEYWORDS.some(k => lowerContent.includes(k))) {
+        alert('留言內容包含不適當關鍵字，請修改後再送出。');
+        return;
+    }
+
+    const rateLimitMsg = commentRateLimitCheck();
+    if (rateLimitMsg) { alert(rateLimitMsg); return; }
+
+    const { error } = await supabase.from('editor_take_comments').insert([{
+        editor_take_id: takeId,
+        author_name: authorName,
+        content
+    }]);
+
+    if (error) {
+        alert('留言送出失敗，請稍後再試。');
+        console.error(error);
+        return;
+    }
+
+    commentRateLimitCommit();
+    if (contentEl) contentEl.value = '';
+    if (nameEl) nameEl.value = '';
+
+    // 重新載入該則留言區，顯示剛送出的留言
+    const { data: comments } = await supabase.from('editor_take_comments')
+        .select('id, author_name, content, created_at, is_hidden')
+        .eq('editor_take_id', takeId)
+        .eq('is_hidden', false)
+        .order('created_at', { ascending: true });
+
+    const section = document.getElementById(`comment-section-${takeId}`);
+    if (section) {
+        section.outerHTML = renderEditorTakeCommentsHtml(takeId, comments || []);
+    }
+};
+
+window.reportTakeComment = async function(commentId, btnEl) {
+    if (!confirm('確定要檢舉這則留言嗎？累積多筆檢舉後將自動隱藏，等候站長複核。')) return;
+    const { error } = await supabase.rpc('report_comment', { comment_id: commentId });
+    if (error) {
+        alert('檢舉失敗，請稍後再試。');
+        console.error(error);
+        return;
+    }
+    if (btnEl) {
+        btnEl.disabled = true;
+        btnEl.textContent = '已檢舉';
+    }
+    alert('已收到檢舉，感謝協助維護留言品質。');
+};
 
 async function loadAnalysisFeed() {
     const container = document.getElementById('analysis-feed');
