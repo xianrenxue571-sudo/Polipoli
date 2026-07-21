@@ -363,9 +363,9 @@ async function loadEditorTakesFeed() {
 
     html += takes.map(t => {
         const polTags = (t.editor_take_politician_map || []).filter(m => m.politicians?.name).map(m =>
-            `<span class="info-tag">👤 ${escapeHtmlClient(m.politicians.name)}</span>`).join('');
+            `<span class="info-tag">${escapeHtmlClient(m.politicians.name)}</span>`).join('');
         const eventTags = (t.editor_take_event_map || []).filter(m => m.events?.quote).map(m =>
-            `<span class="info-tag issue-tag">📌 「${escapeHtmlClient(m.events.quote)}」${m.events.date ? `（${escapeHtmlClient(m.events.date)}）` : ''}</span>`).join('');
+            `<span class="info-tag issue-tag">「${escapeHtmlClient(m.events.quote)}」${m.events.date ? `（${escapeHtmlClient(m.events.date)}）` : ''}</span>`).join('');
         const visibleComments = (t.editor_take_comments || []).filter(c => !c.is_hidden)
             .sort((a, b) => (a.created_at || '').localeCompare(b.created_at || ''));
 
@@ -779,11 +779,11 @@ function renderEvents(events) {
 
     const html = events.map(e => {
         const issueTags = e.event_issue_map?.filter(m => m.issues?.name).map(m =>
-            navAnchor({ type: 'issue', id: m.issue_id, name: m.issues.name, active: false, label: `📌 ${escapeHtmlClient(m.issues.name)}`, extraClass: 'info-tag issue-tag' })
+            navAnchor({ type: 'issue', id: m.issue_id, name: m.issues.name, active: false, label: escapeHtmlClient(m.issues.name), extraClass: 'info-tag issue-tag' })
         ).join('') || '';
 
         const polTags = e.event_politician_map?.filter(m => m.politicians?.name && m.politicians.name !== currentTargetName).map(m =>
-            navAnchor({ type: 'politician', id: m.politician_id, name: m.politicians.name, active: false, label: `👤 ${escapeHtmlClient(m.politicians.name)}`, extraClass: 'info-tag' })
+            navAnchor({ type: 'politician', id: m.politician_id, name: m.politicians.name, active: false, label: escapeHtmlClient(m.politicians.name), extraClass: 'info-tag' })
         ).join('') || '';
 
         const isLiked = userLikedEventIds.has(e.id);
