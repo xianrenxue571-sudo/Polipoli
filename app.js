@@ -106,6 +106,20 @@ window.onload = async () => {
         setupIntersectionObserver();
         return;
     }
+    if (window.__SSG_ANALYSIS_PAGE) {
+        currentTab = 'analysis';
+        document.querySelectorAll('.main-tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.getElementById('tab-analysis').classList.add('active');
+        showAnalysisView();
+        return;
+    }
+    if (window.__SSG_EDITOR_TAKES_PAGE) {
+        currentTab = 'editorTakes';
+        document.querySelectorAll('.main-tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.getElementById('tab-editorTakes').classList.add('active');
+        showEditorTakesView();
+        return;
+    }
 
     // 舊有的 query string 路由方式，維持向下相容
     const urlParams = new URLSearchParams(window.location.search);
