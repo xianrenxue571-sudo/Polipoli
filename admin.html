@@ -121,7 +121,7 @@
     </div>
 
     <div class="admin-card">
-        <h3>🗣️ 新增站長觀點</h3>
+        <h3 id="editor-take-form-heading">🗣️ 新增站長觀點</h3>
         <p style="color:var(--text-muted); font-size:0.9rem; margin-top:-0.5rem;">這裡是站長個人主觀想法的發表區，不受爭議事件資料庫「中性陳述、不下評價」規範限制，會以獨立樣式（紫色標籤）顯示於前台，與查證過的爭議事件明確區隔。</p>
         <div class="form-group">
             <label for="take-title">標題</label>
@@ -151,7 +151,10 @@
             <div class="checkbox-group-box" id="take-events-chosen" style="margin-top:8px;"></div>
         </div>
 
-        <button class="btn btn-success" onclick="saveEditorTake()">🚀 發布站長觀點</button>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button class="btn btn-success" id="btn-save-editor-take" onclick="saveEditorTake()">🚀 發布站長觀點</button>
+            <button class="btn btn-secondary" id="btn-cancel-edit-take" style="display:none;" onclick="cancelEditEditorTake()">✕ 取消編輯</button>
+        </div>
         <div class="sidebar-list" style="max-height: 300px; overflow-y: auto; margin-top: 1.5rem;" id="list-editor-takes"></div>
     </div>
 

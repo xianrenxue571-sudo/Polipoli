@@ -1040,6 +1040,7 @@ window.resolveDup = async function(action) {
 
 // ===== 站長觀點管理 =====
 let takeChosenEvents = [];
+let editingTakeId = null; // null = 新增模式；有值 = 正在編輯這篇既有的站長觀點
 
 async function initEditorTakesTab() {
     document.getElementById('take-title').value = '';
@@ -1047,6 +1048,8 @@ async function initEditorTakesTab() {
     document.getElementById('take-new-politician-name').value = '';
     document.getElementById('take-event-search').value = '';
     takeChosenEvents = [];
+    editingTakeId = null;
+    resetEditorTakeFormUI();
 
     renderTakePoliticianCheckboxes();
 
@@ -1068,6 +1071,12 @@ function renderTakePoliticianCheckboxes() {
             <input type="checkbox" name="take-pol-box" value="${p.id}"> ${p.name}${p.is_verified === false ? ' (待查證)' : ''}
         </label>
     `).join('');
+}
+
+function resetEditorTakeFormUI() {
+    document.getElementById('editor-take-form-heading').textContent = '🗣️ 新增站長觀點';
+    document.getElementById('btn-save-editor-take').textContent = '🚀 發布站長觀點';
+    document.getElementById('btn-cancel-edit-take').style.display = 'none';
 }
 
 window.addNewPoliticianForTake = async function() {
@@ -1143,6 +1152,36 @@ window.saveEditorTake = async function() {
     if (!title) { alert('請輸入標題！'); return; }
     if (!content) { alert('請輸入內容！'); return; }
 
+    if (editingTakeId) {
+        // 編輯既有站長觀點：更新主體內容，關聯的人物／事件則用「先清空再重建」
+        // 的方式同步，不用一筆筆比對誰加了誰刪了，邏輯簡單也不容易漏掉。
+        const takeId = editingTakeId;
+        const { error: updateError } = await supabase.from('editor_takes')
+            .update({ title, content })
+            .eq('id', takeId);
+        if (updateError) { alert('更新失敗：' + updateError.message); return; }
+
+        const { error: delPolErr } = await supabase.from('editor_take_politician_map').delete().eq('editor_take_id', takeId);
+        if (delPolErr) console.error('清除舊人物關聯失敗:', delPolErr);
+        const { error: delEvErr } = await supabase.from('editor_take_event_map').delete().eq('editor_take_id', takeId);
+        if (delEvErr) console.error('清除舊事件關聯失敗:', delEvErr);
+
+        if (checkedPolIds.length > 0) {
+            const { error: polMapError } = await supabase.from('editor_take_politician_map')
+                .insert(checkedPolIds.map(pid => ({ editor_take_id: takeId, politician_id: pid })));
+            if (polMapError) console.error('關聯政治人物失敗:', polMapError);
+        }
+        if (takeChosenEvents.length > 0) {
+            const { error: evMapError } = await supabase.from('editor_take_event_map')
+                .insert(takeChosenEvents.map(e => ({ editor_take_id: takeId, event_id: e.id })));
+            if (evMapError) console.error('關聯事件失敗:', evMapError);
+        }
+
+        alert('站長觀點已更新！');
+        await initEditorTakesTab();
+        return;
+    }
+
     const { data: takeData, error: takeError } = await supabase.from('editor_takes')
         .insert([{ title, content, is_visible: true }])
         .select()
@@ -1168,6 +1207,50 @@ window.saveEditorTake = async function() {
     await initEditorTakesTab();
 };
 
+window.editEditorTake = async function(id) {
+    const { data, error } = await supabase.from('editor_takes')
+        .select(`
+            id, title, content,
+            editor_take_politician_map ( politician_id ),
+            editor_take_event_map ( event_id, events ( quote, date ) )
+        `)
+        .eq('id', id)
+        .single();
+
+    if (error || !data) { alert('讀取這篇站長觀點失敗，請稍後再試。'); return; }
+
+    editingTakeId = id;
+    document.getElementById('take-title').value = data.title || '';
+    document.getElementById('take-content').value = data.content || '';
+
+    renderTakePoliticianCheckboxes();
+    const checkedIds = new Set((data.editor_take_politician_map || []).map(m => m.politician_id));
+    document.querySelectorAll('input[name="take-pol-box"]').forEach(cb => {
+        cb.checked = checkedIds.has(cb.value);
+    });
+
+    takeChosenEvents = (data.editor_take_event_map || [])
+        .filter(m => m.event_id)
+        .map(m => ({ id: m.event_id, quote: m.events?.quote || '', date: m.events?.date || '' }));
+    renderTakeEventChips();
+
+    document.getElementById('editor-take-form-heading').textContent = `✏️ 編輯站長觀點：${data.title || ''}`;
+    document.getElementById('btn-save-editor-take').textContent = '💾 更新此觀點';
+    document.getElementById('btn-cancel-edit-take').style.display = 'inline-flex';
+
+    document.getElementById('take-title').scrollIntoView({ behavior: 'smooth', block: 'center' });
+};
+
+window.cancelEditEditorTake = function() {
+    editingTakeId = null;
+    document.getElementById('take-title').value = '';
+    document.getElementById('take-content').value = '';
+    takeChosenEvents = [];
+    renderTakePoliticianCheckboxes();
+    renderTakeEventChips();
+    resetEditorTakeFormUI();
+};
+
 async function refreshEditorTakesList() {
     const listEl = document.getElementById('list-editor-takes');
     const { data, error } = await supabase.from('editor_takes')
@@ -1189,6 +1272,7 @@ async function refreshEditorTakesList() {
                 <span class="item-sub">${pols ? '關聯人物：' + pols + '　' : ''}${(t.content || '').slice(0, 40)}...</span>
             </div>
             <div style="display:flex; gap:6px;">
+                <button class="btn" style="padding:4px 10px; background:var(--warning);" onclick="editEditorTake('${t.id}')">✏️ 編輯</button>
                 <button class="btn btn-secondary" style="padding:4px 10px;" onclick="toggleEditorTakeVisibility('${t.id}', ${t.is_visible})">${t.is_visible ? '隱藏' : '恢復顯示'}</button>
                 <button class="btn btn-danger" style="padding:4px 10px;" onclick="deleteEditorTake('${t.id}')">🗑️</button>
             </div>
@@ -1206,6 +1290,7 @@ window.deleteEditorTake = async function(id) {
     if (!confirm('確定要刪除這篇站長觀點嗎？相關留言也會一併刪除，此動作無法復原。')) return;
     const { error } = await supabase.from('editor_takes').delete().eq('id', id);
     if (error) { alert('刪除失敗：' + error.message); return; }
+    if (editingTakeId === id) cancelEditEditorTake();
     await refreshEditorTakesList();
     await refreshTakeCommentsList();
 };
