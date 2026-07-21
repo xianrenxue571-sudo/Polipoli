@@ -7,7 +7,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, '..');
 const OUT_DIR = path.join(ROOT, 'dist');
 
-// 沿用 app.js 裡同一組 anon key（本來就是公開的，Cloudflare Pages 環境變數可覆蓋）
+// 沿用 app.js 裡同一組 anon key（本來就是公開的，部署環境變數可覆蓋）
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://ymrpsmrxnoyypayzujlm.supabase.co';
 const ANON_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InltcnBzbXJ4bm95eXBheXp1amxtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwNTYyMzcsImV4cCI6MjA5ODYzMjIzN30.Mp8K310jjvKUkKQszs5VaA8GwuJUzQTv3PyXfP7ZdKU';
 const SITE_URL = (process.env.SITE_URL || 'https://polipoli.cc').replace(/\/$/, '');
@@ -15,7 +15,7 @@ const SITE_URL = (process.env.SITE_URL || 'https://polipoli.cc').replace(/\/$/, 
 const supabase = createClient(SUPABASE_URL, ANON_KEY);
 
 function slugify(name) {
-    // 直接使用原始中文當資料夾名稱，讓 wrangler 自行處理 URL 編碼
+    // 直接使用原始中文當資料夾名稱，讓部署平台自行處理 URL 編碼，
     // 避免預先 encodeURIComponent 再被上傳工具二次編碼，造成雙重編碼 404
     return String(name).trim();
 }
@@ -50,7 +50,7 @@ async function fetchAll() {
         supabase.from('politician_analysis').select('content, politicians(name)').eq('is_visible', true),
         supabase.from('event_analysis').select('content, events(quote, date)').eq('is_visible', true),
         supabase.from('editor_takes').select(`
-            id, title, content, source_url, created_at,
+            id, title, content, created_at,
             editor_take_politician_map ( politician_id, politicians ( name ) ),
             editor_take_event_map ( event_id, events ( quote, date ) ),
             editor_take_comments ( id, author_name, content, created_at, is_hidden )
@@ -157,22 +157,16 @@ function renderEditorTakesFeedSSR(takes) {
         const visibleComments = (t.editor_take_comments || []).filter(c => !c.is_hidden)
             .sort((a, b) => (a.created_at || '').localeCompare(b.created_at || ''));
 
-        const sourceLinkHtml = t.source_url ? `
-            <div class="event-actions" style="border-top:none; padding-top:0; margin-top:0.8rem;">
-                <a href="${escapeHtml(t.source_url)}" target="_blank" rel="noopener noreferrer" class="source-link">🔗 參考連結</a>
-            </div>` : '';
-
         return `
         <article class="event-card editor-take-card">
             <div class="tag-row">
-                <span class="editor-take-badge">🗣️ 站長觀點（主觀評論）</span>
+                <span class="editor-take-badge">🗣️ 站長觀點</span>
                 <span class="meta-tag">📅 ${escapeHtml((t.created_at || '').slice(0, 10))}</span>
                 ${polTags}
                 ${eventTags}
             </div>
             <h3 class="event-quote">${escapeHtml(t.title)}</h3>
             <div class="event-context editor-take-content">${renderTakeContentHtmlSSR(t.content)}</div>
-            ${sourceLinkHtml}
             ${renderEditorTakeCommentsHtmlSSR(t.id, visibleComments)}
         </article>`;
     }).join('');
@@ -204,13 +198,27 @@ function renderImpactBoxSSR(label, icon, text, score, extraClass) {
         </div>`;
 }
 
+function navAnchorSSR(type, id, name, label, extraClass) {
+    const href = type === 'politician'
+        ? `/politician/${encodeURIComponent(name)}/`
+        : `/issue/${encodeURIComponent(name)}/`;
+    return `<a class="${extraClass}" href="${href}" data-nav="${type}" data-id="${escapeHtml(id)}" data-name="${escapeHtml(name)}">${label}</a>`;
+}
+
+function parseContextLinksSSR(text) {
+    if (!text) return '無詳細脈絡說明。';
+    const escaped = escapeHtml(text);
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    return escaped.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer" class="source-link" style="display:inline;">🔗 參考連結</a>');
+}
+
 function renderEventCardSSR(e) {
     const issueTags = (e.event_issue_map || []).filter(m => m.issues?.name).map(m =>
-        `<span class="info-tag issue-tag" onclick="loadSpecificData('issue', '${m.issue_id}', '${escapeHtml(m.issues.name)}')">📌 ${escapeHtml(m.issues.name)}</span>`
+        navAnchorSSR('issue', m.issue_id, m.issues.name, `📌 ${escapeHtml(m.issues.name)}`, 'info-tag issue-tag')
     ).join('');
 
     const polTags = (e.event_politician_map || []).filter(m => m.politicians?.name).map(m =>
-        `<span class="info-tag" onclick="loadSpecificData('politician', '${m.politician_id}', '${escapeHtml(m.politicians.name)}')">👤 ${escapeHtml(m.politicians.name)}</span>`
+        navAnchorSSR('politician', m.politician_id, m.politicians.name, `👤 ${escapeHtml(m.politicians.name)}`, 'info-tag')
     ).join('');
 
     const likesCount = e.likes_count || 0;
@@ -232,19 +240,19 @@ function renderEventCardSSR(e) {
                 ${issueTags}
             </div>
             <h3 class="event-quote">「${escapeHtml(e.quote)}」</h3>
-            <div class="event-context">${escapeHtml(e.context) || '無詳細脈絡說明。'}</div>
+            <div class="event-context">${parseContextLinksSSR(e.context)}</div>
             ${e.response_summary ? `<div class="event-response">🗣️ 當事人回應：${escapeHtml(e.response_summary)}</div>` : ''}
             ${analysisContent ? `<div class="site-comment"><div class="site-comment-header"><span class="analysis-badge">⚠️ 觀點分析</span><strong>站長點評</strong></div><p>${escapeHtml(analysisContent)}</p></div>` : ''}
             ${renderImpactBoxSSR('對人民的影響', '💥', e.people_impact, e.people_impact_score)}
             ${renderImpactBoxSSR('對國安的影響', '🛡️', e.national_security_impact, e.national_impact_score, 'event-impact-security')}
-            <div class="event-actions" style="display:flex;justify-content:space-between;flex-direction:row;align-items:flex-end;">
+            <div class="event-actions">
                 <div class="like-container">
-                    <button class="like-btn" onclick="toggleLike('${e.id}', this)">
+                    <button class="like-btn" data-like-id="${e.id}">
                         <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
                         <span class="like-count">${likesCount}</span>
                     </button>
                 </div>
-                <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;">${sourceLinks}</div>
+                <div class="source-link-group">${sourceLinks}</div>
             </div>
         </article>`;
 }
@@ -285,7 +293,7 @@ function renderPage({ title, description, ogTitle, ogDescription, canonicalPath,
     html = html.replace('<link rel="preconnect"', `<link rel="canonical" href="${SITE_URL}${canonicalPath}">\n    <link rel="preconnect"`);
 
     if (viewMode === 'analysis' || viewMode === 'editorTakes') {
-        // 分析紀錄／站長觀點頁：預設隱藏事件牆與側邊欄，直接把 SSR 內容放進對應容器，
+        // 分析紀錄／站長觀點頁：預設隱藏案卷牆與側欄，直接把 SSR 內容放進對應容器，
         // 讓爬蟲與沒有執行 JS 的使用者也能看到完整內容；app.js 載入後會依 hydration 旗標重新抓取即時資料覆蓋上去。
         html = html.replace('<div id="events-feed"></div>', '<div id="events-feed" style="display:none;"></div>');
         html = html.replace('<div class="container">', '<div class="container no-sidebar">');
@@ -306,6 +314,16 @@ function renderPage({ title, description, ogTitle, ogDescription, canonicalPath,
         }
     } else {
         html = html.replace('<div id="events-feed"></div>', `<div id="events-feed">${eventsHtml}</div>`);
+
+        if (viewMode === 'issuesHome') {
+            // /issues/ 頁：內容跟首頁一樣是最新案卷牆，只是預設啟用「社會議題」分頁，
+            // 讓這顆分頁也有一個真正可以被連結、被爬蟲索引的網址。
+            html = html.replace('class="main-tab-btn active" id="tab-politicians"', 'class="main-tab-btn" id="tab-politicians"');
+            html = html.replace('class="main-tab-btn" id="tab-issues"', 'class="main-tab-btn active" id="tab-issues"');
+            if (feedTitle) {
+                html = html.replace(/<h2 id="feed-title">.*?<\/h2>/s, `<h2 id="feed-title">${escapeHtml(feedTitle)}</h2>`);
+            }
+        }
     }
 
     html = html.replace(
@@ -336,19 +354,42 @@ async function main() {
     const { politicians, issues, events, polAnalyses, evAnalyses, editorTakes } = await fetchAll();
     const sitemapUrls = [`${SITE_URL}/`];
 
-    // 首頁：最新事件
+    // 首頁：最新案卷
     const latestEvents = events.slice(0, 30);
     const homeHtml = renderPage({
         title: 'Polipoli 啪哩啪哩 | 台灣政治人物爭議事件與雙標言行資料庫',
         description: '專注記錄台灣政治人物言行、失言與重大社會議題。透過人物標籤快速檢驗雙標言論，提供完整的新聞脈絡與爭議事件懶人包。',
-        ogTitle: 'Polipoli 啪哩啪哩 | 政治人物言行審查資料庫',
+        ogTitle: 'Polipoli 啪哩啪哩檔案室 | 政治人物言行審查資料庫',
         ogDescription: '幫你記住政治人物說過的話。快速檢驗雙標言論，追蹤熱門人物的事件與爭議。',
         canonicalPath: '/',
         eventsHtml: latestEvents.map(renderEventCardSSR).join(''),
         schemaJson: buildSchema(latestEvents),
+        // 不需要額外的計數變數：app.js 會直接數 DOM 裡目前渲染了幾張案卷卡片
+        // 來決定接續抓取的起點，比另外維護一個計數變數更不容易兩邊對不上。
         hydrationScript: ''
     });
     fs.writeFileSync(path.join(OUT_DIR, 'index.html'), homeHtml);
+
+    // 社會議題總覽頁：內容跟首頁相同（最新案卷牆），只是分頁預設停在「社會議題」，
+    // 讓這顆分頁按鈕有真正的網址可以連、可以被搜尋引擎索引，而不是純前端狀態切換。
+    {
+        const dir = path.join(OUT_DIR, 'issues');
+        fs.mkdirSync(dir, { recursive: true });
+        const html = renderPage({
+            title: '社會議題總覽 | Polipoli 啪哩啪哩',
+            description: '依社會議題分類瀏覽台灣政治人物爭議事件，快速找到你關心的議題相關案卷。',
+            ogTitle: '社會議題總覽 | Polipoli 啪哩啪哩',
+            ogDescription: '依社會議題分類瀏覽政治人物爭議事件案卷。',
+            canonicalPath: '/issues/',
+            eventsHtml: latestEvents.map(renderEventCardSSR).join(''),
+            schemaJson: buildSchema(latestEvents),
+            hydrationScript: `<script>window.__SSG_ISSUES_TAB = true;</script>`,
+            viewMode: 'issuesHome',
+            feedTitle: '全部社會議題案卷'
+        });
+        fs.writeFileSync(path.join(dir, 'index.html'), html);
+        sitemapUrls.push(`${SITE_URL}/issues/`);
+    }
 
     // 人物專屬頁
     for (const p of politicians) {
@@ -361,7 +402,7 @@ async function main() {
 
         const html = renderPage({
             title: `${p.name} 爭議與言行紀錄 | Polipoli 啪哩啪哩`,
-            description: `完整收錄 ${p.name} 的爭議事件、失言紀錄與相關新聞脈絡，共 ${relatedEvents.length} 筆事件。`,
+            description: `完整收錄 ${p.name} 的爭議事件、失言紀錄與相關新聞脈絡，共 ${relatedEvents.length} 筆案卷。`,
             ogTitle: `${p.name} 爭議與言行紀錄 | Polipoli 啪哩啪哩`,
             ogDescription: `完整收錄 ${p.name} 的爭議事件、失言紀錄與相關新聞脈絡。`,
             canonicalPath: `/politician/${encodeURIComponent(slug)}/`,
