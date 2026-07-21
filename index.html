@@ -6,7 +6,7 @@
     <title>Polipoli 啪哩啪哩 | 台灣政治人物爭議事件與雙標言行資料庫</title>
     <meta name="description" content="專注記錄台灣政治人物言行、失言與重大社會議題。透過人物標籤快速檢驗雙標言論，提供完整的新聞脈絡與爭議事件懶人包。">
     <meta name="keywords" content="政治人物 爭議, 失言紀錄, 雙標言論, 社會議題, 台灣政治, 事實查核, 懶人包">
-    
+
     <meta property="og:title" content="Polipoli 啪哩啪哩 | 政治人物言行審查資料庫">
     <meta property="og:description" content="幫你記住政治人物說過的話。快速檢驗雙標言論，追蹤熱門人物的事件與爭議。">
     <meta property="og:type" content="website">
@@ -22,58 +22,58 @@
     <link rel="stylesheet" href="./style.css">
 </head>
 <body>
-    <h1 class="sr-only">Polipoli 啪哩啪哩 - 台灣政治人物言行審查與社會議題追蹤站</h1>
+    <h1 class="sr-only">Polipoli 啪哩啪哩 - 台灣政治人物言行檔案室與社會議題追蹤站</h1>
 
     <header id="main-header">
-        <div class="logo-container" onclick="resetToLatest(true)">
+        <a href="/" class="logo-container" data-nav="home">
             <img src="/polipoli_favicon.png" alt="Polipoli Logo" class="header-logo-img">
             <div class="header-text-group">
-                <div class="header-title">Polipoli 啪哩啪哩追蹤站</div>
+                <div class="header-title">Polipoli 啪哩啪哩檔案室</div>
                 <div class="header-slogan">把政治人物的虛偽外衣，扒得清清楚楚。</div>
-                <div class="header-subtitle">專門收錄裝作啪哩啪哩，做事卻兩光的政治人物。</div>
+                <div class="header-subtitle">每一筆案卷，都附原始來源可供查證。</div>
             </div>
-        </div>
+        </a>
         <a href="/about.html" class="header-about-link">ℹ️ 關於本站</a>
     </header>
 
     <nav class="main-tabs" aria-label="主要導覽">
-        <button class="main-tab-btn active" id="tab-politicians" onclick="switchMainTab('politicians')">人物言行</button>
-        <button class="main-tab-btn" id="tab-issues" onclick="switchMainTab('issues')">社會議題</button>
-        <button class="main-tab-btn" id="tab-analysis" onclick="switchMainTab('analysis')">分析紀錄</button>
-        <button class="main-tab-btn" id="tab-editorTakes" onclick="switchMainTab('editorTakes')">站長觀點</button>
+        <a href="/" class="main-tab-btn active" id="tab-politicians" data-nav="tab" data-tab="politicians">人物言行</a>
+        <a href="/issues/" class="main-tab-btn" id="tab-issues" data-nav="tab" data-tab="issues">社會議題</a>
+        <a href="/analysis/" class="main-tab-btn" id="tab-analysis" data-nav="tab" data-tab="analysis">分析紀錄</a>
+        <a href="/editor-takes/" class="main-tab-btn" id="tab-editorTakes" data-nav="tab" data-tab="editorTakes">站長觀點</a>
     </nav>
 
     <div class="container">
         <aside>
-            <h2 id="sidebar-title">人物檔案庫</h2>
-            
+            <h2 id="sidebar-title">人物檔案索引</h2>
+
             <div class="search-container" id="sidebar-search-container">
                 <input type="text" id="sidebar-search" class="search-input" placeholder="輸入姓名搜尋人物..." oninput="filterSidebar()">
             </div>
-            
+
             <select id="mobile-issue-select" class="mobile-issue-select" onchange="handleMobileIssueSelect(this.value)"></select>
 
             <div class="sidebar-list">
                <div id="quick-tags-container" class="quick-tags-container">
-                    <div style="text-align: center; color: var(--text-muted); font-size: 0.9rem; width: 100%;">資料載入中...</div>
+                    <div style="text-align:center;color:var(--muted);font-size:0.85rem;width:100%;">案卷調閱中...</div>
                 </div>
             </div>
         </aside>
 
         <main>
             <div class="feed-header">
-                <h2 id="feed-title">綜合最新事件牆</h2>
+                <h2 id="feed-title">綜合案卷牆</h2>
             </div>
-         
+
             <div id="stat-dashboard"></div>
 
             <div id="events-feed"></div>
 
             <div id="analysis-feed" style="display:none;"></div>
             <div id="editor-takes-feed" style="display:none;"></div>
-            
-            <div id="loader">載入更多事件中...</div>
-            <div id="end-message" class="end-message">已經到底囉！</div>
+
+            <div id="loader">案卷調閱中...</div>
+            <div id="end-message" class="end-message">— 卷宗已調閱完畢 —</div>
         </main>
     </div>
 

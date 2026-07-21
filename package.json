@@ -1,5 +1,5 @@
 {
-  "name": "polipoli-ssg",
+  "name": "polipoli-archive-ssg",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -10,4 +10,3 @@
     "@supabase/supabase-js": "^2.45.0"
   }
 }
-

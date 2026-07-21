@@ -9,11 +9,28 @@
     <link rel="stylesheet" href="./style.css">
     <style>
         .about-container { max-width: 720px; margin: 2rem auto; padding: 0 1.2rem 3rem; }
-        .about-container h2 { color: var(--accent); border-bottom: 2px solid var(--border); padding-bottom: 0.5rem; margin-top: 2rem; }
-        .about-container p { line-height: 1.8; color: var(--text-main); }
-        .about-back { display: inline-block; margin-bottom: 1.5rem; color: var(--accent); text-decoration: none; font-weight: bold; }
+        .about-container h2 {
+            font-family: var(--font-display);
+            color: var(--archive);
+            border-bottom: 2px dashed var(--line-strong);
+            padding-bottom: 0.5rem;
+            margin-top: 2.2rem;
+        }
+        .about-container p { line-height: 1.85; color: var(--ink-soft); }
+        .about-back {
+            display: inline-block; margin-bottom: 1.5rem;
+            color: var(--stamp); text-decoration: none; font-weight: 700;
+            font-family: var(--font-mono);
+        }
         .about-back:hover { text-decoration: underline; }
-        .about-callout { background: #eff6ff; border-left: 4px solid #2563eb; border-radius: 0 8px 8px 0; padding: 1rem 1.2rem; margin: 1.5rem 0; }
+        .about-callout {
+            background: #f7f1e4;
+            border-left: 4px solid var(--stamp);
+            border-radius: 0 4px 4px 0;
+            padding: 1rem 1.2rem;
+            margin: 1.5rem 0;
+            font-size: 0.95rem;
+        }
     </style>
 </head>
 <body>
@@ -21,14 +38,14 @@
         <a href="/" class="logo-container" style="text-decoration:none; color:inherit;">
             <img src="/polipoli_favicon.png" alt="Polipoli Logo" class="header-logo-img">
             <div class="header-text-group">
-                <div class="header-title">Polipoli 啪哩啪哩追蹤站</div>
+                <div class="header-title">Polipoli 啪哩啪哩檔案室</div>
                 <div class="header-slogan">把政治人物的虛偽外衣，扒得清清楚楚。</div>
             </div>
         </a>
     </header>
 
     <div class="about-container">
-        <a href="/" class="about-back">← 返回首頁</a>
+        <a href="/" class="about-back">← 返回案卷牆</a>
 
         <h2>本站是什麼</h2>
         <p>Polipoli 啪哩啪哩是由公民自發整理、追蹤台灣政治人物爭議言行與雙標紀錄的資料庫。我們不隱瞞立場，但我們更在意每一筆資料是否站得住腳。</p>
