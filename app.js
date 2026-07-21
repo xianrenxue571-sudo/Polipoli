@@ -333,7 +333,7 @@ async function loadEditorTakesFeed() {
 
     const { data: takes, error } = await supabase.from('editor_takes')
         .select(`
-            id, title, content, created_at,
+            id, title, content, source_url, created_at,
             editor_take_politician_map ( politician_id, politicians ( name ) ),
             editor_take_event_map ( event_id, events ( quote, date ) ),
             editor_take_comments ( id, author_name, content, created_at, is_hidden )
@@ -365,6 +365,11 @@ async function loadEditorTakesFeed() {
         const visibleComments = (t.editor_take_comments || []).filter(c => !c.is_hidden)
             .sort((a, b) => (a.created_at || '').localeCompare(b.created_at || ''));
 
+        const sourceLinkHtml = t.source_url ? `
+            <div class="event-actions" style="border-top:none; padding-top:0; margin-top:0.8rem;">
+                <a href="${escapeHtmlClient(t.source_url)}" target="_blank" rel="noopener noreferrer" class="source-link">🔗 參考連結</a>
+            </div>` : '';
+
         return `
         <article class="event-card editor-take-card">
             <div class="tag-row">
@@ -375,6 +380,7 @@ async function loadEditorTakesFeed() {
             </div>
             <h3 class="event-quote">${escapeHtmlClient(t.title)}</h3>
             <div class="event-context editor-take-content">${renderTakeContentHtml(t.content)}</div>
+            ${sourceLinkHtml}
             ${renderEditorTakeCommentsHtml(t.id, visibleComments)}
         </article>`;
     }).join('');

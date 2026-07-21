@@ -1040,13 +1040,40 @@ window.resolveDup = async function(action) {
 
 // ===== 站長觀點管理 =====
 let takeChosenEvents = [];
+let editingTakeId = null;
+
+function resetTakeForm() {
+    editingTakeId = null;
+    document.getElementById('take-title').value = '';
+    document.getElementById('take-content').value = '';
+    document.getElementById('take-source-url').value = '';
+    document.getElementById('take-new-politician-name').value = '';
+    document.getElementById('take-event-search').value = '';
+    takeChosenEvents = [];
+
+    document.querySelectorAll('input[name="take-pol-box"]:checked').forEach(cb => cb.checked = false);
+    renderTakeEventOptions(cacheEventsForAnalysis);
+    renderTakeEventChips();
+
+    const statusEl = document.getElementById('take-edit-status');
+    statusEl.style.display = 'none';
+    statusEl.textContent = '';
+    document.getElementById('btn-save-take').textContent = '🚀 發布站長觀點';
+    document.getElementById('btn-cancel-take-edit').style.display = 'none';
+}
+
+window.cancelEditTake = function() {
+    resetTakeForm();
+};
 
 async function initEditorTakesTab() {
     document.getElementById('take-title').value = '';
     document.getElementById('take-content').value = '';
+    document.getElementById('take-source-url').value = '';
     document.getElementById('take-new-politician-name').value = '';
     document.getElementById('take-event-search').value = '';
     takeChosenEvents = [];
+    editingTakeId = null;
 
     renderTakePoliticianCheckboxes();
 
@@ -1056,6 +1083,13 @@ async function initEditorTakesTab() {
     }
     renderTakeEventOptions(cacheEventsForAnalysis);
     renderTakeEventChips();
+
+    const statusEl = document.getElementById('take-edit-status');
+    if (statusEl) { statusEl.style.display = 'none'; statusEl.textContent = ''; }
+    const saveBtn = document.getElementById('btn-save-take');
+    if (saveBtn) saveBtn.textContent = '🚀 發布站長觀點';
+    const cancelBtn = document.getElementById('btn-cancel-take-edit');
+    if (cancelBtn) cancelBtn.style.display = 'none';
 
     await refreshEditorTakesList();
     await refreshTakeCommentsList();
@@ -1138,19 +1172,41 @@ function renderTakeEventChips() {
 window.saveEditorTake = async function() {
     const title = document.getElementById('take-title').value.trim();
     const content = document.getElementById('take-content').value.trim();
+    const sourceUrl = document.getElementById('take-source-url').value.trim();
     const checkedPolIds = Array.from(document.querySelectorAll('input[name="take-pol-box"]:checked')).map(cb => cb.value);
 
     if (!title) { alert('請輸入標題！'); return; }
     if (!content) { alert('請輸入內容！'); return; }
+    if (sourceUrl && !/^https?:\/\//i.test(sourceUrl)) { alert('連結網址請以 http:// 或 https:// 開頭！'); return; }
 
-    const { data: takeData, error: takeError } = await supabase.from('editor_takes')
-        .insert([{ title, content, is_visible: true }])
-        .select()
-        .single();
+    let takeId;
 
-    if (takeError) { alert('發布失敗：' + takeError.message); return; }
+    if (editingTakeId) {
+        // 編輯既有站長觀點：更新內容，並清掉舊的關聯後重建
+        const { error: updateError } = await supabase.from('editor_takes')
+            .update({ title, content, source_url: sourceUrl || null })
+            .eq('id', editingTakeId);
 
-    const takeId = takeData.id;
+        if (updateError) { alert('更新失敗：' + updateError.message); return; }
+
+        takeId = editingTakeId;
+
+        const { error: delPolError } = await supabase.from('editor_take_politician_map').delete().eq('editor_take_id', takeId);
+        if (delPolError) console.error('清除舊人物關聯失敗:', delPolError);
+
+        const { error: delEvError } = await supabase.from('editor_take_event_map').delete().eq('editor_take_id', takeId);
+        if (delEvError) console.error('清除舊事件關聯失敗:', delEvError);
+    } else {
+        // 新增站長觀點
+        const { data: takeData, error: takeError } = await supabase.from('editor_takes')
+            .insert([{ title, content, source_url: sourceUrl || null, is_visible: true }])
+            .select()
+            .single();
+
+        if (takeError) { alert('發布失敗：' + takeError.message); return; }
+
+        takeId = takeData.id;
+    }
 
     if (checkedPolIds.length > 0) {
         const { error: polMapError } = await supabase.from('editor_take_politician_map')
@@ -1164,15 +1220,53 @@ window.saveEditorTake = async function() {
         if (evMapError) console.error('關聯事件失敗:', evMapError);
     }
 
-    alert('站長觀點已發布！');
+    alert(editingTakeId ? '站長觀點已更新！' : '站長觀點已發布！');
     await initEditorTakesTab();
+};
+
+window.editEditorTake = async function(id) {
+    const { data: t, error } = await supabase.from('editor_takes')
+        .select(`
+            id, title, content, source_url,
+            editor_take_politician_map ( politician_id ),
+            editor_take_event_map ( event_id, events ( id, quote, date ) )
+        `)
+        .eq('id', id)
+        .single();
+
+    if (error || !t) { alert('讀取這篇站長觀點失敗：' + (error?.message || '找不到資料')); return; }
+
+    editingTakeId = t.id;
+
+    document.getElementById('take-title').value = t.title || '';
+    document.getElementById('take-content').value = t.content || '';
+    document.getElementById('take-source-url').value = t.source_url || '';
+
+    renderTakePoliticianCheckboxes();
+    const checkedIds = new Set((t.editor_take_politician_map || []).map(m => String(m.politician_id)));
+    document.querySelectorAll('input[name="take-pol-box"]').forEach(cb => {
+        cb.checked = checkedIds.has(String(cb.value));
+    });
+
+    takeChosenEvents = (t.editor_take_event_map || [])
+        .filter(m => m.events)
+        .map(m => ({ id: m.events.id, quote: m.events.quote, date: m.events.date }));
+    renderTakeEventChips();
+
+    const statusEl = document.getElementById('take-edit-status');
+    statusEl.style.display = 'block';
+    statusEl.textContent = `✏️ 正在編輯：「${t.title}」（儲存後將更新此篇，不會建立新的一篇）`;
+    document.getElementById('btn-save-take').textContent = '💾 更新站長觀點';
+    document.getElementById('btn-cancel-take-edit').style.display = 'inline-flex';
+
+    document.getElementById('take-title').scrollIntoView({ behavior: 'smooth', block: 'center' });
 };
 
 async function refreshEditorTakesList() {
     const listEl = document.getElementById('list-editor-takes');
     const { data, error } = await supabase.from('editor_takes')
         .select(`
-            id, title, content, is_visible, created_at,
+            id, title, content, source_url, is_visible, created_at,
             editor_take_politician_map ( politicians ( name ) ),
             editor_take_event_map ( events ( quote ) )
         `)
@@ -1185,10 +1279,11 @@ async function refreshEditorTakesList() {
         return `
         <div class="item-row">
             <div class="item-row-left">
-                <span class="item-title">${t.is_visible ? '' : '🙈 [已隱藏] '}${t.title}</span>
+                <span class="item-title">${t.is_visible ? '' : '🙈 [已隱藏] '}${t.title}${t.source_url ? ' 🔗' : ''}</span>
                 <span class="item-sub">${pols ? '關聯人物：' + pols + '　' : ''}${(t.content || '').slice(0, 40)}...</span>
             </div>
             <div style="display:flex; gap:6px;">
+                <button class="btn btn-secondary" style="padding:4px 10px;" onclick="editEditorTake('${t.id}')">✏️ 編輯</button>
                 <button class="btn btn-secondary" style="padding:4px 10px;" onclick="toggleEditorTakeVisibility('${t.id}', ${t.is_visible})">${t.is_visible ? '隱藏' : '恢復顯示'}</button>
                 <button class="btn btn-danger" style="padding:4px 10px;" onclick="deleteEditorTake('${t.id}')">🗑️</button>
             </div>
@@ -1206,6 +1301,7 @@ window.deleteEditorTake = async function(id) {
     if (!confirm('確定要刪除這篇站長觀點嗎？相關留言也會一併刪除，此動作無法復原。')) return;
     const { error } = await supabase.from('editor_takes').delete().eq('id', id);
     if (error) { alert('刪除失敗：' + error.message); return; }
+    if (editingTakeId === id) resetTakeForm();
     await refreshEditorTakesList();
     await refreshTakeCommentsList();
 };
