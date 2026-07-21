@@ -299,6 +299,20 @@ function escapeHtmlClient(str) {
         .replace(/"/g, '&quot;');
 }
 
+// 將站長觀點內容轉為有段落、有粗體的 HTML。
+// 先做 HTML escape 避免 XSS，再把常見的簡易 Markdown 語法（**粗體**、換行）轉成標籤。
+function renderTakeContentHtml(raw) {
+    const escaped = escapeHtmlClient(raw || '');
+    const withBold = escaped.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    const paragraphs = withBold
+        .split(/\n{2,}/)
+        .map(p => p.trim())
+        .filter(Boolean)
+        .map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`)
+        .join('');
+    return paragraphs || `<p>${withBold}</p>`;
+}
+
 async function loadEditorTakesFeed() {
     const container = document.getElementById('editor-takes-feed');
     container.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-muted);">載入中...</div>';
@@ -346,7 +360,7 @@ async function loadEditorTakesFeed() {
                 ${eventTags}
             </div>
             <h3 class="event-quote">${escapeHtmlClient(t.title)}</h3>
-            <div class="event-context">${escapeHtmlClient(t.content)}</div>
+            <div class="event-context editor-take-content">${renderTakeContentHtml(t.content)}</div>
             ${renderEditorTakeCommentsHtml(t.id, visibleComments)}
         </article>`;
     }).join('');

@@ -56,6 +56,9 @@ header .logo-container { cursor: pointer; display: inline-flex; align-items: cen
 
 /* 站長觀點 */
 .editor-take-card { border-left: 4px solid #7c3aed; }
+.editor-take-content p { margin: 0 0 0.9rem 0; }
+.editor-take-content p:last-child { margin-bottom: 0; }
+.editor-take-content strong { color: #4c1d95; }
 .editor-take-badge { background: #ede9fe; color: #5b21b6; font-size: 0.75rem; font-weight: bold; padding: 3px 8px; border-radius: 12px; border: 1px solid #ddd6fe; white-space: nowrap; }
 .comment-section { margin-top: 1.2rem; border-top: 1px dashed var(--border); padding-top: 1rem; }
 .comment-list { display: flex; flex-direction: column; gap: 0.6rem; margin-bottom: 1rem; }
