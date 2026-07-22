@@ -36,7 +36,8 @@ async function fetchAll() {
         { data: events, error: eErr },
         { data: polAnalyses, error: paErr },
         { data: evAnalyses, error: eaErr },
-        { data: editorTakes, error: etErr }
+        { data: editorTakes, error: etErr },
+        { data: majorEvents, error: meErr }
     ] = await Promise.all([
         supabase.from('politicians').select('*').eq('is_visible', true).order('name'),
         supabase.from('issues').select('*').eq('is_visible', true).order('name'),
@@ -54,6 +55,10 @@ async function fetchAll() {
             editor_take_politician_map ( politician_id, politicians ( name ) ),
             editor_take_event_map ( event_id, events ( quote, date ) ),
             editor_take_comments ( id, author_name, content, created_at, is_hidden )
+        `).eq('is_visible', true).order('created_at', { ascending: false }),
+        supabase.from('major_events').select(`
+            id, title, summary, content, created_at,
+            major_event_sources ( id, media_name, url )
         `).eq('is_visible', true).order('created_at', { ascending: false })
     ]);
 
@@ -63,6 +68,7 @@ async function fetchAll() {
     if (paErr) throw paErr;
     if (eaErr) throw eaErr;
     if (etErr) throw etErr;
+    if (meErr) throw meErr;
 
     return {
         politicians: politicians || [],
@@ -70,7 +76,8 @@ async function fetchAll() {
         events: events || [],
         polAnalyses: polAnalyses || [],
         evAnalyses: evAnalyses || [],
-        editorTakes: editorTakes || []
+        editorTakes: editorTakes || [],
+        majorEvents: majorEvents || []
     };
 }
 
@@ -172,6 +179,47 @@ function renderEditorTakesFeedSSR(takes) {
     }).join('');
 
     return html;
+}
+
+function detectMentionedPoliticiansSSR(content, politicians) {
+    if (!content) return [];
+    const found = politicians.filter(p => p.name && content.includes(p.name));
+    return found.sort((a, b) => b.name.length - a.name.length);
+}
+
+function renderMajorEventCardSSR(ev, politicians) {
+    const mentioned = detectMentionedPoliticiansSSR(ev.content, politicians);
+    const mentionsHtml = mentioned.length > 0 ? `
+        <div class="major-event-mentions">
+            <span class="major-event-mentions-label">📎 提及的政治人物：</span>
+            ${mentioned.map(p => navAnchorSSR('politician', p.id, p.name, escapeHtml(p.name), 'info-tag')).join('')}
+        </div>` : '';
+
+    let sourceLinks = '';
+    (ev.major_event_sources || []).forEach(src => {
+        sourceLinks += `<a href="${escapeHtml(src.url)}" target="_blank" rel="noopener noreferrer" class="source-link">🔗 ${src.media_name ? `[${escapeHtml(src.media_name)}] ` : ''}查看原始來源</a>`;
+    });
+
+    return `
+        <article class="major-event-card">
+            <button type="button" class="major-event-summary" data-toggle-major-event="${ev.id}">
+                <h3 class="major-event-title">${escapeHtml(ev.title)}</h3>
+                ${ev.summary ? `<p class="major-event-excerpt">${escapeHtml(ev.summary)}</p>` : ''}
+                <span class="major-event-expand-hint">點擊展開全文 ▾</span>
+            </button>
+            <div class="major-event-body">
+                <div class="major-event-content">${renderTakeContentHtmlSSR(ev.content)}</div>
+                ${sourceLinks ? `<div class="major-event-sources">${sourceLinks}</div>` : ''}
+                ${mentionsHtml}
+            </div>
+        </article>`;
+}
+
+function renderMajorEventsFeedSSR(majorEvents, politicians) {
+    if (!majorEvents || majorEvents.length === 0) {
+        return '<div class="analysis-empty">目前尚無重大事件專題。</div>';
+    }
+    return `<div class="major-events-grid">${majorEvents.map(ev => renderMajorEventCardSSR(ev, politicians)).join('')}</div>`;
 }
 
 function renderImpactMiniBarSSR(score) {
@@ -292,8 +340,8 @@ function renderPage({ title, description, ogTitle, ogDescription, canonicalPath,
     html = html.replace('<link rel="stylesheet" href="./style.css">', '<link rel="stylesheet" href="/style.css">');
     html = html.replace('<link rel="preconnect"', `<link rel="canonical" href="${SITE_URL}${canonicalPath}">\n    <link rel="preconnect"`);
 
-    if (viewMode === 'analysis' || viewMode === 'editorTakes') {
-        // 分析紀錄／站長觀點頁：預設隱藏案卷牆與側欄，直接把 SSR 內容放進對應容器，
+    if (viewMode === 'analysis' || viewMode === 'editorTakes' || viewMode === 'majorEvents') {
+        // 分析紀錄／站長觀點／重大事件頁：預設隱藏案卷牆與側欄，直接把 SSR 內容放進對應容器，
         // 讓爬蟲與沒有執行 JS 的使用者也能看到完整內容；app.js 載入後會依 hydration 旗標重新抓取即時資料覆蓋上去。
         html = html.replace('<div id="events-feed"></div>', '<div id="events-feed" style="display:none;"></div>');
         html = html.replace('<div class="container">', '<div class="container no-sidebar">');
@@ -304,26 +352,20 @@ function renderPage({ title, description, ogTitle, ogDescription, canonicalPath,
             html = html.replace('<div id="analysis-feed" style="display:none;"></div>', `<div id="analysis-feed" style="display:block;">${eventsHtml}</div>`);
             html = html.replace('class="main-tab-btn active" id="tab-politicians"', 'class="main-tab-btn" id="tab-politicians"');
             html = html.replace('class="main-tab-btn" id="tab-analysis"', 'class="main-tab-btn active" id="tab-analysis"');
-        } else {
+        } else if (viewMode === 'editorTakes') {
             html = html.replace('<div id="editor-takes-feed" style="display:none;"></div>', `<div id="editor-takes-feed" style="display:block;">${eventsHtml}</div>`);
             html = html.replace('class="main-tab-btn active" id="tab-politicians"', 'class="main-tab-btn" id="tab-politicians"');
             html = html.replace('class="main-tab-btn" id="tab-editorTakes"', 'class="main-tab-btn active" id="tab-editorTakes"');
+        } else {
+            html = html.replace('<div id="major-events-feed" style="display:none;"></div>', `<div id="major-events-feed" style="display:block;">${eventsHtml}</div>`);
+            html = html.replace('class="main-tab-btn active" id="tab-politicians"', 'class="main-tab-btn" id="tab-politicians"');
+            html = html.replace('class="main-tab-btn" id="tab-majorEvents"', 'class="main-tab-btn active" id="tab-majorEvents"');
         }
         if (feedTitle) {
             html = html.replace(/<h2 id="feed-title">.*?<\/h2>/s, `<h2 id="feed-title">${escapeHtml(feedTitle)}</h2>`);
         }
     } else {
         html = html.replace('<div id="events-feed"></div>', `<div id="events-feed">${eventsHtml}</div>`);
-
-        if (viewMode === 'issuesHome') {
-            // /issues/ 頁：內容跟首頁一樣是最新案卷牆，只是預設啟用「社會議題」分頁，
-            // 讓這顆分頁也有一個真正可以被連結、被爬蟲索引的網址。
-            html = html.replace('class="main-tab-btn active" id="tab-politicians"', 'class="main-tab-btn" id="tab-politicians"');
-            html = html.replace('class="main-tab-btn" id="tab-issues"', 'class="main-tab-btn active" id="tab-issues"');
-            if (feedTitle) {
-                html = html.replace(/<h2 id="feed-title">.*?<\/h2>/s, `<h2 id="feed-title">${escapeHtml(feedTitle)}</h2>`);
-            }
-        }
     }
 
     html = html.replace(
@@ -346,12 +388,12 @@ async function main() {
     });
 
     // 複製後台管理面板與關於本站頁面
-    ['admin.html', 'admin.css', 'admin.js', 'about.html'].forEach(f => {
+    ['admin.html', 'admin.css', 'admin.js', 'about.html', 'feedback.html'].forEach(f => {
         const src = path.join(ROOT, f);
         if (fs.existsSync(src)) fs.copyFileSync(src, path.join(OUT_DIR, f));
     });
 
-    const { politicians, issues, events, polAnalyses, evAnalyses, editorTakes } = await fetchAll();
+    const { politicians, issues, events, polAnalyses, evAnalyses, editorTakes, majorEvents } = await fetchAll();
     const sitemapUrls = [`${SITE_URL}/`];
 
     // 首頁：最新案卷
@@ -370,25 +412,25 @@ async function main() {
     });
     fs.writeFileSync(path.join(OUT_DIR, 'index.html'), homeHtml);
 
-    // 社會議題總覽頁：內容跟首頁相同（最新案卷牆），只是分頁預設停在「社會議題」，
-    // 讓這顆分頁按鈕有真正的網址可以連、可以被搜尋引擎索引，而不是純前端狀態切換。
+    // 重大事件牆：跟人物言行的 events 資料表完全分開的獨立內容，
+    // 卡片並排網格呈現，SSR 直接輸出完整內文供爬蟲索引，前端再用 JS 做展開/收合。
     {
-        const dir = path.join(OUT_DIR, 'issues');
+        const dir = path.join(OUT_DIR, 'major-events');
         fs.mkdirSync(dir, { recursive: true });
         const html = renderPage({
-            title: '社會議題總覽 | Polipoli 啪哩啪哩',
-            description: '依社會議題分類瀏覽台灣政治人物爭議事件，快速找到你關心的議題相關案卷。',
-            ogTitle: '社會議題總覽 | Polipoli 啪哩啪哩',
-            ogDescription: '依社會議題分類瀏覽政治人物爭議事件案卷。',
-            canonicalPath: '/issues/',
-            eventsHtml: latestEvents.map(renderEventCardSSR).join(''),
-            schemaJson: buildSchema(latestEvents),
-            hydrationScript: `<script>window.__SSG_ISSUES_TAB = true;</script>`,
-            viewMode: 'issuesHome',
-            feedTitle: '全部社會議題案卷'
+            title: '重大事件 | Polipoli 啪哩啪哩',
+            description: '持續追蹤的重大社會事件專題，如軍購案、食安弊案等延續性議題的完整脈絡整理。',
+            ogTitle: '重大事件 | Polipoli 啪哩啪哩',
+            ogDescription: '持續追蹤的重大社會事件專題整理。',
+            canonicalPath: '/major-events/',
+            eventsHtml: renderMajorEventsFeedSSR(majorEvents, politicians),
+            schemaJson: buildSchema([]),
+            hydrationScript: `<script>window.__SSG_MAJOR_EVENTS_PAGE = true;</script>`,
+            viewMode: 'majorEvents',
+            feedTitle: '🗞️ 重大事件'
         });
         fs.writeFileSync(path.join(dir, 'index.html'), html);
-        sitemapUrls.push(`${SITE_URL}/issues/`);
+        sitemapUrls.push(`${SITE_URL}/major-events/`);
     }
 
     // 人物專屬頁
@@ -484,7 +526,7 @@ async function main() {
     // robots.txt
     fs.writeFileSync(path.join(OUT_DIR, 'robots.txt'), `User-agent: *\nAllow: /\nSitemap: ${SITE_URL}/sitemap.xml\n`);
 
-    console.log(`✅ 完成：${politicians.length} 位人物、${issues.length} 個議題、${events.length} 筆事件、${polAnalyses.length + evAnalyses.length} 筆分析、${editorTakes.length} 篇站長觀點`);
+    console.log(`✅ 完成：${politicians.length} 位人物、${issues.length} 個議題、${events.length} 筆事件、${polAnalyses.length + evAnalyses.length} 筆分析、${editorTakes.length} 篇站長觀點、${majorEvents.length} 篇重大事件`);
     console.log(`✅ 產生 ${sitemapUrls.length} 個靜態頁面於 /dist`);
 }
 
