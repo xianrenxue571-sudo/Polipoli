@@ -34,8 +34,6 @@ async function fetchAll() {
         { data: politicians, error: pErr },
         { data: issues, error: iErr },
         { data: events, error: eErr },
-        { data: polAnalyses, error: paErr },
-        { data: evAnalyses, error: eaErr },
         { data: editorTakes, error: etErr },
         { data: majorEvents, error: meErr }
     ] = await Promise.all([
@@ -48,8 +46,6 @@ async function fetchAll() {
             event_sources ( id, media_name, url, publish_date ),
             event_analysis ( content )
         `).eq('is_visible', true).order('date', { ascending: false }),
-        supabase.from('politician_analysis').select('content, politicians(name)').eq('is_visible', true),
-        supabase.from('event_analysis').select('content, events(quote, date)').eq('is_visible', true),
         supabase.from('editor_takes').select(`
             id, title, content, created_at,
             editor_take_politician_map ( politician_id, politicians ( name ) ),
@@ -65,8 +61,6 @@ async function fetchAll() {
     if (pErr) throw pErr;
     if (iErr) throw iErr;
     if (eErr) throw eErr;
-    if (paErr) throw paErr;
-    if (eaErr) throw eaErr;
     if (etErr) throw etErr;
     if (meErr) throw meErr;
 
@@ -74,8 +68,6 @@ async function fetchAll() {
         politicians: politicians || [],
         issues: issues || [],
         events: events || [],
-        polAnalyses: polAnalyses || [],
-        evAnalyses: evAnalyses || [],
         editorTakes: editorTakes || [],
         majorEvents: majorEvents || []
     };
@@ -91,34 +83,6 @@ function renderTakeContentHtmlSSR(raw) {
         .map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`)
         .join('');
     return paragraphs || `<p>${withBold}</p>`;
-}
-
-function renderAnalysisFeedSSR(polAnalyses, evAnalyses) {
-    let html = '<div class="analysis-disclaimer">⚠️ 以下內容為觀點解讀，並非事實認定，請自行判斷參考，並可對照事件原始來源自行查證。</div>';
-
-    html += '<h3 class="analysis-section-title">👤 人物風格分析</h3>';
-    html += (polAnalyses && polAnalyses.length > 0) ? polAnalyses.map(a => `
-        <div class="analysis-card">
-            <div class="analysis-card-header">
-                <span class="analysis-badge">⚠️ 觀點分析</span>
-                <span class="analysis-target">${escapeHtml(a.politicians?.name || '未知人物')}</span>
-            </div>
-            <p>${escapeHtml(a.content)}</p>
-        </div>
-    `).join('') : '<div class="analysis-empty">目前尚無人物風格分析。</div>';
-
-    html += '<h3 class="analysis-section-title">📌 事件解讀</h3>';
-    html += (evAnalyses && evAnalyses.length > 0) ? evAnalyses.map(a => `
-        <div class="analysis-card">
-            <div class="analysis-card-header">
-                <span class="analysis-badge">⚠️ 觀點分析</span>
-                <span class="analysis-target">「${escapeHtml(a.events?.quote || '未知事件')}」（${escapeHtml(a.events?.date || '無日期')}）</span>
-            </div>
-            <p>${escapeHtml(a.content)}</p>
-        </div>
-    `).join('') : '<div class="analysis-empty">目前尚無事件解讀。</div>';
-
-    return html;
 }
 
 function renderEditorTakeCommentsHtmlSSR(takeId, comments) {
@@ -340,19 +304,15 @@ function renderPage({ title, description, ogTitle, ogDescription, canonicalPath,
     html = html.replace('<link rel="stylesheet" href="./style.css">', '<link rel="stylesheet" href="/style.css">');
     html = html.replace('<link rel="preconnect"', `<link rel="canonical" href="${SITE_URL}${canonicalPath}">\n    <link rel="preconnect"`);
 
-    if (viewMode === 'analysis' || viewMode === 'editorTakes' || viewMode === 'majorEvents') {
-        // 分析紀錄／站長觀點／重大事件頁：預設隱藏案卷牆與側欄，直接把 SSR 內容放進對應容器，
+    if (viewMode === 'editorTakes' || viewMode === 'majorEvents') {
+        // 站長觀點／重大事件頁：預設隱藏案卷牆與側欄，直接把 SSR 內容放進對應容器，
         // 讓爬蟲與沒有執行 JS 的使用者也能看到完整內容；app.js 載入後會依 hydration 旗標重新抓取即時資料覆蓋上去。
         html = html.replace('<div id="events-feed"></div>', '<div id="events-feed" style="display:none;"></div>');
         html = html.replace('<div class="container">', '<div class="container no-sidebar">');
         html = html.replace('<aside>', '<aside style="display:none;">');
         html = html.replace('<div id="stat-dashboard"></div>', '<div id="stat-dashboard" style="display:none;"></div>');
 
-        if (viewMode === 'analysis') {
-            html = html.replace('<div id="analysis-feed" style="display:none;"></div>', `<div id="analysis-feed" style="display:block;">${eventsHtml}</div>`);
-            html = html.replace('class="main-tab-btn active" id="tab-politicians"', 'class="main-tab-btn" id="tab-politicians"');
-            html = html.replace('class="main-tab-btn" id="tab-analysis"', 'class="main-tab-btn active" id="tab-analysis"');
-        } else if (viewMode === 'editorTakes') {
+        if (viewMode === 'editorTakes') {
             html = html.replace('<div id="editor-takes-feed" style="display:none;"></div>', `<div id="editor-takes-feed" style="display:block;">${eventsHtml}</div>`);
             html = html.replace('class="main-tab-btn active" id="tab-politicians"', 'class="main-tab-btn" id="tab-politicians"');
             html = html.replace('class="main-tab-btn" id="tab-editorTakes"', 'class="main-tab-btn active" id="tab-editorTakes"');
@@ -393,7 +353,7 @@ async function main() {
         if (fs.existsSync(src)) fs.copyFileSync(src, path.join(OUT_DIR, f));
     });
 
-    const { politicians, issues, events, polAnalyses, evAnalyses, editorTakes, majorEvents } = await fetchAll();
+    const { politicians, issues, events, editorTakes, majorEvents } = await fetchAll();
     const sitemapUrls = [`${SITE_URL}/`];
 
     // 首頁：最新案卷
@@ -479,26 +439,6 @@ async function main() {
         sitemapUrls.push(`${SITE_URL}/issue/${encodeURIComponent(slug)}/`);
     }
 
-    // 分析紀錄頁（人物風格分析＋事件解讀）
-    {
-        const dir = path.join(OUT_DIR, 'analysis');
-        fs.mkdirSync(dir, { recursive: true });
-        const html = renderPage({
-            title: '分析與紀錄 | Polipoli 啪哩啪哩',
-            description: '收錄站長對政治人物風格與特定爭議事件的觀點解讀，皆為主觀分析，非事實認定。',
-            ogTitle: '分析與紀錄 | Polipoli 啪哩啪哩',
-            ogDescription: '政治人物風格分析與事件解讀，主觀觀點僅供參考。',
-            canonicalPath: '/analysis/',
-            eventsHtml: renderAnalysisFeedSSR(polAnalyses, evAnalyses),
-            schemaJson: buildSchema([]),
-            hydrationScript: `<script>window.__SSG_ANALYSIS_PAGE = true;</script>`,
-            viewMode: 'analysis',
-            feedTitle: '🔍 分析與紀錄'
-        });
-        fs.writeFileSync(path.join(dir, 'index.html'), html);
-        sitemapUrls.push(`${SITE_URL}/analysis/`);
-    }
-
     // 站長觀點頁
     {
         const dir = path.join(OUT_DIR, 'editor-takes');
@@ -526,7 +466,7 @@ async function main() {
     // robots.txt
     fs.writeFileSync(path.join(OUT_DIR, 'robots.txt'), `User-agent: *\nAllow: /\nSitemap: ${SITE_URL}/sitemap.xml\n`);
 
-    console.log(`✅ 完成：${politicians.length} 位人物、${issues.length} 個議題、${events.length} 筆事件、${polAnalyses.length + evAnalyses.length} 筆分析、${editorTakes.length} 篇站長觀點、${majorEvents.length} 篇重大事件`);
+    console.log(`✅ 完成：${politicians.length} 位人物、${issues.length} 個議題、${events.length} 筆事件、${editorTakes.length} 篇站長觀點、${majorEvents.length} 篇重大事件`);
     console.log(`✅ 產生 ${sitemapUrls.length} 個靜態頁面於 /dist`);
 }
 
