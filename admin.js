@@ -44,6 +44,10 @@ window.attemptUnlock = async function() {
         document.getElementById('admin-panel').style.display = 'block';
 
         await refreshAllAdminData();
+        // 預設分頁是「新增與管理」，這裡手動補初始化一次事件解讀／站長觀點表單，
+        // 因為初次解鎖不會走 switchAdminTab 那條路徑。
+        await initAnalysisTab();
+        await initEditorTakesTab();
     } catch (err) {
         console.error('Auth Error:', err);
         alert('連線失敗！請確認 Supabase 網址正確且貼上的是最高權限私鑰 (Service Role)。\n' + err.message);
@@ -88,15 +92,16 @@ window.switchAdminTab = function(tabName) {
     const targetContent = document.getElementById(`tab-content-${tabName}`);
     if (targetContent) targetContent.classList.add('active');
 
-    if (tabName === 'review') {
-        fetchAndRenderReviewFeed();
-    }
-    if (tabName === 'analysis') {
+    if (tabName === 'settings') {
         initAnalysisTab();
         initEditorTakesTab();
     }
+    if (tabName === 'review') {
+        fetchAndRenderReviewFeed();
+    }
     if (tabName === 'feedback') {
         initFeedbackTab();
+        refreshTakeCommentsList();
     }
     if (tabName === 'majorEvents') {
         initMajorEventsTab();
@@ -1037,7 +1042,6 @@ async function initEditorTakesTab() {
     renderTakeEventChips();
 
     await refreshEditorTakesList();
-    await refreshTakeCommentsList();
 }
 
 function renderTakePoliticianCheckboxes() {
