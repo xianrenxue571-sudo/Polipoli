@@ -97,10 +97,6 @@ textarea.form-input { min-height: 120px; resize: vertical; }
 .review-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 3px; padding: 1.5rem; box-shadow: 0 2px 8px -4px rgba(34,32,27,0.15); }
 .review-card-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; font-size: 0.85rem; font-family: 'Courier New', monospace; }
 .review-badge { background: var(--bg); padding: 2px 8px; border-radius: 3px; font-weight: 500; border: 1px solid var(--border); }
-.review-badge.hot { background: #f6ecd9; border-color: var(--warning); color: #7a5a1e; }
-.review-badge.severe { background: #f6e2e0; border-color: var(--danger); color: var(--danger); }
-
-.review-reasoning { background: var(--bg); border-left: 4px solid var(--purple); padding: 8px 12px; font-size: 0.9rem; color: var(--text-muted); margin-bottom: 12px; border-radius: 0 3px 3px 0; font-style: italic; }
 
 .review-actions { display: flex; justify-content: flex-end; gap: 10px; border-top: 1px dashed var(--border); padding-top: 1rem; margin-top: 1rem; }
 

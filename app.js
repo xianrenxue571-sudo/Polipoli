@@ -73,16 +73,21 @@ const searchContainer = document.getElementById('sidebar-search-container');
 const catalogContainer = document.getElementById('quick-tags-container');
 const politicianSelect = document.getElementById('politician-select');
 const issueSelect = document.getElementById('issue-category-select');
+const sidebarSearchInput = document.getElementById('sidebar-search');
+const statDashboard = document.getElementById('stat-dashboard');
+const containerEl = document.querySelector('.container');
+const editorTakesFeedEl = document.getElementById('editor-takes-feed');
+const majorEventsFeedEl = document.getElementById('major-events-feed');
+const mainHeader = document.getElementById('main-header');
 
 /* 捲動時把檔案室橫幅收起，讓卡片牆有更多空間 */
 let lastScrollTop = 0;
 window.addEventListener('scroll', () => {
     const currentScroll = window.pageYOffset || document.documentElement.scrollTop;
-    const header = document.getElementById('main-header');
     if (currentScroll > lastScrollTop && currentScroll > 60) {
-        header.classList.add('collapsed');
+        mainHeader.classList.add('collapsed');
     } else {
-        header.classList.remove('collapsed');
+        mainHeader.classList.remove('collapsed');
     }
     lastScrollTop = currentScroll <= 0 ? 0 : currentScroll;
 });
@@ -230,8 +235,7 @@ window.switchMainTab = function (tabName, preventReload = false) {
 
     // 切分頁時清掉側欄搜尋字串，避免「人物言行」分頁打的關鍵字
     // 殘留到「社會議題」分頁去搜尋議題名稱（反之亦然）。
-    const searchInput = document.getElementById('sidebar-search');
-    if (searchInput) searchInput.value = '';
+    sidebarSearchInput.value = '';
 
     document.querySelectorAll('.main-tab-btn').forEach(btn => btn.classList.remove('active'));
     document.getElementById(`tab-${tabName}`).classList.add('active');
@@ -248,37 +252,23 @@ window.switchMainTab = function (tabName, preventReload = false) {
 };
 
 function restoreDefaultLayout() {
-    document.querySelector('.container').classList.remove('no-sidebar');
-    document.getElementById('events-feed').style.display = '';
+    containerEl.classList.remove('no-sidebar');
+    feedContainer.style.display = '';
 }
-function showEditorTakesView() {
-    document.querySelector('.container').classList.add('no-sidebar');
-    document.getElementById('events-feed').style.display = 'none';
-    document.getElementById('stat-dashboard').style.display = 'none';
-    document.getElementById('loader').classList.remove('visible');
-    document.getElementById('end-message').style.display = 'none';
-    document.getElementById('feed-title').textContent = '🗣️ 站長觀點';
-    document.getElementById('editor-takes-feed').style.display = 'block';
-    loadEditorTakesFeed();
+function showSpecialView(feedEl, title, loadFn) {
+    containerEl.classList.add('no-sidebar');
+    feedContainer.style.display = 'none';
+    statDashboard.style.display = 'none';
+    loader.classList.remove('visible');
+    endMessage.style.display = 'none';
+    feedTitle.textContent = title;
+    feedEl.style.display = 'block';
+    loadFn();
 }
-function hideEditorTakesView() {
-    const feed = document.getElementById('editor-takes-feed');
-    if (feed) feed.style.display = 'none';
-}
-function showMajorEventsView() {
-    document.querySelector('.container').classList.add('no-sidebar');
-    document.getElementById('events-feed').style.display = 'none';
-    document.getElementById('stat-dashboard').style.display = 'none';
-    document.getElementById('loader').classList.remove('visible');
-    document.getElementById('end-message').style.display = 'none';
-    document.getElementById('feed-title').textContent = '🗞️ 重大事件';
-    document.getElementById('major-events-feed').style.display = 'block';
-    loadMajorEventsFeed();
-}
-function hideMajorEventsView() {
-    const feed = document.getElementById('major-events-feed');
-    if (feed) feed.style.display = 'none';
-}
+function showEditorTakesView() { showSpecialView(editorTakesFeedEl, '🗣️ 站長觀點', loadEditorTakesFeed); }
+function hideEditorTakesView() { editorTakesFeedEl.style.display = 'none'; }
+function showMajorEventsView() { showSpecialView(majorEventsFeedEl, '🗞️ 重大事件', loadMajorEventsFeed); }
+function hideMajorEventsView() { majorEventsFeedEl.style.display = 'none'; }
 
 /* ============================================================
    站長觀點留言：防洗版參數
@@ -354,7 +344,7 @@ function renderEditorTakeCommentsHtml(takeId, comments) {
 }
 
 async function loadEditorTakesFeed() {
-    const container = document.getElementById('editor-takes-feed');
+    const container = editorTakesFeedEl;
     container.innerHTML = '<div class="empty-note">案卷調閱中...</div>';
 
     const { data: takes, error } = await supabase.from('editor_takes')
@@ -450,7 +440,7 @@ window.reportTakeComment = async function (commentId, btnEl) {
    重大事件牆：跟人物言行的 events 資料庫完全分開的獨立內容
    ============================================================ */
 async function loadMajorEventsFeed() {
-    const container = document.getElementById('major-events-feed');
+    const container = majorEventsFeedEl;
     container.innerHTML = '<div class="empty-note">案卷調閱中...</div>';
 
     const { data, error } = await supabase.from('major_events')
@@ -512,7 +502,7 @@ function renderMajorEventCard(ev) {
    ============================================================ */
 function renderSidebar() {
     const title = document.getElementById('sidebar-title');
-    const searchInput = document.getElementById('sidebar-search');
+    const searchInput = sidebarSearchInput;
     searchContainer.style.display = 'block';
 
     title.textContent = '人物檔案索引';
@@ -587,7 +577,7 @@ function renderSidebarButtons() {
 }
 
 window.filterSidebar = function () {
-    const rawTerm = document.getElementById('sidebar-search').value.trim();
+    const rawTerm = sidebarSearchInput.value.trim();
     const term = rawTerm.toLowerCase();
 
     if (!term) { renderSidebarButtons(); return; }
@@ -714,14 +704,14 @@ async function applyFilters(pushHistory = true) {
 
     if (currentTab !== 'politicians') switchMainTab('politicians', true);
 
-    document.getElementById('sidebar-search').value = hasPol ? (activePoliticianName || '') : '';
+    sidebarSearchInput.value = hasPol ? (activePoliticianName || '') : '';
 
     nextOffset = 0;
     isFirstFetch = true;
     hasMoreData = true;
     feedContainer.innerHTML = '';
     endMessage.style.display = 'none';
-    document.getElementById('stat-dashboard').style.display = 'none';
+    statDashboard.style.display = 'none';
 
     renderSidebar();
     feedTitle.textContent = buildFeedTitle();
@@ -787,7 +777,6 @@ async function applyFilters(pushHistory = true) {
 
     eventsData.sort((a, b) => new Date(b.date || '1970-01-01') - new Date(a.date || '1970-01-01'));
 
-    const statDashboard = document.getElementById('stat-dashboard');
     if (hasPol && eventsData.length > 0) {
         const totalEvents = eventsData.length;
         const peopleScoreSum = eventsData.reduce((sum, e) => sum + (parseInt(e.people_impact_score) || 0), 0);
