@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>意見反應 | Polipoli 啪哩啪哩</title>
+    <meta name="description" content="給 Polipoli 啪哩啪哩的匿名意見反應，不需要留下任何聯絡方式。">
+    <meta name="robots" content="noindex">
+    <link rel="icon" type="image/png" href="/polipoli_favicon_512x512.png">
+    <link rel="stylesheet" href="./style.css">
+    <style>
+        .feedback-container { max-width: 640px; margin: 2rem auto; padding: 0 1.2rem 3rem; }
+        .feedback-back {
+            display: inline-block; margin-bottom: 1.5rem;
+            color: var(--stamp); text-decoration: none; font-weight: 700;
+            font-family: var(--font-mono);
+        }
+        .feedback-back:hover { text-decoration: underline; }
+        .feedback-container h2 {
+            font-family: var(--font-display);
+            color: var(--archive);
+        }
+        .feedback-container p.lead { color: var(--ink-soft); line-height: 1.75; font-size: 1.05rem; }
+        .feedback-form { margin-top: 1.5rem; }
+        .feedback-textarea {
+            width: 100%; min-height: 180px; box-sizing: border-box;
+            font-family: var(--font-body); font-size: 1.05rem; line-height: 1.6;
+            padding: 0.9rem; border: 1px solid var(--line-strong); border-radius: var(--radius);
+            background: var(--paper); color: var(--ink); resize: vertical;
+        }
+        .feedback-honeypot { position: absolute; left: -9999px; }
+        .feedback-count { text-align: right; font-family: var(--font-mono); font-size: 0.85rem; color: var(--muted); margin-top: 0.3rem; }
+        .feedback-submit {
+            margin-top: 1rem; background: var(--archive); color: var(--paper); border: none;
+            padding: 0.7rem 1.4rem; border-radius: var(--radius); cursor: pointer;
+            font-weight: 700; font-size: 1rem;
+        }
+        .feedback-submit:hover { background: var(--stamp); }
+        .feedback-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+        .feedback-status { margin-top: 1rem; font-size: 0.95rem; }
+        .feedback-status.ok { color: var(--ok-green); }
+        .feedback-status.err { color: var(--stamp); }
+        .feedback-note {
+            font-size: 0.88rem; color: var(--muted); margin-top: 2rem;
+            border-top: 1px dashed var(--line-strong); padding-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <header id="main-header">
+        <a href="/" class="logo-container" data-nav="home">
+            <img src="/polipoli_favicon.png" alt="Polipoli Logo" class="header-logo-img">
+            <div class="header-text-group">
+                <div class="header-title">Polipoli 啪哩啪哩檔案室</div>
+                <div class="header-slogan">把政治人物的虛偽外衣，扒得清清楚楚。</div>
+            </div>
+        </a>
+    </header>
+
+    <div class="feedback-container">
+        <a href="/" class="feedback-back">← 返回案卷牆</a>
+
+        <h2>💬 意見反應</h2>
+        <p class="lead">
+            資料有誤、來源連結失效、想建議新增哪位人物或議題、覺得哪裡做得不好——都歡迎在這裡告訴我們。
+            這裡完全匿名，不會要求也不會記錄任何聯絡方式；如果需要我們回覆，請改用其他管道聯繫。
+        </p>
+
+        <form class="feedback-form" id="feedback-form">
+            <textarea id="feedback-content" class="feedback-textarea" maxlength="1000" placeholder="請輸入你的意見或建議（最多 1000 字）..." required></textarea>
+            <div class="feedback-count"><span id="feedback-count-num">0</span> / 1000</div>
+            <input type="text" id="feedback-honeypot" class="feedback-honeypot" tabindex="-1" autocomplete="off">
+            <button type="submit" class="feedback-submit" id="feedback-submit-btn">送出意見反應</button>
+            <div id="feedback-status" class="feedback-status"></div>
+        </form>
+
+        <p class="feedback-note">送出後無法修改或撤回。請勿留下任何可識別個人身份的資訊；本頁不會儲存你的 IP 或裝置資訊以外的任何額外資料。</p>
+    </div>
+
+    <script type="module">
+        import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+        const SUPABASE_URL = 'https://ymrpsmrxnoyypayzujlm.supabase.co';
+        const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InltcnBzbXJ4bm95eXBheXp1amxtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwNTYyMzcsImV4cCI6MjA5ODYzMjIzN30.Mp8K310jjvKUkKQszs5VaA8GwuJUzQTv3PyXfP7ZdKU';
+        const supabase = createClient(SUPABASE_URL, ANON_KEY);
+
+        const MAX_LEN = 1000;
+        const COOLDOWN_MS = 60 * 1000;
+        const DAILY_LIMIT = 5;
+        const SPAM_KEYWORDS = ['viagra', '博彩', '娛樂城', '色情', 'http://bit.ly', 'wechat', '加line'];
+
+        function countUrls(text) {
+            const m = text.match(/https?:\/\/|www\./gi);
+            return m ? m.length : 0;
+        }
+
+        const textarea = document.getElementById('feedback-content');
+        const countNum = document.getElementById('feedback-count-num');
+        const form = document.getElementById('feedback-form');
+        const submitBtn = document.getElementById('feedback-submit-btn');
+        const statusEl = document.getElementById('feedback-status');
+        const honeypot = document.getElementById('feedback-honeypot');
+
+        textarea.addEventListener('input', () => {
+            countNum.textContent = textarea.value.length;
+        });
+
+        function rateLimitCheck() {
+            try {
+                const now = Date.now();
+                const lastTs = parseInt(localStorage.getItem('polipoli_last_feedback_ts') || '0', 10);
+                if (now - lastTs < COOLDOWN_MS) {
+                    return `送出太頻繁了，請稍等 ${Math.ceil((COOLDOWN_MS - (now - lastTs)) / 1000)} 秒再試。`;
+                }
+                const todayKey = 'polipoli_feedback_count_' + new Date().toISOString().slice(0, 10);
+                const todayCount = parseInt(localStorage.getItem(todayKey) || '0', 10);
+                if (todayCount >= DAILY_LIMIT) return '今天的意見反應次數已達上限，請明天再來。';
+                return null;
+            } catch (e) { return null; }
+        }
+        function rateLimitCommit() {
+            try {
+                const now = Date.now();
+                localStorage.setItem('polipoli_last_feedback_ts', String(now));
+                const todayKey = 'polipoli_feedback_count_' + new Date().toISOString().slice(0, 10);
+                const todayCount = parseInt(localStorage.getItem(todayKey) || '0', 10);
+                localStorage.setItem(todayKey, String(todayCount + 1));
+            } catch (e) { /* 略過 */ }
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            statusEl.textContent = '';
+            statusEl.className = 'feedback-status';
+
+            if (honeypot.value.trim() !== '') {
+                console.warn('偵測到疑似機器人送出，已略過。');
+                return;
+            }
+
+            const content = textarea.value.trim();
+            if (!content) {
+                statusEl.textContent = '請先輸入內容再送出。';
+                statusEl.classList.add('err');
+                return;
+            }
+            if (content.length > MAX_LEN) {
+                statusEl.textContent = `內容請勿超過 ${MAX_LEN} 字。`;
+                statusEl.classList.add('err');
+                return;
+            }
+            if (countUrls(content) >= 2) {
+                statusEl.textContent = '內容中的連結數量過多，請簡化後再送出。';
+                statusEl.classList.add('err');
+                return;
+            }
+            const lowerContent = content.toLowerCase();
+            if (SPAM_KEYWORDS.some(k => lowerContent.includes(k))) {
+                statusEl.textContent = '內容包含不適當關鍵字，請修改後再送出。';
+                statusEl.classList.add('err');
+                return;
+            }
+
+            const rateLimitMsg = rateLimitCheck();
+            if (rateLimitMsg) {
+                statusEl.textContent = rateLimitMsg;
+                statusEl.classList.add('err');
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = '送出中...';
+
+            const { error } = await supabase.from('feedback_submissions').insert([{ content }]);
+
+            submitBtn.disabled = false;
+            submitBtn.textContent = '送出意見反應';
+
+            if (error) {
+                statusEl.textContent = '送出失敗，請稍後再試。';
+                statusEl.classList.add('err');
+                console.error(error);
+                return;
+            }
+
+            rateLimitCommit();
+            textarea.value = '';
+            countNum.textContent = '0';
+            statusEl.textContent = '已收到，謝謝你的意見！';
+            statusEl.classList.add('ok');
+        });
+    </script>
+</body>
+</html>

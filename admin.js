@@ -3,6 +3,9 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 let supabase = null;
 let currentTab = 'settings';
 let currentEventFilter = 'pending';
+let currentFeedbackFilter = 'unread';
+let majorEventSources = [];
+let editingMajorEventId = null;
 let currentPolFilter = 'all';
 let cachePoliticians = [];
 let cacheIssues = [];
@@ -91,6 +94,12 @@ window.switchAdminTab = function(tabName) {
     if (tabName === 'analysis') {
         initAnalysisTab();
         initEditorTakesTab();
+    }
+    if (tabName === 'feedback') {
+        initFeedbackTab();
+    }
+    if (tabName === 'majorEvents') {
+        initMajorEventsTab();
     }
 };
 
@@ -1270,6 +1279,66 @@ window.cancelEditEditorTake = function() {
     resetEditorTakeFormUI();
 };
 
+/* ============================================================
+   讀者意見反應（純匿名，讀者端只能新增，這裡才看得到）
+   ============================================================ */
+async function initFeedbackTab() {
+    await refreshFeedbackList();
+}
+
+window.setFeedbackFilter = function(filterType) {
+    currentFeedbackFilter = filterType;
+    document.getElementById('feedback-filter-btn-unread').classList.toggle('active', filterType === 'unread');
+    document.getElementById('feedback-filter-btn-all').classList.toggle('active', filterType === 'all');
+    refreshFeedbackList();
+};
+
+async function refreshFeedbackList() {
+    const listEl = document.getElementById('list-feedback');
+    if (!listEl || !supabase) return;
+    listEl.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:1rem;">載入中...</div>';
+
+    let query = supabase.from('feedback_submissions').select('*').order('created_at', { ascending: false });
+    if (currentFeedbackFilter === 'unread') query = query.eq('is_read', false);
+
+    const { data, error } = await query;
+    if (error) {
+        listEl.innerHTML = `<div style="text-align:center; color:var(--danger); padding:1rem;">載入失敗：${error.message}</div>`;
+        return;
+    }
+
+    if (!data || data.length === 0) {
+        listEl.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:1rem;">目前沒有符合條件的意見反應</div>';
+        return;
+    }
+
+    listEl.innerHTML = data.map(f => `
+        <div class="item-row" style="align-items:flex-start;">
+            <div class="item-row-left" style="flex:1;">
+                <span class="item-sub">${new Date(f.created_at).toLocaleString('zh-TW')}${f.is_read ? '' : '　<strong style="color:var(--accent);">● 未讀</strong>'}</span>
+                <span class="item-title" style="font-weight:400; white-space:pre-wrap;">${(f.content || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</span>
+            </div>
+            <div style="display:flex; gap:6px; flex-shrink:0;">
+                ${f.is_read ? '' : `<button class="btn btn-secondary" style="padding:4px 10px;" onclick="markFeedbackRead('${f.id}')">標為已讀</button>`}
+                <button class="btn btn-danger" style="padding:4px 10px;" onclick="deleteFeedback('${f.id}')">🗑️</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+window.markFeedbackRead = async function(id) {
+    const { error } = await supabase.from('feedback_submissions').update({ is_read: true }).eq('id', id);
+    if (error) { alert('更新失敗：' + error.message); return; }
+    await refreshFeedbackList();
+};
+
+window.deleteFeedback = async function(id) {
+    if (!confirm('確定要刪除這則意見反應嗎？此動作無法復原。')) return;
+    const { error } = await supabase.from('feedback_submissions').delete().eq('id', id);
+    if (error) { alert('刪除失敗：' + error.message); return; }
+    await refreshFeedbackList();
+};
+
 async function refreshEditorTakesList() {
     const listEl = document.getElementById('list-editor-takes');
     const { data, error } = await supabase.from('editor_takes')
@@ -1348,4 +1417,184 @@ window.deleteTakeComment = async function(id) {
     const { error } = await supabase.from('editor_take_comments').delete().eq('id', id);
     if (error) { alert('刪除失敗：' + error.message); return; }
     await refreshTakeCommentsList();
+};
+
+/* ============================================================
+   重大事件：跟人物言行的爭議事件資料庫完全分開的獨立內容
+   ============================================================ */
+async function initMajorEventsTab() {
+    document.getElementById('major-event-title').value = '';
+    document.getElementById('major-event-summary').value = '';
+    document.getElementById('major-event-content').value = '';
+    document.getElementById('major-event-new-source-media').value = '';
+    document.getElementById('major-event-new-source-url').value = '';
+    majorEventSources = [];
+    editingMajorEventId = null;
+    renderMajorEventSourceRows();
+    resetMajorEventFormUI();
+    await refreshMajorEventsList();
+}
+
+function resetMajorEventFormUI() {
+    document.getElementById('major-event-form-heading').textContent = '🗞️ 新增重大事件';
+    document.getElementById('btn-save-major-event').textContent = '🚀 發布重大事件';
+    document.getElementById('btn-cancel-edit-major-event').style.display = 'none';
+}
+
+function renderMajorEventSourceRows() {
+    const box = document.getElementById('major-event-sources-list');
+    if (majorEventSources.length === 0) {
+        box.innerHTML = '<div style="color:var(--text-muted); font-size:0.85rem;">尚未加入任何來源連結</div>';
+        return;
+    }
+    box.innerHTML = majorEventSources.map((s, idx) => `
+        <div class="item-row">
+            <div class="item-row-left">
+                <span class="item-title">${s.media_name ? s.media_name : '（未填媒體名稱）'}</span>
+                <span class="item-sub">${s.url}</span>
+            </div>
+            <button class="btn btn-danger" style="padding:4px 8px; font-size:0.8rem;" onclick="removeMajorEventSourceRow(${idx})">刪除</button>
+        </div>
+    `).join('');
+}
+
+window.addMajorEventSourceRow = function() {
+    const mediaEl = document.getElementById('major-event-new-source-media');
+    const urlEl = document.getElementById('major-event-new-source-url');
+    const url = urlEl.value.trim();
+    if (!url) { alert('請輸入來源連結網址！'); return; }
+    majorEventSources.push({ media_name: mediaEl.value.trim(), url });
+    mediaEl.value = '';
+    urlEl.value = '';
+    renderMajorEventSourceRows();
+};
+
+window.removeMajorEventSourceRow = function(idx) {
+    majorEventSources.splice(idx, 1);
+    renderMajorEventSourceRows();
+};
+
+window.saveMajorEvent = async function() {
+    const title = document.getElementById('major-event-title').value.trim();
+    const summary = document.getElementById('major-event-summary').value.trim();
+    const content = document.getElementById('major-event-content').value.trim();
+
+    if (!title) { alert('請輸入標題！'); return; }
+    if (!content) { alert('請輸入全文內容！'); return; }
+
+    if (editingMajorEventId) {
+        const eventId = editingMajorEventId;
+        const { error: updateError } = await supabase.from('major_events')
+            .update({ title, summary, content })
+            .eq('id', eventId);
+        if (updateError) { alert('更新失敗：' + updateError.message); return; }
+
+        // 來源連結一樣用「先清空再重建」，不用一筆筆比對誰加了誰刪了
+        const { error: delErr } = await supabase.from('major_event_sources').delete().eq('major_event_id', eventId);
+        if (delErr) console.error('清除舊來源連結失敗:', delErr);
+
+        if (majorEventSources.length > 0) {
+            const { error: srcError } = await supabase.from('major_event_sources')
+                .insert(majorEventSources.map(s => ({ major_event_id: eventId, media_name: s.media_name || null, url: s.url })));
+            if (srcError) console.error('寫入來源連結失敗:', srcError);
+        }
+
+        alert('重大事件已更新！');
+        await initMajorEventsTab();
+        return;
+    }
+
+    const { data: eventData, error: insertError } = await supabase.from('major_events')
+        .insert([{ title, summary, content, is_visible: true }])
+        .select()
+        .single();
+
+    if (insertError) { alert('發布失敗：' + insertError.message); return; }
+
+    const eventId = eventData.id;
+
+    if (majorEventSources.length > 0) {
+        const { error: srcError } = await supabase.from('major_event_sources')
+            .insert(majorEventSources.map(s => ({ major_event_id: eventId, media_name: s.media_name || null, url: s.url })));
+        if (srcError) console.error('寫入來源連結失敗:', srcError);
+    }
+
+    alert('重大事件已發布！');
+    await initMajorEventsTab();
+};
+
+window.editMajorEvent = async function(id) {
+    const { data, error } = await supabase.from('major_events')
+        .select('id, title, summary, content, major_event_sources ( media_name, url )')
+        .eq('id', id)
+        .single();
+
+    if (error || !data) { alert('讀取這篇重大事件失敗，請稍後再試。'); return; }
+
+    editingMajorEventId = id;
+    document.getElementById('major-event-title').value = data.title || '';
+    document.getElementById('major-event-summary').value = data.summary || '';
+    document.getElementById('major-event-content').value = data.content || '';
+
+    majorEventSources = (data.major_event_sources || []).map(s => ({ media_name: s.media_name || '', url: s.url }));
+    renderMajorEventSourceRows();
+
+    document.getElementById('major-event-form-heading').textContent = `✏️ 編輯重大事件：${data.title || ''}`;
+    document.getElementById('btn-save-major-event').textContent = '💾 更新此篇重大事件';
+    document.getElementById('btn-cancel-edit-major-event').style.display = 'inline-flex';
+
+    document.getElementById('major-event-title').scrollIntoView({ behavior: 'smooth', block: 'center' });
+};
+
+window.cancelEditMajorEvent = function() {
+    editingMajorEventId = null;
+    document.getElementById('major-event-title').value = '';
+    document.getElementById('major-event-summary').value = '';
+    document.getElementById('major-event-content').value = '';
+    majorEventSources = [];
+    renderMajorEventSourceRows();
+    resetMajorEventFormUI();
+};
+
+async function refreshMajorEventsList() {
+    const listEl = document.getElementById('list-major-events');
+    if (!listEl || !supabase) return;
+    listEl.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:1rem;">載入中...</div>';
+
+    const { data, error } = await supabase.from('major_events')
+        .select('id, title, is_visible, created_at')
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        listEl.innerHTML = `<div style="text-align:center; color:var(--danger); padding:1rem;">載入失敗：${error.message}</div>`;
+        return;
+    }
+
+    listEl.innerHTML = (data && data.length > 0) ? data.map(ev => `
+        <div class="item-row">
+            <div class="item-row-left">
+                <span class="item-title">${ev.title}</span>
+                <span class="item-sub">${new Date(ev.created_at).toLocaleDateString('zh-TW')}${ev.is_visible ? '' : '　<strong style="color:var(--text-muted);">（已隱藏）</strong>'}</span>
+            </div>
+            <div style="display:flex; gap:6px;">
+                <button class="btn" style="padding:4px 10px; background:var(--warning);" onclick="editMajorEvent('${ev.id}')">✏️ 編輯</button>
+                <button class="btn btn-secondary" style="padding:4px 10px;" onclick="toggleMajorEventVisibility('${ev.id}', ${ev.is_visible})">${ev.is_visible ? '隱藏' : '恢復顯示'}</button>
+                <button class="btn btn-danger" style="padding:4px 10px;" onclick="deleteMajorEvent('${ev.id}')">🗑️</button>
+            </div>
+        </div>
+    `).join('') : '<div style="text-align:center; color:var(--text-muted); padding:1rem;">尚無重大事件</div>';
+}
+
+window.toggleMajorEventVisibility = async function(id, currentVisible) {
+    const { error } = await supabase.from('major_events').update({ is_visible: !currentVisible }).eq('id', id);
+    if (error) { alert('更新失敗：' + error.message); return; }
+    await refreshMajorEventsList();
+};
+
+window.deleteMajorEvent = async function(id) {
+    if (!confirm('確定要刪除這篇重大事件嗎？相關的來源連結也會一併刪除，此動作無法復原。')) return;
+    const { error } = await supabase.from('major_events').delete().eq('id', id);
+    if (error) { alert('刪除失敗：' + error.message); return; }
+    if (editingMajorEventId === id) cancelEditMajorEvent();
+    await refreshMajorEventsList();
 };

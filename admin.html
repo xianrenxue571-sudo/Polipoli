@@ -32,6 +32,8 @@
 <div class="nav-tab active" id="tab-btn-settings" onclick="switchAdminTab('settings')">🧱 匯入與基本設定</div>
 <div class="nav-tab" id="tab-btn-review" onclick="switchAdminTab('review')">⚖️ 爭議事件審核牆</div>
 <div class="nav-tab" id="tab-btn-analysis" onclick="switchAdminTab('analysis')">🔍 分析與紀錄管理</div>
+<div class="nav-tab" id="tab-btn-feedback" onclick="switchAdminTab('feedback')">💬 意見反應</div>
+<div class="nav-tab" id="tab-btn-majorEvents" onclick="switchAdminTab('majorEvents')">🗞️ 重大事件</div>
 </nav>
 <div class="tab-content active" id="tab-content-settings">
 <div class="admin-card">
@@ -165,6 +167,55 @@
         <h3>💬 留言管理</h3>
         <p style="color:var(--text-muted); font-size:0.9rem; margin-top:-0.5rem;">留言開放讀者自由發表、無需人工事前審核；累積 5 次讀者檢舉會自動隱藏，你可以在此複核、恢復顯示或永久刪除。</p>
         <div class="sidebar-list" style="max-height: 400px; overflow-y: auto;" id="list-take-comments"></div>
+    </div>
+</div>
+
+<div class="tab-content" id="tab-content-feedback">
+    <div class="admin-card">
+        <h3>💬 讀者意見反應</h3>
+        <p style="color:var(--text-muted); font-size:0.9rem; margin-top:-0.5rem;">前台「意見反應」頁面收到的留言，全部匿名、不會附帶任何聯絡方式。讀者送出後只能新增，無法自行讀取，只有這裡看得到。</p>
+        <div class="filter-bar">
+            <button class="filter-btn active" id="feedback-filter-btn-unread" onclick="setFeedbackFilter('unread')">未讀</button>
+            <button class="filter-btn" id="feedback-filter-btn-all" onclick="setFeedbackFilter('all')">全部</button>
+        </div>
+        <div class="sidebar-list" style="max-height: 500px; overflow-y: auto;" id="list-feedback"></div>
+    </div>
+</div>
+
+<div class="tab-content" id="tab-content-majorEvents">
+    <div class="admin-card">
+        <h3 id="major-event-form-heading">🗞️ 新增重大事件</h3>
+        <p style="color:var(--text-muted); font-size:0.9rem; margin-top:-0.5rem;">跟人物言行的爭議事件資料庫完全分開，用來整理毒油案、軍購案這類持續性的重大專題。內文如果提到已收錄的政治人物姓名，前台會自動生成連結按鈕，不用手動勾選關聯人物。</p>
+
+        <div class="form-group">
+            <label for="major-event-title">標題</label>
+            <input type="text" id="major-event-title" class="form-input" placeholder="例如：毒油案延燒：從食品廠到政治獻金的追蹤">
+        </div>
+        <div class="form-group">
+            <label for="major-event-summary">摘要（卡片收合時顯示，不用放日期，通常是延續性議題）</label>
+            <textarea id="major-event-summary" class="form-input" style="min-height: 80px;" placeholder="一兩句話的重點摘要"></textarea>
+        </div>
+        <div class="form-group">
+            <label for="major-event-content">全文內容（點開卡片後顯示，可貼上你請 AI 整理過的內容）</label>
+            <textarea id="major-event-content" class="form-input" style="min-height: 220px;"></textarea>
+        </div>
+
+        <div class="form-group">
+            <label>原始新聞來源（可加多個）</label>
+            <div id="major-event-sources-list"></div>
+            <div style="display:flex; gap:8px; margin-top:8px;">
+                <input type="text" id="major-event-new-source-media" class="form-input" placeholder="媒體名稱，如：自由時報" style="flex:1;">
+                <input type="url" id="major-event-new-source-url" class="form-input" placeholder="https://..." style="flex:2;">
+                <button class="btn" style="white-space:nowrap;" onclick="addMajorEventSourceRow()">➕ 加入</button>
+            </div>
+        </div>
+
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button class="btn btn-success" id="btn-save-major-event" onclick="saveMajorEvent()">🚀 發布重大事件</button>
+            <button class="btn btn-secondary" id="btn-cancel-edit-major-event" style="display:none;" onclick="cancelEditMajorEvent()">✕ 取消編輯</button>
+        </div>
+
+        <div class="sidebar-list" style="max-height: 400px; overflow-y: auto; margin-top: 1.5rem;" id="list-major-events"></div>
     </div>
 </div>
 

@@ -133,6 +133,12 @@ a { color: inherit; }
   color: rgba(239, 233, 220, 0.6);
   margin-top: 1px;
 }
+.header-links {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
 .header-about-link {
   font-size: 0.82rem;
   text-decoration: none;
@@ -150,6 +156,7 @@ a { color: inherit; }
    ============================================================ */
 .main-tabs {
   display: flex;
+  justify-content: center;
   gap: 0.4rem;
   padding: 0 1.6rem;
   margin-top: 0.6rem;
@@ -212,7 +219,7 @@ aside {
   border-bottom: 2px dashed var(--line-strong);
 }
 
-.search-input, .mobile-issue-select {
+.search-input {
   width: 100%;
   font-family: var(--font-body);
   font-size: 0.9rem;
@@ -223,8 +230,6 @@ aside {
   color: var(--ink);
   margin-bottom: 0.8rem;
 }
-.mobile-issue-select { display: none; }
-.mobile-issue-select.active-tab { border-color: var(--stamp); }
 
 .section-label {
   font-family: var(--font-mono);
@@ -236,12 +241,6 @@ aside {
   padding-bottom: 0.2rem;
   border-bottom: 1px dotted var(--line-strong);
 }
-.quick-tags-container.issue-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.35rem;
-}
-.quick-tags-container.issue-grid .catalog-card { font-size: 0.8rem; }
 
 .catalog-card span { flex: 1; }
 
@@ -364,6 +363,8 @@ main { min-width: 0; }
   padding: 0.3rem 0.65rem;
   border-radius: 999px;
   cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
 }
 .info-tag:hover { background: var(--brass); color: var(--paper); border-color: var(--brass); }
 .info-tag.issue-tag { border-style: dashed; }
@@ -550,12 +551,77 @@ main { min-width: 0; }
 .btn-comment-submit:hover { background: var(--stamp); }
 
 /* ============================================================
+   重大事件牆：卡片並排網格，點擊就地展開全文
+   ============================================================ */
+.major-events-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+.major-event-card {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+.major-event-summary {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 1.1rem 1.2rem;
+  font-family: inherit;
+}
+.major-event-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.2rem;
+  color: var(--ink);
+  margin: 0 0 0.5rem;
+}
+.major-event-excerpt {
+  font-size: 1rem;
+  line-height: 1.65;
+  color: var(--ink-soft);
+  margin: 0;
+}
+.major-event-expand-hint {
+  display: inline-block;
+  margin-top: 0.7rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--stamp);
+}
+.major-event-card.expanded .major-event-expand-hint::after { content: ' (點擊收合)'; }
+.major-event-body { display: none; padding: 0 1.2rem 1.2rem; border-top: 1px dashed var(--line-strong); }
+.major-event-card.expanded .major-event-body { display: block; padding-top: 1rem; }
+.major-event-content { font-size: 1.05rem; line-height: 1.8; color: var(--ink); }
+.major-event-content p { margin: 0 0 0.9rem; }
+.major-event-sources { margin-top: 1rem; display: flex; flex-direction: column; gap: 6px; }
+.major-event-mentions {
+  margin-top: 1.2rem;
+  padding-top: 1rem;
+  border-top: 1px dashed var(--line-strong);
+}
+.major-event-mentions-label {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-bottom: 0.5rem;
+  display: block;
+}
+.major-event-mentions .info-tag { margin: 0 0.4rem 0.4rem 0; display: inline-block; }
+
+/* ============================================================
    Responsive
    ============================================================ */
 @media (max-width: 880px) {
   .container { grid-template-columns: 1fr; }
   aside { position: static; }
   .sidebar-list { display: none; }
-  .mobile-issue-select { display: block; }
-  #main-header { flex-direction: column; align-items: flex-start; gap: 0.7rem; }
+  #main-header { flex-direction: column; align-items: center; text-align: center; gap: 0.7rem; }
 }

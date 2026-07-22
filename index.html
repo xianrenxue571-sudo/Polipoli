@@ -33,12 +33,15 @@
                 <div class="header-subtitle">每一筆案卷，都附原始來源可供查證。</div>
             </div>
         </a>
-        <a href="/about.html" class="header-about-link">ℹ️ 關於本站</a>
+        <div class="header-links">
+            <a href="/about.html" class="header-about-link">ℹ️ 關於本站</a>
+            <a href="/feedback.html" class="header-about-link">💬 意見反應</a>
+        </div>
     </header>
 
     <nav class="main-tabs" aria-label="主要導覽">
         <a href="/" class="main-tab-btn active" id="tab-politicians" data-nav="tab" data-tab="politicians">人物言行</a>
-        <a href="/issues/" class="main-tab-btn" id="tab-issues" data-nav="tab" data-tab="issues">社會議題</a>
+        <a href="/major-events/" class="main-tab-btn" id="tab-majorEvents" data-nav="tab" data-tab="majorEvents">重大事件</a>
         <a href="/analysis/" class="main-tab-btn" id="tab-analysis" data-nav="tab" data-tab="analysis">分析紀錄</a>
         <a href="/editor-takes/" class="main-tab-btn" id="tab-editorTakes" data-nav="tab" data-tab="editorTakes">站長觀點</a>
     </nav>
@@ -50,8 +53,6 @@
             <div class="search-container" id="sidebar-search-container">
                 <input type="text" id="sidebar-search" class="search-input" placeholder="輸入姓名搜尋人物..." oninput="filterSidebar()">
             </div>
-
-            <select id="mobile-issue-select" class="mobile-issue-select" onchange="handleMobileIssueSelect(this.value)"></select>
 
             <div class="sidebar-list">
                <div id="quick-tags-container" class="quick-tags-container">
@@ -71,6 +72,7 @@
 
             <div id="analysis-feed" style="display:none;"></div>
             <div id="editor-takes-feed" style="display:none;"></div>
+            <div id="major-events-feed" style="display:none;"></div>
 
             <div id="loader">案卷調閱中...</div>
             <div id="end-message" class="end-message">— 卷宗已調閱完畢 —</div>
