@@ -395,7 +395,7 @@ main { min-width: 0; }
 }
 
 /* 站長點評 / 觀點分析 — 印章戳記感 */
-.site-comment, .analysis-card {
+.site-comment {
   position: relative;
   margin: 0.7rem 0.5rem 0.6rem;
   padding: 0.7rem 0.8rem;
@@ -403,7 +403,7 @@ main { min-width: 0; }
   border: 1px dashed var(--stamp-soft);
   border-radius: 2px;
 }
-.site-comment p, .analysis-card p { margin: 0.3rem 0 0; font-size: 1.05rem; line-height: 1.65; }
+.site-comment p { margin: 0.3rem 0 0; font-size: 1.05rem; line-height: 1.65; }
 .analysis-badge, .editor-take-badge {
   display: inline-block;
   font-family: var(--font-mono);
@@ -417,15 +417,8 @@ main { min-width: 0; }
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
-.analysis-card-header, .site-comment-header {
+.site-comment-header {
   display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;
-}
-.analysis-target { font-size: 1rem; color: var(--ink-soft); font-weight: 700; }
-.analysis-section-title {
-  font-family: var(--font-display);
-  border-bottom: 2px dashed var(--line-strong);
-  padding-bottom: 0.4rem;
-  margin: 1.6rem 0.2rem 0.8rem;
 }
 .analysis-disclaimer, .analysis-empty {
   font-size: 0.95rem;

@@ -144,13 +144,6 @@ window.onload = async () => {
         setupIntersectionObserver();
         return;
     }
-    if (window.__SSG_ANALYSIS_PAGE) {
-        currentTab = 'analysis';
-        document.querySelectorAll('.main-tab-btn').forEach(btn => btn.classList.remove('active'));
-        document.getElementById('tab-analysis').classList.add('active');
-        showAnalysisView();
-        return;
-    }
     if (window.__SSG_EDITOR_TAKES_PAGE) {
         currentTab = 'editorTakes';
         document.querySelectorAll('.main-tab-btn').forEach(btn => btn.classList.remove('active'));
@@ -243,11 +236,10 @@ window.switchMainTab = function (tabName, preventReload = false) {
     document.querySelectorAll('.main-tab-btn').forEach(btn => btn.classList.remove('active'));
     document.getElementById(`tab-${tabName}`).classList.add('active');
 
-    if (tabName === 'analysis') { hideEditorTakesView(); hideMajorEventsView(); showAnalysisView(); return; }
-    if (tabName === 'editorTakes') { hideAnalysisView(); hideMajorEventsView(); showEditorTakesView(); return; }
-    if (tabName === 'majorEvents') { hideAnalysisView(); hideEditorTakesView(); showMajorEventsView(); return; }
+    if (tabName === 'editorTakes') { hideMajorEventsView(); showEditorTakesView(); return; }
+    if (tabName === 'majorEvents') { hideEditorTakesView(); showMajorEventsView(); return; }
 
-    hideAnalysisView();
+    restoreDefaultLayout();
     hideEditorTakesView();
     hideMajorEventsView();
 
@@ -255,20 +247,9 @@ window.switchMainTab = function (tabName, preventReload = false) {
     else renderSidebar();
 };
 
-function showAnalysisView() {
-    document.querySelector('.container').classList.add('no-sidebar');
-    document.getElementById('events-feed').style.display = 'none';
-    document.getElementById('stat-dashboard').style.display = 'none';
-    document.getElementById('loader').classList.remove('visible');
-    document.getElementById('end-message').style.display = 'none';
-    document.getElementById('feed-title').textContent = '🔍 分析與紀錄';
-    document.getElementById('analysis-feed').style.display = 'block';
-    loadAnalysisFeed();
-}
-function hideAnalysisView() {
+function restoreDefaultLayout() {
     document.querySelector('.container').classList.remove('no-sidebar');
     document.getElementById('events-feed').style.display = '';
-    document.getElementById('analysis-feed').style.display = 'none';
 }
 function showEditorTakesView() {
     document.querySelector('.container').classList.add('no-sidebar');
@@ -464,40 +445,6 @@ window.reportTakeComment = async function (commentId, btnEl) {
     if (btnEl) { btnEl.disabled = true; btnEl.textContent = '已檢舉'; }
     alert('已收到檢舉，感謝協助維護留言品質。');
 };
-
-async function loadAnalysisFeed() {
-    const container = document.getElementById('analysis-feed');
-    container.innerHTML = '<div class="empty-note">案卷調閱中...</div>';
-
-    const [{ data: polAnalyses }, { data: evAnalyses }] = await Promise.all([
-        supabase.from('politician_analysis').select('content, politicians(name)').eq('is_visible', true),
-        supabase.from('event_analysis').select('content, events(quote, date)').eq('is_visible', true)
-    ]);
-
-    let html = '<div class="analysis-disclaimer">⚠️ 以下內容為觀點解讀，並非事實認定，請自行判斷參考，並可對照事件原始來源自行查證。</div>';
-
-    html += '<h3 class="analysis-section-title">👤 人物風格分析</h3>';
-    html += (polAnalyses && polAnalyses.length > 0) ? polAnalyses.map(a => `
-        <div class="analysis-card">
-            <div class="analysis-card-header">
-                <span class="analysis-badge">⚠️ 觀點分析</span>
-                <span class="analysis-target">${a.politicians?.name || '未知人物'}</span>
-            </div>
-            <p>${a.content}</p>
-        </div>`).join('') : '<div class="analysis-empty">目前尚無人物風格分析。</div>';
-
-    html += '<h3 class="analysis-section-title">📌 事件解讀</h3>';
-    html += (evAnalyses && evAnalyses.length > 0) ? evAnalyses.map(a => `
-        <div class="analysis-card">
-            <div class="analysis-card-header">
-                <span class="analysis-badge">⚠️ 觀點分析</span>
-                <span class="analysis-target">「${a.events?.quote || '未知事件'}」（${a.events?.date || '無日期'}）</span>
-            </div>
-            <p>${a.content}</p>
-        </div>`).join('') : '<div class="analysis-empty">目前尚無事件解讀。</div>';
-
-    container.innerHTML = html;
-}
 
 /* ============================================================
    重大事件牆：跟人物言行的 events 資料庫完全分開的獨立內容

@@ -701,11 +701,6 @@ window.deleteEventAbsolute = async function(id) {
 let cacheEventsForAnalysis = [];
 
 async function initAnalysisTab() {
-    const polSelect = document.getElementById('analysis-politician-select');
-    polSelect.innerHTML = '<option value="">請選擇政治人物</option>' +
-        cachePoliticians.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
-    document.getElementById('analysis-politician-content').value = '';
-
     if (cacheEventsForAnalysis.length === 0) {
         const { data } = await supabase.from('events').select('id, quote, date').order('date', { ascending: false });
         cacheEventsForAnalysis = data || [];
@@ -727,40 +722,6 @@ window.filterEventAnalysisSelect = function() {
     const term = document.getElementById('analysis-event-search').value.trim().toLowerCase();
     const filtered = term ? cacheEventsForAnalysis.filter(e => (e.quote || '').toLowerCase().includes(term)) : cacheEventsForAnalysis;
     renderEventAnalysisOptions(filtered);
-};
-
-window.loadPoliticianAnalysisIntoForm = async function() {
-    const polId = document.getElementById('analysis-politician-select').value;
-    const textarea = document.getElementById('analysis-politician-content');
-    if (!polId) { textarea.value = ''; return; }
-    const { data } = await supabase.from('politician_analysis').select('content').eq('politician_id', polId).maybeSingle();
-    textarea.value = data?.content || '';
-};
-
-window.savePoliticianAnalysis = async function() {
-    const polId = document.getElementById('analysis-politician-select').value;
-    const content = document.getElementById('analysis-politician-content').value.trim();
-    if (!polId) { alert('請先選擇政治人物！'); return; }
-    if (!content) { alert('分析內容不能是空的！'); return; }
-
-    const { error } = await supabase.from('politician_analysis').upsert(
-        { politician_id: polId, content, is_visible: true },
-        { onConflict: 'politician_id' }
-    );
-    if (error) { alert('儲存失敗：' + error.message); return; }
-    alert('人物分析已儲存！');
-    await refreshAnalysisLists();
-};
-
-window.deletePoliticianAnalysis = async function() {
-    const polId = document.getElementById('analysis-politician-select').value;
-    if (!polId) { alert('請先選擇政治人物！'); return; }
-    if (!confirm('確定要刪除這位人物的風格分析嗎？')) return;
-    const { error } = await supabase.from('politician_analysis').delete().eq('politician_id', polId);
-    if (error) { alert('刪除失敗：' + error.message); return; }
-    document.getElementById('analysis-politician-content').value = '';
-    alert('已刪除！');
-    await refreshAnalysisLists();
 };
 
 window.loadEventAnalysisIntoForm = async function() {
@@ -798,19 +759,6 @@ window.deleteEventAnalysis = async function() {
 };
 
 async function refreshAnalysisLists() {
-    const { data: polAnalyses } = await supabase.from('politician_analysis').select('politician_id, content, politicians(name)');
-    const polListEl = document.getElementById('list-politician-analysis');
-    if (polListEl) {
-        polListEl.innerHTML = (polAnalyses && polAnalyses.length > 0) ? polAnalyses.map(a => `
-            <div class="item-row">
-                <div class="item-row-left">
-                    <span class="item-title">${a.politicians?.name || '未知人物'}</span>
-                    <span class="item-sub">${(a.content || '').slice(0, 40)}...</span>
-                </div>
-            </div>
-        `).join('') : '<div style="text-align:center; color:var(--text-muted); padding:1rem;">尚無人物分析</div>';
-    }
-
     const { data: evAnalyses } = await supabase.from('event_analysis').select('event_id, content, events(quote)');
     const evListEl = document.getElementById('list-event-analysis');
     if (evListEl) {
