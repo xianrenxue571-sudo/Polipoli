@@ -54,6 +54,14 @@
                 <input type="text" id="sidebar-search" class="search-input" placeholder="輸入姓名搜尋人物..." oninput="filterSidebar()">
             </div>
 
+            <select id="politician-select" class="search-input" onchange="handlePoliticianSelect(this.value)">
+                <option value="">👤 選擇政治人物...</option>
+            </select>
+
+            <select id="issue-category-select" class="search-input" onchange="handleIssueSelect(this.value)">
+                <option value="">📌 選擇事件分類...</option>
+            </select>
+
             <div class="sidebar-list">
                <div id="quick-tags-container" class="quick-tags-container">
                     <div style="text-align:center;color:var(--muted);font-size:0.85rem;width:100%;">案卷調閱中...</div>

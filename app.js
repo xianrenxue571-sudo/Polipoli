@@ -66,6 +66,8 @@ const endMessage = document.getElementById('end-message');
 const feedTitle = document.getElementById('feed-title');
 const searchContainer = document.getElementById('sidebar-search-container');
 const catalogContainer = document.getElementById('quick-tags-container');
+const politicianSelect = document.getElementById('politician-select');
+const issueSelect = document.getElementById('issue-category-select');
 
 /* 捲動時把檔案室橫幅收起，讓卡片牆有更多空間 */
 let lastScrollTop = 0;
@@ -559,9 +561,39 @@ function renderSidebar() {
     title.textContent = '人物檔案索引';
     searchInput.placeholder = '輸入姓名搜尋人物...';
 
+    renderSidebarSelects();
+
     if (searchInput.value.trim() !== '') filterSidebar();
     else renderSidebarButtons();
 }
+
+/* 人物／事件分類的下拉選單：跟上面的文字搜尋、下面的快速索引清單
+   是三種並存的瀏覽方式，選了其中一個下拉選單就直接跳轉／就地篩選。 */
+function renderSidebarSelects() {
+    let polOptions = `<option value="">👤 選擇政治人物...</option>`;
+    polOptions += cachePoliticians.map(p =>
+        `<option value="${p.id}" ${currentFilterId === p.id ? 'selected' : ''}>${escapeHtmlClient(p.name)}</option>`
+    ).join('');
+    politicianSelect.innerHTML = polOptions;
+
+    let issueOptions = `<option value="">📌 選擇事件分類...</option>`;
+    issueOptions += cacheIssues.map(i =>
+        `<option value="${i.id}" ${currentFilterId === i.id ? 'selected' : ''}>${escapeHtmlClient(i.name)}</option>`
+    ).join('');
+    issueSelect.innerHTML = issueOptions;
+}
+
+window.handlePoliticianSelect = function (val) {
+    if (!val) { resetToLatest(true); return; }
+    const pol = cachePoliticians.find(p => p.id === val);
+    if (pol) loadSpecificData('politician', pol.id, pol.name);
+};
+
+window.handleIssueSelect = function (val) {
+    if (!val) { resetToLatest(true); return; }
+    const issue = cacheIssues.find(i => i.id === val);
+    if (issue) loadSpecificData('issue', issue.id, issue.name);
+};
 
 /* 小工具：組出可真正導覽（有 href）的索引卡／標籤連結，
    同時掛 data-* 讓上面的委派點擊處理器攔截做無刷新切換。 */
