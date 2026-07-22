@@ -1,347 +1,339 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Polipoli 啪哩啪哩檔案室 | 後台管理室</title>
-<link rel="stylesheet" href="./admin.css">
-</head>
-<body>
-<div id="unlock-screen">
-<div class="unlock-box">
-<h2>Polipoli 檔案室 — 管理員驗證</h2>
-<div class="form-group">
-<label for="db-url">Supabase API 網址 (URL)</label>
-<input type="text" id="db-url" class="form-input" placeholder="https://your-project.supabase.co">
-</div>
-<div class="form-group">
-<label for="db-key">最高權限私鑰 (service_role secret)</label>
-<input type="password" id="db-key" class="form-input" placeholder="請貼上 service_role key 憑證">
-</div>
-<button class="btn" style="width: 100%; justify-content: center;" onclick="attemptUnlock()">🔓 驗證金鑰並解鎖系統</button>
-</div>
-</div>
-<div id="admin-panel">
-<header>
-<div class="header-title">
-<h1>啪哩啪哩後台管理室</h1>
-</div>
-<button class="btn btn-danger" onclick="lockAndLogOut()">🔒 登出</button>
-</header>
-<nav class="admin-nav" aria-label="後台選單">
-<div class="nav-tab active" id="tab-btn-settings" onclick="switchAdminTab('settings')">🧱 新增與管理</div>
-<div class="nav-tab" id="tab-btn-review" onclick="switchAdminTab('review')">⚖️ 爭議事件審核牆</div>
-<div class="nav-tab" id="tab-btn-majorEvents" onclick="switchAdminTab('majorEvents')">🗞️ 重大事件</div>
-<div class="nav-tab" id="tab-btn-feedback" onclick="switchAdminTab('feedback')">💬 留言管理</div>
-</nav>
-<div class="tab-content active" id="tab-content-settings">
-<div class="admin-card">
-<h3>📦 爭議事件匯入</h3>
-<div class="form-group">
-<label for="json-paste-area">請將 Gemini 產出的 JSON 陣列代碼複製並貼上：</label>
-<textarea id="json-paste-area" class="form-input"></textarea>
-</div>
-<button class="btn btn-success" id="btn-execute-import" onclick="importPastedJSON()">🚀 執行強效大數據匯入</button>
-</div>
-<div class="admin-card">
-<h3>🩹 既有事件回填（對人民 / 對國安影響）</h3>
-<div class="form-group">
-<label for="backfill-json-paste-area">請將 Gemini 依「回填 prompt」產出的 JSON 陣列（含 id）複製並貼上，只會更新對應 id 的影響欄位，不影響其他資料：</label>
-<textarea id="backfill-json-paste-area" class="form-input"></textarea>
-</div>
-<button class="btn btn-success" id="btn-execute-backfill" onclick="backfillImpactFields()">🩹 執行回填更新</button>
-</div>
-<div class="grid-2">
-<div class="admin-card">
-<h3>👤 追蹤政治人物管理</h3>
-<div style="display: flex; gap: 8px; margin-bottom: 1.5rem; align-items:center; flex-wrap:wrap;">
-<input type="text" id="new-pol-name" class="form-input" placeholder="姓名，如：黃國昌" style="flex: 2;">
-<input type="text" id="new-pol-party" class="form-input" placeholder="政黨，如：民眾黨" style="flex: 1;">
-<label class="checkbox-label" style="white-space:nowrap;">
-<input type="checkbox" id="new-pol-hard-to-type"> 難檢字
-</label>
-<button class="btn" onclick="addPolitician()">新增人物</button>
-</div>
-<div class="sidebar-list" style="max-height: 250px; overflow-y: auto;" id="list-politicians"></div>
-</div>
-<div class="admin-card">
-<h3>📌 核心公共議題管理</h3>
-<div style="display: flex; gap: 8px; margin-bottom: 1.5rem;">
-<input type="text" id="new-issue-name" class="form-input" placeholder="議題名稱，2至4字，如：居住正義" style="flex: 1;">
-<button class="btn" onclick="addIssue()">新增議題</button>
-</div>
-<div class="sidebar-list" style="max-height: 250px; overflow-y: auto;" id="list-issues"></div>
-</div>
-</div>
-
-<div class="admin-card">
-    <h3>📌 事件解讀</h3>
-    <div class="form-group">
-        <label for="analysis-event-select">選擇事件（依引言搜尋）</label>
-        <input type="text" id="analysis-event-search" class="form-input" placeholder="輸入事件引言關鍵字搜尋..." oninput="filterEventAnalysisSelect()">
-        <select id="analysis-event-select" class="form-input" onchange="loadEventAnalysisIntoForm()" style="margin-top: 8px;"></select>
-    </div>
-    <div class="form-group">
-        <label for="analysis-event-content">解讀內容（這是解讀，非事實認定，請避免斷言式指控）</label>
-        <textarea id="analysis-event-content" class="form-input" style="min-height: 160px;"></textarea>
-    </div>
-    <div style="display:flex; gap:10px; flex-wrap:wrap;">
-        <button class="btn btn-success" onclick="saveEventAnalysis()">💾 儲存</button>
-        <button class="btn btn-danger" onclick="deleteEventAnalysis()">🗑️ 刪除</button>
-    </div>
-    <div class="sidebar-list" style="max-height: 250px; overflow-y: auto; margin-top: 1.5rem;" id="list-event-analysis"></div>
-</div>
-
-<div class="admin-card">
-    <h3 id="editor-take-form-heading">🗣️ 新增站長觀點</h3>
-    <p style="color:var(--text-muted); font-size:0.9rem; margin-top:-0.5rem;">這裡是站長個人主觀想法的發表區，不受爭議事件資料庫「中性陳述、不下評價」規範限制，會以獨立樣式（紫色標籤）顯示於前台，與查證過的爭議事件明確區隔。</p>
-    <div class="form-group">
-        <label for="take-title">標題</label>
-        <input type="text" id="take-title" class="form-input" placeholder="這篇站長觀點的重點一句話">
-    </div>
-    <div class="form-group">
-        <label for="take-content">內容（可自由發表主觀看法）</label>
-        <textarea id="take-content" class="form-input" style="min-height: 160px;"></textarea>
-    </div>
-
-    <div class="form-group">
-        <label>關聯政治人物（可複選）</label>
-        <div class="checkbox-group-box" id="take-politicians-checkboxes"></div>
-        <div style="display:flex; gap:8px; margin-top:8px;">
-            <input type="text" id="take-new-politician-name" class="form-input" placeholder="輸入尚未收錄的人物姓名，加入後由研究員後續查證補齊資料">
-            <button class="btn" style="white-space:nowrap;" onclick="addNewPoliticianForTake()">➕ 加入新人物</button>
-        </div>
-    </div>
-
-    <div class="form-group">
-        <label for="take-event-search">關聯既有爭議事件（可選，可複選）</label>
-        <input type="text" id="take-event-search" class="form-input" placeholder="輸入事件引言關鍵字搜尋..." oninput="filterTakeEventSelect()">
-        <div style="display:flex; gap:8px; margin-top:8px;">
-            <select id="take-event-select" class="form-input"></select>
-            <button class="btn" style="white-space:nowrap;" onclick="addEventChipForTake()">➕ 加入</button>
-        </div>
-        <div class="checkbox-group-box" id="take-events-chosen" style="margin-top:8px;"></div>
-    </div>
-
-    <div style="display:flex; gap:10px; flex-wrap:wrap;">
-        <button class="btn btn-success" id="btn-save-editor-take" onclick="saveEditorTake()">🚀 發布站長觀點</button>
-        <button class="btn btn-secondary" id="btn-cancel-edit-take" style="display:none;" onclick="cancelEditEditorTake()">✕ 取消編輯</button>
-    </div>
-    <div class="sidebar-list" style="max-height: 300px; overflow-y: auto; margin-top: 1.5rem;" id="list-editor-takes"></div>
-</div>
-</div>
-<div class="tab-content" id="tab-content-review">
-    <div class="filter-bar">
-        <button class="filter-btn active" id="filter-btn-pending" onclick="setEventFilter('pending')">🔴 待審核</button>
-        <button class="filter-btn" id="filter-btn-staged" onclick="setEventFilter('staged')">🟡 暫存區</button>
-        <button class="filter-btn" id="filter-btn-approved" onclick="setEventFilter('approved')">🟢 已核准</button>
-    </div>
-
-    <div class="action-bar-bottom">
-        <button class="btn btn-secondary" id="btn-check-duplicates" onclick="startDuplicateCheck()">🔍 檢查重複</button>
-        <button class="btn btn-danger" onclick="deleteAllPending()">🗑️ 一鍵清空清單</button>
-        <button class="btn btn-success" onclick="publishAllPending()">🚀 一鍵分批上架</button>
-    </div>
-
-    <div class="review-list" id="review-list-container">
-        <div style="text-align: center; color: var(--text-muted); padding: 2rem;">資料在庫檢索中...</div>
-    </div>
-</div>
-
-<div class="tab-content" id="tab-content-feedback">
-    <div class="admin-card">
-        <h3>💬 留言管理</h3>
-        <p style="color:var(--text-muted); font-size:0.9rem; margin-top:-0.5rem;">留言開放讀者自由發表、無需人工事前審核；累積 5 次讀者檢舉會自動隱藏，你可以在此複核、恢復顯示或永久刪除。</p>
-        <div class="sidebar-list" style="max-height: 400px; overflow-y: auto;" id="list-take-comments"></div>
-    </div>
-
-    <div class="admin-card">
-        <h3>💬 讀者意見反應</h3>
-        <p style="color:var(--text-muted); font-size:0.9rem; margin-top:-0.5rem;">前台「意見反應」頁面收到的留言，全部匿名、不會附帶任何聯絡方式。讀者送出後只能新增，無法自行讀取，只有這裡看得到。</p>
-        <div class="filter-bar">
-            <button class="filter-btn active" id="feedback-filter-btn-unread" onclick="setFeedbackFilter('unread')">未讀</button>
-            <button class="filter-btn" id="feedback-filter-btn-all" onclick="setFeedbackFilter('all')">全部</button>
-        </div>
-        <div class="sidebar-list" style="max-height: 500px; overflow-y: auto;" id="list-feedback"></div>
-    </div>
-</div>
-
-<div class="tab-content" id="tab-content-majorEvents">
-    <div class="admin-card">
-        <h3 id="major-event-form-heading">🗞️ 新增重大事件</h3>
-        <p style="color:var(--text-muted); font-size:0.9rem; margin-top:-0.5rem;">跟人物言行的爭議事件資料庫完全分開，用來整理毒油案、軍購案這類持續性的重大專題。內文如果提到已收錄的政治人物姓名，前台會自動生成連結按鈕，不用手動勾選關聯人物。</p>
-
-        <div class="form-group">
-            <label for="major-event-title">標題</label>
-            <input type="text" id="major-event-title" class="form-input" placeholder="例如：毒油案延燒：從食品廠到政治獻金的追蹤">
-        </div>
-        <div class="form-group">
-            <label for="major-event-summary">摘要（卡片收合時顯示，不用放日期，通常是延續性議題）</label>
-            <textarea id="major-event-summary" class="form-input" style="min-height: 80px;" placeholder="一兩句話的重點摘要"></textarea>
-        </div>
-        <div class="form-group">
-            <label for="major-event-content">全文內容（點開卡片後顯示，可貼上你請 AI 整理過的內容）</label>
-            <textarea id="major-event-content" class="form-input" style="min-height: 220px;"></textarea>
-        </div>
-
-        <div class="form-group">
-            <label>原始新聞來源（可加多個）</label>
-            <div id="major-event-sources-list"></div>
-            <div style="display:flex; gap:8px; margin-top:8px;">
-                <input type="text" id="major-event-new-source-media" class="form-input" placeholder="媒體名稱，如：自由時報" style="flex:1;">
-                <input type="url" id="major-event-new-source-url" class="form-input" placeholder="https://..." style="flex:2;">
-                <button class="btn" style="white-space:nowrap;" onclick="addMajorEventSourceRow()">➕ 加入</button>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Polipoli 啪哩啪哩檔案室 | 後台管理室</title>
+        <link rel="stylesheet" href="./admin.css">
+    </head>
+    <body>
+        <div id="unlock-screen">
+            <div class="unlock-box">
+                <h2>Polipoli 檔案室 — 管理員驗證</h2>
+                <div class="form-group">
+                    <label for="db-url">Supabase API 網址 (URL)</label>
+                    <input type="text" id="db-url" class="form-input" placeholder="https://your-project.supabase.co">
+                </div>
+                <div class="form-group">
+                    <label for="db-key">最高權限私鑰 (service_role secret)</label>
+                    <input type="password" id="db-key" class="form-input" placeholder="請貼上 service_role key 憑證">
+                </div>
+                <button class="btn" style="width: 100%; justify-content: center;" onclick="attemptUnlock()">🔓 驗證金鑰並解鎖系統</button>
             </div>
         </div>
+        <div id="admin-panel">
+            <header>
+                <div class="header-title">
+                    <h1>啪哩啪哩後台管理室</h1>
+                </div>
+                <button class="btn btn-danger" onclick="lockAndLogOut()">🔒 登出</button>
+            </header>
+            <nav class="admin-nav" aria-label="後台選單">
+                <div class="nav-tab active" id="tab-btn-settings" onclick="switchAdminTab('settings')">🧱 新增與管理</div>
+                <div class="nav-tab" id="tab-btn-review" onclick="switchAdminTab('review')">⚖️ 爭議事件審核牆</div>
+                <div class="nav-tab" id="tab-btn-majorEvents" onclick="switchAdminTab('majorEvents')">🗞️ 重大事件</div>
+                <div class="nav-tab" id="tab-btn-feedback" onclick="switchAdminTab('feedback')">💬 留言管理</div>
+            </nav>
+            <div class="tab-content active" id="tab-content-settings">
+                <div class="admin-card">
+                    <h3>📦 爭議事件匯入</h3>
+                    <div class="form-group">
+                        <label for="json-paste-area">請將 Gemini 產出的 JSON 陣列代碼複製並貼上：</label>
+                        <textarea id="json-paste-area" class="form-input"></textarea>
+                    </div>
+                    <button class="btn btn-success" id="btn-execute-import" onclick="importPastedJSON()">🚀 執行強效大數據匯入</button>
+                </div>
+                <div class="grid-2">
+                    <div class="admin-card">
+                        <h3>👤 追蹤政治人物管理</h3>
+                        <div style="display: flex; gap: 8px; margin-bottom: 1.5rem; align-items:center; flex-wrap:wrap;">
+                            <input type="text" id="new-pol-name" class="form-input" placeholder="姓名，如：黃國昌" style="flex: 2;">
+                            <input type="text" id="new-pol-party" class="form-input" placeholder="政黨，如：民眾黨" style="flex: 1;">
+                            <label class="checkbox-label" style="white-space:nowrap;">
+                                <input type="checkbox" id="new-pol-hard-to-type"> 難檢字
+                            </label>
+                            <button class="btn" onclick="addPolitician()">新增人物</button>
+                        </div>
+                        <div class="sidebar-list" style="max-height: 250px; overflow-y: auto;" id="list-politicians"></div>
+                    </div>
+                    <div class="admin-card">
+                        <h3>📌 核心公共議題管理</h3>
+                        <div style="display: flex; gap: 8px; margin-bottom: 1.5rem;">
+                            <input type="text" id="new-issue-name" class="form-input" placeholder="議題名稱，2至4字，如：居住正義" style="flex: 1;">
+                            <button class="btn" onclick="addIssue()">新增議題</button>
+                        </div>
+                        <div class="sidebar-list" style="max-height: 250px; overflow-y: auto;" id="list-issues"></div>
+                    </div>
+                </div>
 
-        <div style="display:flex; gap:10px; flex-wrap:wrap;">
-            <button class="btn btn-success" id="btn-save-major-event" onclick="saveMajorEvent()">🚀 發布重大事件</button>
-            <button class="btn btn-secondary" id="btn-cancel-edit-major-event" style="display:none;" onclick="cancelEditMajorEvent()">✕ 取消編輯</button>
+                <div class="admin-card">
+                    <h3>📌 事件解讀</h3>
+                    <div class="form-group">
+                        <label for="analysis-event-select">選擇事件（依引言搜尋）</label>
+                        <input type="text" id="analysis-event-search" class="form-input" placeholder="輸入事件引言關鍵字搜尋..." oninput="filterEventAnalysisSelect()">
+                        <select id="analysis-event-select" class="form-input" onchange="loadEventAnalysisIntoForm()" style="margin-top: 8px;"></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="analysis-event-content">解讀內容（這是解讀，非事實認定，請避免斷言式指控）</label>
+                        <textarea id="analysis-event-content" class="form-input" style="min-height: 160px;"></textarea>
+                    </div>
+                    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                        <button class="btn btn-success" onclick="saveEventAnalysis()">💾 儲存</button>
+                        <button class="btn btn-danger" onclick="deleteEventAnalysis()">🗑️ 刪除</button>
+                    </div>
+                    <div class="sidebar-list" style="max-height: 250px; overflow-y: auto; margin-top: 1.5rem;" id="list-event-analysis"></div>
+                </div>
+
+                <div class="admin-card">
+                    <h3 id="editor-take-form-heading">🗣️ 新增站長觀點</h3>
+                    <p style="color:var(--text-muted); font-size:0.9rem; margin-top:-0.5rem;">這裡是站長個人主觀想法的發表區，不受爭議事件資料庫「中性陳述、不下評價」規範限制，會以獨立樣式（紫色標籤）顯示於前台，與查證過的爭議事件明確區隔。</p>
+                    <div class="form-group">
+                        <label for="take-title">標題</label>
+                        <input type="text" id="take-title" class="form-input" placeholder="這篇站長觀點的重點一句話">
+                    </div>
+                    <div class="form-group">
+                        <label for="take-content">內容（可自由發表主觀看法）</label>
+                        <textarea id="take-content" class="form-input" style="min-height: 160px;"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>關聯政治人物（可複選）</label>
+                        <div class="checkbox-group-box" id="take-politicians-checkboxes"></div>
+                        <div style="display:flex; gap:8px; margin-top:8px;">
+                            <input type="text" id="take-new-politician-name" class="form-input" placeholder="輸入尚未收錄的人物姓名，加入後由研究員後續查證補齊資料">
+                            <button class="btn" style="white-space:nowrap;" onclick="addNewPoliticianForTake()">➕ 加入新人物</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="take-event-search">關聯既有爭議事件（可選，可複選）</label>
+                        <input type="text" id="take-event-search" class="form-input" placeholder="輸入事件引言關鍵字搜尋..." oninput="filterTakeEventSelect()">
+                        <div style="display:flex; gap:8px; margin-top:8px;">
+                            <select id="take-event-select" class="form-input"></select>
+                            <button class="btn" style="white-space:nowrap;" onclick="addEventChipForTake()">➕ 加入</button>
+                        </div>
+                        <div class="checkbox-group-box" id="take-events-chosen" style="margin-top:8px;"></div>
+                    </div>
+
+                    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                        <button class="btn btn-success" id="btn-save-editor-take" onclick="saveEditorTake()">🚀 發布站長觀點</button>
+                        <button class="btn btn-secondary" id="btn-cancel-edit-take" style="display:none;" onclick="cancelEditEditorTake()">✕ 取消編輯</button>
+                    </div>
+                    <div class="sidebar-list" style="max-height: 300px; overflow-y: auto; margin-top: 1.5rem;" id="list-editor-takes"></div>
+                </div>
+            </div>
+            <div class="tab-content" id="tab-content-review">
+                <div class="filter-bar">
+                    <button class="filter-btn active" id="filter-btn-pending" onclick="setEventFilter('pending')">🔴 待審核</button>
+                    <button class="filter-btn" id="filter-btn-staged" onclick="setEventFilter('staged')">🟡 暫存區</button>
+                    <button class="filter-btn" id="filter-btn-approved" onclick="setEventFilter('approved')">🟢 已核准</button>
+                </div>
+
+                <div class="action-bar-bottom">
+                    <button class="btn btn-secondary" id="btn-check-duplicates" onclick="startDuplicateCheck()">🔍 檢查重複</button>
+                    <button class="btn btn-danger" onclick="deleteAllPending()">🗑️ 一鍵清空清單</button>
+                    <button class="btn btn-success" onclick="publishAllPending()">🚀 一鍵分批上架</button>
+                </div>
+
+                <div class="review-list" id="review-list-container">
+                    <div style="text-align: center; color: var(--text-muted); padding: 2rem;">資料在庫檢索中...</div>
+                </div>
+            </div>
+
+            <div class="tab-content" id="tab-content-feedback">
+                <div class="admin-card">
+                    <h3>💬 留言管理</h3>
+                    <p style="color:var(--text-muted); font-size:0.9rem; margin-top:-0.5rem;">留言開放讀者自由發表、無需人工事前審核；累積 5 次讀者檢舉會自動隱藏，你可以在此複核、恢復顯示或永久刪除。</p>
+                    <div class="sidebar-list" style="max-height: 400px; overflow-y: auto;" id="list-take-comments"></div>
+                </div>
+
+                <div class="admin-card">
+                    <h3>💬 讀者意見反應</h3>
+                    <p style="color:var(--text-muted); font-size:0.9rem; margin-top:-0.5rem;">前台「意見反應」頁面收到的留言，全部匿名、不會附帶任何聯絡方式。讀者送出後只能新增，無法自行讀取，只有這裡看得到。</p>
+                    <div class="filter-bar">
+                        <button class="filter-btn active" id="feedback-filter-btn-unread" onclick="setFeedbackFilter('unread')">未讀</button>
+                        <button class="filter-btn" id="feedback-filter-btn-all" onclick="setFeedbackFilter('all')">全部</button>
+                    </div>
+                    <div class="sidebar-list" style="max-height: 500px; overflow-y: auto;" id="list-feedback"></div>
+                </div>
+            </div>
+
+            <div class="tab-content" id="tab-content-majorEvents">
+                <div class="admin-card">
+                    <h3 id="major-event-form-heading">🗞️ 新增重大事件</h3>
+                    <p style="color:var(--text-muted); font-size:0.9rem; margin-top:-0.5rem;">跟人物言行的爭議事件資料庫完全分開，用來整理毒油案、軍購案這類持續性的重大專題。內文如果提到已收錄的政治人物姓名，前台會自動生成連結按鈕，不用手動勾選關聯人物。</p>
+
+                    <div class="form-group">
+                        <label for="major-event-title">標題</label>
+                        <input type="text" id="major-event-title" class="form-input" placeholder="例如：毒油案延燒：從食品廠到政治獻金的追蹤">
+                    </div>
+                    <div class="form-group">
+                        <label for="major-event-summary">摘要（卡片收合時顯示，不用放日期，通常是延續性議題）</label>
+                        <textarea id="major-event-summary" class="form-input" style="min-height: 80px;" placeholder="一兩句話的重點摘要"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="major-event-content">全文內容（點開卡片後顯示，可貼上你請 AI 整理過的內容）</label>
+                        <textarea id="major-event-content" class="form-input" style="min-height: 220px;"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>原始新聞來源（可加多個）</label>
+                        <div id="major-event-sources-list"></div>
+                        <div style="display:flex; gap:8px; margin-top:8px;">
+                            <input type="text" id="major-event-new-source-media" class="form-input" placeholder="媒體名稱，如：自由時報" style="flex:1;">
+                            <input type="url" id="major-event-new-source-url" class="form-input" placeholder="https://..." style="flex:2;">
+                            <button class="btn" style="white-space:nowrap;" onclick="addMajorEventSourceRow()">➕ 加入</button>
+                        </div>
+                    </div>
+
+                    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                        <button class="btn btn-success" id="btn-save-major-event" onclick="saveMajorEvent()">🚀 發布重大事件</button>
+                        <button class="btn btn-secondary" id="btn-cancel-edit-major-event" style="display:none;" onclick="cancelEditMajorEvent()">✕ 取消編輯</button>
+                    </div>
+
+                    <div class="sidebar-list" style="max-height: 400px; overflow-y: auto; margin-top: 1.5rem;" id="list-major-events"></div>
+                </div>
+            </div>
+
+            <div class="modal" id="dup-check-modal">
+                <div class="modal-content" style="max-width: 700px;">
+                    <div class="modal-header">
+                        <h4>🔍 檢查重複</h4>
+                        <button class="btn btn-danger" style="padding: 4px 10px;" onclick="closeDupCheckModal()">✕</button>
+                    </div>
+
+                    <!-- 第一層：總覽 -->
+                    <div id="dup-view-overview">
+                        <div id="dup-overview-loading" style="text-align:center; padding:2rem; color:var(--text-muted);">掃描中，請稍候...</div>
+                        <div id="dup-overview-content" style="display:none;">
+                            <p style="color:var(--text-muted);">待審核區共 <strong id="dup-total-pending">0</strong> 筆，已比對暫存區（<strong id="dup-total-staged">0</strong>筆）＋已核准區（<strong id="dup-total-approved">0</strong>筆）</p>
+                            <div class="item-row"><div class="item-row-left"><span class="item-title">🔴 高度疑似重複</span></div><strong id="dup-count-red">0</strong> 筆</div>
+                            <div class="item-row"><div class="item-row-left"><span class="item-title">🟡 可能相關</span></div><strong id="dup-count-yellow">0</strong> 筆</div>
+                            <div class="item-row"><div class="item-row-left"><span class="item-title">⚪ 無疑似</span></div><strong id="dup-count-grey">0</strong> 筆</div>
+                            <div style="display:flex; gap:10px; margin-top:1.5rem; flex-wrap:wrap;">
+                                <button class="btn btn-danger" onclick="showDupList('red')">查看高度疑似</button>
+                                <button class="btn" style="background:#d97706;" onclick="showDupList('yellow')">查看可能相關</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 第二層：清單頁 -->
+                    <div id="dup-view-list" style="display:none;">
+                        <button class="btn btn-secondary" onclick="backToDupOverview()">← 返回總覽</button>
+                        <div id="dup-list-container" style="margin-top:1rem;"></div>
+                    </div>
+
+                    <!-- 第三層：單筆對照頁 -->
+                    <div id="dup-view-detail" style="display:none;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                            <button class="btn btn-secondary" onclick="backToDupList()">← 返回清單</button>
+                            <span id="dup-detail-position" style="color:var(--text-muted); font-size:0.9rem;"></span>
+                        </div>
+                        <h4 id="dup-detail-title" style="margin-bottom:0.5rem;"></h4>
+                        <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:1rem;" id="dup-detail-basis"></p>
+
+                        <div class="admin-card" style="border-left:4px solid var(--danger);">
+                            <h3 style="color:var(--danger);">新（待審核）</h3>
+                            <div id="dup-detail-new"></div>
+                        </div>
+                        <div class="admin-card" style="border-left:4px solid var(--text-muted);">
+                            <h3>舊（既有資料）</h3>
+                            <div id="dup-detail-old"></div>
+                        </div>
+
+                        <div style="display:flex; flex-direction:column; gap:8px; margin-top:1rem;">
+                            <button class="btn btn-secondary" onclick="resolveDup('keep_old')">合併，保留已核准版本</button>
+                            <button class="btn btn-success" onclick="resolveDup('replace_with_new')">合併，用新內容取代</button>
+                            <button class="btn" style="background:#0891b2;" onclick="resolveDup('keep_both')">兩者皆保留（不同事件）</button>
+                            <button class="btn" style="background:#64748b;" onclick="resolveDup('flag_later')">標記待議，稍後處理</button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="modal" id="edit-modal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h4>🛠️ 爭議事件細節全方位校正</h4>
+                        <button class="btn btn-danger" style="padding: 4px 10px;" onclick="closeEditModal()">✕</button>
+                    </div>
+                    <input type="hidden" id="edit-event-id">
+                    <div class="form-group">
+                        <label for="edit-quote">最核心引言 / 爭議標題 (20字以內)</label>
+                        <input type="text" id="edit-quote" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-date">發生日期</label>
+                        <input type="date" id="edit-date" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label>👤 關聯政治人物設定 (可多選，綁定中介表，絕不漏網)</label>
+                        <div class="checkbox-group-box" id="edit-politicians-checkboxes"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>📌 關聯社會議題設定 (單選映射表)</label>
+                        <select id="edit-issue-select" class="form-input"></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-context">事件脈絡敘事說歷史 (100字至200字)</label>
+                        <textarea id="edit-context" class="form-input"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-response-summary">🗣️ 當事人回應摘要 (30字內，查無回應請填「未查獲公開回應」)</label>
+                        <input type="text" id="edit-response-summary" class="form-input" placeholder="例如：未查獲公開回應 / 否認並提告 / 道歉並撤回發言">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-people-impact">💥 對人民的影響</label>
+                        <textarea id="edit-people-impact" class="form-input" placeholder="這件事實際上如何影響一般民眾的生活、荷包、權益等"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-people-impact-score">📊 對人民影響程度 (0 - 100)</label>
+                        <input type="number" id="edit-people-impact-score" class="form-input" min="0" max="100" step="1" placeholder="0 到 100 的整數，留空代表未評分">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-national-security-impact">🛡️ 對國安的影響</label>
+                        <textarea id="edit-national-security-impact" class="form-input" placeholder="這件事對國家安全、主權、國防、關鍵基礎設施等造成的影響"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-national-impact-score">📊 對國家影響程度 (0 - 100)</label>
+                        <input type="number" id="edit-national-impact-score" class="form-input" min="0" max="100" step="1" placeholder="0 到 100 的整數，留空代表未評分">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-score-reason-positive">✅ 評分理由｜加分因素 (positive_factors)</label>
+                        <textarea id="edit-score-reason-positive" class="form-input" placeholder="支持給分的具體查證事實，例如：有同期報導將決策失當直接歸責於當事人本人"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-score-reason-limiting">⚠️ 評分理由｜限制因素 (limiting_factors)</label>
+                        <textarea id="edit-score-reason-limiting" class="form-input" placeholder="讓分數不能更高的限制因素，例如：僅屬個人層級行為，未查得組織性或制度性影響"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-score-reason-excluded">🚫 評分理由｜未採計因素 (excluded_factors)</label>
+                        <textarea id="edit-score-reason-excluded" class="form-input" placeholder="曾考慮但依規則排除的因素，例如：是否進入司法程序不作為加分依據"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-source-media">主要來源媒體名稱</label>
+                        <input type="text" id="edit-source-media" class="form-input" placeholder="例如：中央社、三立新聞網">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-source-url">可靠佐證新聞 URL</label>
+                        <input type="url" id="edit-source-url" class="form-input" placeholder="https://...">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-alt-source-media">🔄 交叉查證來源媒體名稱（建議選不同立場媒體）</label>
+                        <input type="text" id="edit-alt-source-media" class="form-input" placeholder="例如：中國時報、自由時報（選填）">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-alt-source-url">🔄 交叉查證來源 URL</label>
+                        <input type="url" id="edit-alt-source-url" class="form-input" placeholder="https://...（選填）">
+                    </div>
+                    <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 2rem;">
+                        <button class="btn btn-secondary" onclick="closeEditModal()">取消放棄</button>
+                        <button class="btn btn-success" onclick="saveEventEdits()">💾 確認無誤，儲存變更</button>
+                    </div>
+                </div>
+            </div>
         </div>
-
-        <div class="sidebar-list" style="max-height: 400px; overflow-y: auto; margin-top: 1.5rem;" id="list-major-events"></div>
-    </div>
-</div>
-
-<div class="modal" id="dup-check-modal">
-<div class="modal-content" style="max-width: 700px;">
-<div class="modal-header">
-<h4>🔍 檢查重複</h4>
-<button class="btn btn-danger" style="padding: 4px 10px;" onclick="closeDupCheckModal()">✕</button>
-</div>
-
-<!-- 第一層：總覽 -->
-<div id="dup-view-overview">
-    <div id="dup-overview-loading" style="text-align:center; padding:2rem; color:var(--text-muted);">掃描中，請稍候...</div>
-    <div id="dup-overview-content" style="display:none;">
-        <p style="color:var(--text-muted);">待審核區共 <strong id="dup-total-pending">0</strong> 筆，已比對暫存區（<strong id="dup-total-staged">0</strong>筆）＋已核准區（<strong id="dup-total-approved">0</strong>筆）</p>
-        <div class="item-row"><div class="item-row-left"><span class="item-title">🔴 高度疑似重複</span></div><strong id="dup-count-red">0</strong> 筆</div>
-        <div class="item-row"><div class="item-row-left"><span class="item-title">🟡 可能相關</span></div><strong id="dup-count-yellow">0</strong> 筆</div>
-        <div class="item-row"><div class="item-row-left"><span class="item-title">⚪ 無疑似</span></div><strong id="dup-count-grey">0</strong> 筆</div>
-        <div style="display:flex; gap:10px; margin-top:1.5rem; flex-wrap:wrap;">
-            <button class="btn btn-danger" onclick="showDupList('red')">查看高度疑似</button>
-            <button class="btn" style="background:#d97706;" onclick="showDupList('yellow')">查看可能相關</button>
-        </div>
-    </div>
-</div>
-
-<!-- 第二層：清單頁 -->
-<div id="dup-view-list" style="display:none;">
-    <button class="btn btn-secondary" onclick="backToDupOverview()">← 返回總覽</button>
-    <div id="dup-list-container" style="margin-top:1rem;"></div>
-</div>
-
-<!-- 第三層：單筆對照頁 -->
-<div id="dup-view-detail" style="display:none;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
-        <button class="btn btn-secondary" onclick="backToDupList()">← 返回清單</button>
-        <span id="dup-detail-position" style="color:var(--text-muted); font-size:0.9rem;"></span>
-    </div>
-    <h4 id="dup-detail-title" style="margin-bottom:0.5rem;"></h4>
-    <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:1rem;" id="dup-detail-basis"></p>
-
-    <div class="admin-card" style="border-left:4px solid var(--danger);">
-        <h3 style="color:var(--danger);">新（待審核）</h3>
-        <div id="dup-detail-new"></div>
-    </div>
-    <div class="admin-card" style="border-left:4px solid var(--text-muted);">
-        <h3>舊（既有資料）</h3>
-        <div id="dup-detail-old"></div>
-    </div>
-
-    <div style="display:flex; flex-direction:column; gap:8px; margin-top:1rem;">
-        <button class="btn btn-secondary" onclick="resolveDup('keep_old')">合併，保留已核准版本</button>
-        <button class="btn btn-success" onclick="resolveDup('replace_with_new')">合併，用新內容取代</button>
-        <button class="btn" style="background:#0891b2;" onclick="resolveDup('keep_both')">兩者皆保留（不同事件）</button>
-        <button class="btn" style="background:#64748b;" onclick="resolveDup('flag_later')">標記待議，稍後處理</button>
-    </div>
-</div>
-
-</div>
-</div>
-
-<div class="modal" id="edit-modal">
-<div class="modal-content">
-<div class="modal-header">
-<h4>🛠️ 爭議事件細節全方位校正</h4>
-<button class="btn btn-danger" style="padding: 4px 10px;" onclick="closeEditModal()">✕</button>
-</div>
-<input type="hidden" id="edit-event-id">
-<div class="form-group">
-<label for="edit-quote">最核心引言 / 爭議標題 (20字以內)</label>
-<input type="text" id="edit-quote" class="form-input">
-</div>
-<div class="form-group">
-<label for="edit-date">發生日期</label>
-<input type="date" id="edit-date" class="form-input">
-</div>
-<div class="form-group">
-<label>👤 關聯政治人物設定 (可多選，綁定中介表，絕不漏網)</label>
-<div class="checkbox-group-box" id="edit-politicians-checkboxes"></div>
-</div>
-<div class="form-group">
-<label>📌 關聯社會議題設定 (單選映射表)</label>
-<select id="edit-issue-select" class="form-input"></select>
-</div>
-<div class="form-group">
-<label for="edit-context">事件脈絡敘事說歷史 (100字至200字)</label>
-<textarea id="edit-context" class="form-input"></textarea>
-</div>
-<div class="form-group">
-<label for="edit-response-summary">🗣️ 當事人回應摘要 (30字內，查無回應請填「未查獲公開回應」)</label>
-<input type="text" id="edit-response-summary" class="form-input" placeholder="例如：未查獲公開回應 / 否認並提告 / 道歉並撤回發言">
-</div>
-<div class="form-group">
-<label for="edit-people-impact">💥 對人民的影響</label>
-<textarea id="edit-people-impact" class="form-input" placeholder="這件事實際上如何影響一般民眾的生活、荷包、權益等"></textarea>
-</div>
-<div class="form-group">
-<label for="edit-people-impact-score">📊 對人民影響程度 (0 - 100)</label>
-<input type="number" id="edit-people-impact-score" class="form-input" min="0" max="100" step="1" placeholder="0 到 100 的整數，留空代表未評分">
-</div>
-<div class="form-group">
-<label for="edit-national-security-impact">🛡️ 對國安的影響</label>
-<textarea id="edit-national-security-impact" class="form-input" placeholder="這件事對國家安全、主權、國防、關鍵基礎設施等造成的影響"></textarea>
-</div>
-<div class="form-group">
-<label for="edit-national-impact-score">📊 對國家影響程度 (0 - 100)</label>
-<input type="number" id="edit-national-impact-score" class="form-input" min="0" max="100" step="1" placeholder="0 到 100 的整數，留空代表未評分">
-</div>
-<div class="form-group">
-<label for="edit-score-reason-positive">✅ 評分理由｜加分因素 (positive_factors)</label>
-<textarea id="edit-score-reason-positive" class="form-input" placeholder="支持給分的具體查證事實，例如：有同期報導將決策失當直接歸責於當事人本人"></textarea>
-</div>
-<div class="form-group">
-<label for="edit-score-reason-limiting">⚠️ 評分理由｜限制因素 (limiting_factors)</label>
-<textarea id="edit-score-reason-limiting" class="form-input" placeholder="讓分數不能更高的限制因素，例如：僅屬個人層級行為，未查得組織性或制度性影響"></textarea>
-</div>
-<div class="form-group">
-<label for="edit-score-reason-excluded">🚫 評分理由｜未採計因素 (excluded_factors)</label>
-<textarea id="edit-score-reason-excluded" class="form-input" placeholder="曾考慮但依規則排除的因素，例如：是否進入司法程序不作為加分依據"></textarea>
-</div>
-<div class="form-group">
-<label for="edit-source-media">主要來源媒體名稱</label>
-<input type="text" id="edit-source-media" class="form-input" placeholder="例如：中央社、三立新聞網">
-</div>
-<div class="form-group">
-<label for="edit-source-url">可靠佐證新聞 URL</label>
-<input type="url" id="edit-source-url" class="form-input" placeholder="https://...">
-</div>
-<div class="form-group">
-<label for="edit-alt-source-media">🔄 交叉查證來源媒體名稱（建議選不同立場媒體）</label>
-<input type="text" id="edit-alt-source-media" class="form-input" placeholder="例如：中國時報、自由時報（選填）">
-</div>
-<div class="form-group">
-<label for="edit-alt-source-url">🔄 交叉查證來源 URL</label>
-<input type="url" id="edit-alt-source-url" class="form-input" placeholder="https://...（選填）">
-</div>
-<div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 2rem;">
-<button class="btn btn-secondary" onclick="closeEditModal()">取消放棄</button>
-<button class="btn btn-success" onclick="saveEventEdits()">💾 確認無誤，儲存變更</button>
-</div>
-</div>
-</div>
-</div>
-<script type="module" src="./admin.js"></script>
-</body>
+        <script type="module" src="./admin.js"></script>
+    </body>
 </html>
