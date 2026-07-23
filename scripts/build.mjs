@@ -357,6 +357,12 @@ async function main() {
     const { politicians, issues, events, editorTakes, majorEvents } = await fetchAll();
     const sitemapUrls = [`${SITE_URL}/`];
 
+    // 只有「至少掛在一筆公開事件上」的人物，才值得在重大事件裡被自動偵測、產生連結，
+    // 不然點進去只會看到空白的人物頁面。
+    const politicianIdsWithEvents = new Set();
+    events.forEach(e => (e.event_politician_map || []).forEach(m => politicianIdsWithEvents.add(m.politician_id)));
+    const politiciansWithEvents = politicians.filter(p => politicianIdsWithEvents.has(p.id));
+
     // 首頁：最新案卷
     const latestEvents = events.slice(0, 30);
     const homeHtml = renderPage({
@@ -384,7 +390,7 @@ async function main() {
             ogTitle: '重大事件 | Polipoli 啪哩啪哩',
             ogDescription: '持續追蹤的重大社會事件專題整理。',
             canonicalPath: '/major-events/',
-            eventsHtml: renderMajorEventsFeedSSR(majorEvents, politicians),
+            eventsHtml: renderMajorEventsFeedSSR(majorEvents, politiciansWithEvents),
             schemaJson: buildSchema([]),
             hydrationScript: `<script>window.__SSG_MAJOR_EVENTS_PAGE = true;</script>`,
             viewMode: 'majorEvents',
