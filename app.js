@@ -79,6 +79,7 @@ const containerEl = document.querySelector('.container');
 const editorTakesFeedEl = document.getElementById('editor-takes-feed');
 const majorEventsFeedEl = document.getElementById('major-events-feed');
 const mainHeader = document.getElementById('main-header');
+const scrollTopBtn = document.getElementById('scroll-top-btn');
 
 /* 捲動時把檔案室橫幅收起，讓卡片牆有更多空間 */
 let lastScrollTop = 0;
@@ -90,7 +91,77 @@ window.addEventListener('scroll', () => {
         mainHeader.classList.remove('collapsed');
     }
     lastScrollTop = currentScroll <= 0 ? 0 : currentScroll;
+
+    if (scrollTopBtn) scrollTopBtn.classList.toggle('visible', currentScroll > 300);
 });
+
+/* ============================================================
+   回頂部浮動按鈕：單純點擊會捲回頂部；按住拖曳則移動位置，
+   放開後記住新位置（存在 localStorage），下次開站還在原地。
+   ============================================================ */
+function initScrollTopButton() {
+    if (!scrollTopBtn) return;
+
+    try {
+        const saved = JSON.parse(localStorage.getItem('polipoli_scrolltop_pos') || 'null');
+        if (saved && typeof saved.right === 'number' && typeof saved.bottom === 'number') {
+            const size = 48;
+            const margin = 4;
+            const safeRight = Math.min(Math.max(saved.right, margin), window.innerWidth - size - margin);
+            const safeBottom = Math.min(Math.max(saved.bottom, margin), window.innerHeight - size - margin);
+            scrollTopBtn.style.right = safeRight + 'px';
+            scrollTopBtn.style.bottom = safeBottom + 'px';
+        }
+    } catch (e) { /* 忽略壞掉的舊資料 */ }
+
+    let isDragging = false;
+    let hasMoved = false;
+    let startX = 0, startY = 0, startRight = 0, startBottom = 0;
+
+    scrollTopBtn.addEventListener('pointerdown', (e) => {
+        isDragging = true;
+        hasMoved = false;
+        startX = e.clientX;
+        startY = e.clientY;
+        const rect = scrollTopBtn.getBoundingClientRect();
+        startRight = window.innerWidth - rect.right;
+        startBottom = window.innerHeight - rect.bottom;
+        scrollTopBtn.setPointerCapture(e.pointerId);
+        scrollTopBtn.classList.add('dragging');
+    });
+
+    scrollTopBtn.addEventListener('pointermove', (e) => {
+        if (!isDragging) return;
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        if (Math.abs(dx) > 6 || Math.abs(dy) > 6) hasMoved = true;
+        if (!hasMoved) return;
+
+        const size = scrollTopBtn.offsetWidth;
+        const margin = 4;
+        const newRight = Math.min(Math.max(startRight - dx, margin), window.innerWidth - size - margin);
+        const newBottom = Math.min(Math.max(startBottom - dy, margin), window.innerHeight - size - margin);
+
+        scrollTopBtn.style.right = newRight + 'px';
+        scrollTopBtn.style.bottom = newBottom + 'px';
+    });
+
+    scrollTopBtn.addEventListener('pointerup', (e) => {
+        if (!isDragging) return;
+        isDragging = false;
+        scrollTopBtn.classList.remove('dragging');
+        scrollTopBtn.releasePointerCapture(e.pointerId);
+
+        if (hasMoved) {
+            const rect = scrollTopBtn.getBoundingClientRect();
+            const pos = { right: window.innerWidth - rect.right, bottom: window.innerHeight - rect.bottom };
+            try { localStorage.setItem('polipoli_scrolltop_pos', JSON.stringify(pos)); } catch (e) { /* 忽略 */ }
+        } else {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    });
+}
+initScrollTopButton();
 
 /* ============================================================
    統一的點擊委派：所有導覽與互動按鈕都用 data-* 屬性標記，
