@@ -126,7 +126,15 @@ document.addEventListener('click', (e) => {
     const toggleMajorEventBtn = e.target.closest('[data-toggle-major-event]');
     if (toggleMajorEventBtn) {
         const card = toggleMajorEventBtn.closest('.major-event-card');
-        if (card) card.classList.toggle('expanded');
+        if (card) {
+            const isExpanding = !card.classList.contains('expanded');
+            card.classList.toggle('expanded');
+            const id = toggleMajorEventBtn.dataset.toggleMajorEvent;
+            // 用 replaceState 而非 pushState：展開/收合不需要各自佔一筆瀏覽紀錄，
+            // 只是讓「目前網址」記得住是哪一張卡片被展開，離開後按上一頁才回得來。
+            const newUrl = window.location.pathname + (isExpanding ? `#event-${id}` : '');
+            window.history.replaceState(null, '', newUrl);
+        }
         return;
     }
 });
@@ -160,6 +168,9 @@ window.onload = async () => {
         currentTab = 'majorEvents';
         document.querySelectorAll('.main-tab-btn').forEach(btn => btn.classList.remove('active'));
         document.getElementById('tab-majorEvents').classList.add('active');
+        if (window.location.hash.startsWith('#event-')) {
+            pendingExpandMajorEventId = window.location.hash.slice('#event-'.length);
+        }
         showMajorEventsView();
         return;
     }
@@ -188,6 +199,64 @@ window.onload = async () => {
 
     setupIntersectionObserver();
 };
+
+/* ============================================================
+   瀏覽器上一頁／下一頁：原本整站只有「往前」時用 pushState 換網址，
+   卻完全沒有監聽 popstate，導致按上一頁網址雖然變了，畫面卻不會跟著變回去。
+   這裡統一用目前網址反推出該顯示哪個畫面，讓上一頁/下一頁真正可用。
+   ============================================================ */
+let pendingExpandMajorEventId = null;
+
+function syncViewToUrl() {
+    const path = window.location.pathname;
+    const params = new URLSearchParams(window.location.search);
+    const hash = window.location.hash;
+
+    document.querySelectorAll('.main-tab-btn').forEach(btn => btn.classList.remove('active'));
+
+    if (path.startsWith('/major-events')) {
+        currentTab = 'majorEvents';
+        document.getElementById('tab-majorEvents').classList.add('active');
+        restoreDefaultLayout();
+        hideEditorTakesView();
+        if (hash.startsWith('#event-')) pendingExpandMajorEventId = hash.slice('#event-'.length);
+        showMajorEventsView();
+        return;
+    }
+    if (path.startsWith('/editor-takes')) {
+        currentTab = 'editorTakes';
+        document.getElementById('tab-editorTakes').classList.add('active');
+        restoreDefaultLayout();
+        hideMajorEventsView();
+        showEditorTakesView();
+        return;
+    }
+
+    // 其餘都算「人物言行」：依網址參數還原目前的人物/議題篩選狀態
+    currentTab = 'politicians';
+    document.getElementById('tab-politicians').classList.add('active');
+    restoreDefaultLayout();
+    hideEditorTakesView();
+    hideMajorEventsView();
+
+    const polId = params.get('pol');
+    const issueId = params.get('issue');
+    activePoliticianId = null;
+    activePoliticianName = null;
+    activeIssueId = null;
+    activeIssueName = null;
+    if (polId) {
+        const pol = cachePoliticians.find(p => p.id === polId);
+        if (pol) { activePoliticianId = pol.id; activePoliticianName = pol.name; }
+    }
+    if (issueId) {
+        const issue = cacheIssues.find(i => i.id === issueId);
+        if (issue) { activeIssueId = issue.id; activeIssueName = issue.name; }
+    }
+    applyFilters(false);
+}
+
+window.addEventListener('popstate', syncViewToUrl);
 
 function initDefault() {
     renderSidebar();
@@ -240,8 +309,26 @@ window.switchMainTab = function (tabName, preventReload = false) {
     document.querySelectorAll('.main-tab-btn').forEach(btn => btn.classList.remove('active'));
     document.getElementById(`tab-${tabName}`).classList.add('active');
 
-    if (tabName === 'editorTakes') { hideMajorEventsView(); showEditorTakesView(); return; }
-    if (tabName === 'majorEvents') { hideEditorTakesView(); showMajorEventsView(); return; }
+    if (tabName === 'editorTakes') {
+        hideMajorEventsView();
+        showEditorTakesView();
+        if (window.location.pathname !== '/editor-takes/') {
+            const newUrl = window.location.protocol + '//' + window.location.host + '/editor-takes/';
+            window.history.pushState({ path: newUrl }, '', newUrl);
+            document.title = '站長觀點 | Polipoli 啪哩啪哩';
+        }
+        return;
+    }
+    if (tabName === 'majorEvents') {
+        hideEditorTakesView();
+        showMajorEventsView();
+        if (window.location.pathname !== '/major-events/') {
+            const newUrl = window.location.protocol + '//' + window.location.host + '/major-events/';
+            window.history.pushState({ path: newUrl }, '', newUrl);
+            document.title = '重大事件 | Polipoli 啪哩啪哩';
+        }
+        return;
+    }
 
     restoreDefaultLayout();
     hideEditorTakesView();
@@ -460,6 +547,16 @@ async function loadMajorEventsFeed() {
     }
 
     container.innerHTML = `<div class="major-events-grid">${data.map(renderMajorEventCard).join('')}</div>`;
+
+    if (pendingExpandMajorEventId) {
+        const targetBtn = container.querySelector(`[data-toggle-major-event="${pendingExpandMajorEventId}"]`);
+        const targetCard = targetBtn ? targetBtn.closest('.major-event-card') : null;
+        if (targetCard) {
+            targetCard.classList.add('expanded');
+            targetCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        pendingExpandMajorEventId = null;
+    }
 }
 
 function detectMentionedPoliticians(content) {
