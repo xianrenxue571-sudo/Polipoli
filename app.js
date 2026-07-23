@@ -30,6 +30,9 @@ let hasMoreData = true;
 let cachePoliticians = [];
 let cacheIssues = [];
 let topFivePoliticians = [];
+// 人物 <-> 議題 的交叉對照表：用來讓兩個下拉選單「反推」互相動態縮小範圍
+let politicianToIssueIds = {}; // politician_id -> Set(issue_id)
+let issueToPoliticianIds = {}; // issue_id -> Set(politician_id)
 
 /* ============================================================
    匿名使用者識別（用於按讚去重）
@@ -345,18 +348,21 @@ function initDefault() {
 }
 
 async function fetchSidebarData() {
-    const [polRes, issueRes, mapRes] = await Promise.all([
+    const [polRes, issueRes, polMapRes, issueMapRes] = await Promise.all([
         supabase.from('politicians').select('*').eq('is_visible', true).order('name'),
         supabase.from('issues').select('*').eq('is_visible', true).order('name'),
-        // 用 !inner 只抓「掛在公開事件上」的關聯，避免只掛在待審核事件上的人物也被算進去
-        supabase.from('event_politician_map').select('politician_id, events!inner(is_visible)').eq('events.is_visible', true)
+        // 用 !inner 只抓「掛在公開事件上」的關聯，避免只掛在待審核事件上的也被算進去
+        supabase.from('event_politician_map').select('politician_id, event_id, events!inner(is_visible)').eq('events.is_visible', true),
+        supabase.from('event_issue_map').select('issue_id, event_id, events!inner(is_visible)').eq('events.is_visible', true)
     ]);
 
     const rawPoliticians = polRes.data || [];
-    if (issueRes.data) cacheIssues = issueRes.data;
+    const rawIssues = issueRes.data || [];
+    const polMapData = polMapRes.data || [];
+    const issueMapData = issueMapRes.data || [];
 
-    if (mapRes.data) {
-        const counts = mapRes.data.reduce((acc, cur) => {
+    if (polMapData.length > 0) {
+        const counts = polMapData.reduce((acc, cur) => {
             acc[cur.politician_id] = (acc[cur.politician_id] || 0) + 1;
             return acc;
         }, {});
@@ -368,6 +374,34 @@ async function fetchSidebarData() {
         cachePoliticians = [];
         topFivePoliticians = [];
     }
+
+    if (issueMapData.length > 0) {
+        const issueIdsWithEvents = new Set(issueMapData.map(r => r.issue_id));
+        // 議題分類比照人物的邏輯：沒有任何公開案卷掛在這個議題底下，就不出現在下拉選單裡
+        cacheIssues = rawIssues.filter(i => issueIdsWithEvents.has(i.id));
+    } else {
+        cacheIssues = [];
+    }
+
+    // 建立「同一筆事件裡，人物跟議題曾經同時出現過」的交叉對照表，
+    // 讓側欄兩個下拉選單可以「反推」：選了其中一個，另一個只列出真正有交集的選項。
+    const politiciansByEvent = {};
+    polMapData.forEach(r => { (politiciansByEvent[r.event_id] ||= []).push(r.politician_id); });
+    const issuesByEvent = {};
+    issueMapData.forEach(r => { (issuesByEvent[r.event_id] ||= []).push(r.issue_id); });
+
+    politicianToIssueIds = {};
+    issueToPoliticianIds = {};
+    Object.keys(politiciansByEvent).forEach(eventId => {
+        const pols = politiciansByEvent[eventId] || [];
+        const iss = issuesByEvent[eventId] || [];
+        pols.forEach(pid => {
+            iss.forEach(iid => {
+                (politicianToIssueIds[pid] ||= new Set()).add(iid);
+                (issueToPoliticianIds[iid] ||= new Set()).add(pid);
+            });
+        });
+    });
 }
 
 /* ============================================================
@@ -690,14 +724,25 @@ function renderSidebar() {
 /* 人物／事件分類的下拉選單：跟上面的文字搜尋、下面的快速索引清單
    是三種並存的瀏覽方式，選了其中一個下拉選單就直接跳轉／就地篩選。 */
 function renderSidebarSelects() {
+    // 反推邏輯：如果議題那邊已經選了東西，人物選單就只列出「跟這個議題同時出現過」的人物；
+    // 反過來，如果人物已經選了，議題選單也只列出跟這個人物有交集的議題。
+    // 兩邊都沒選、或選的是自己這邊時，就顯示完整清單。
+    const politicianOptionsSource = activeIssueId && issueToPoliticianIds[activeIssueId]
+        ? cachePoliticians.filter(p => issueToPoliticianIds[activeIssueId].has(p.id))
+        : cachePoliticians;
+
+    const issueOptionsSource = activePoliticianId && politicianToIssueIds[activePoliticianId]
+        ? cacheIssues.filter(i => politicianToIssueIds[activePoliticianId].has(i.id))
+        : cacheIssues;
+
     let polOptions = `<option value="">👤 選擇政治人物...</option>`;
-    polOptions += cachePoliticians.map(p =>
+    polOptions += politicianOptionsSource.map(p =>
         `<option value="${p.id}" ${activePoliticianId === p.id ? 'selected' : ''}>${escapeHtmlClient(p.name)}</option>`
     ).join('');
     politicianSelect.innerHTML = polOptions;
 
     let issueOptions = `<option value="">📌 選擇事件分類...</option>`;
-    issueOptions += cacheIssues.map(i =>
+    issueOptions += issueOptionsSource.map(i =>
         `<option value="${i.id}" ${activeIssueId === i.id ? 'selected' : ''}>${escapeHtmlClient(i.name)}</option>`
     ).join('');
     issueSelect.innerHTML = issueOptions;
