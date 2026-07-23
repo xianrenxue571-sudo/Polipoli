@@ -53,9 +53,9 @@ async function fetchAll() {
             editor_take_comments ( id, author_name, content, created_at, is_hidden )
         `).eq('is_visible', true).order('created_at', { ascending: false }),
         supabase.from('major_events').select(`
-            id, title, summary, content, created_at,
+            id, title, summary, content, updated_at,
             major_event_sources ( id, media_name, url )
-        `).eq('is_visible', true).order('created_at', { ascending: false })
+        `).eq('is_visible', true).order('updated_at', { ascending: false })
     ]);
 
     if (pErr) throw pErr;
@@ -169,6 +169,7 @@ function renderMajorEventCardSSR(ev, politicians) {
             <button type="button" class="major-event-summary" data-toggle-major-event="${ev.id}">
                 <h3 class="major-event-title">${escapeHtml(ev.title)}</h3>
                 ${ev.summary ? `<p class="major-event-excerpt">${escapeHtml(ev.summary)}</p>` : ''}
+                <span class="major-event-meta">🔄 最後更新：${escapeHtml((ev.updated_at || '').slice(0, 10))}</span>
                 <span class="major-event-expand-hint">點擊展開全文 ▾</span>
             </button>
             <div class="major-event-body">
