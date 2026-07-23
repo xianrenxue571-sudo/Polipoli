@@ -348,20 +348,24 @@ async function fetchSidebarData() {
     const [polRes, issueRes, mapRes] = await Promise.all([
         supabase.from('politicians').select('*').eq('is_visible', true).order('name'),
         supabase.from('issues').select('*').eq('is_visible', true).order('name'),
-        supabase.from('event_politician_map').select('politician_id')
+        // 用 !inner 只抓「掛在公開事件上」的關聯，避免只掛在待審核事件上的人物也被算進去
+        supabase.from('event_politician_map').select('politician_id, events!inner(is_visible)').eq('events.is_visible', true)
     ]);
 
-    if (polRes.data) cachePoliticians = polRes.data;
+    const rawPoliticians = polRes.data || [];
     if (issueRes.data) cacheIssues = issueRes.data;
 
-    if (mapRes.data && cachePoliticians.length > 0) {
+    if (mapRes.data) {
         const counts = mapRes.data.reduce((acc, cur) => {
             acc[cur.politician_id] = (acc[cur.politician_id] || 0) + 1;
             return acc;
         }, {});
+        // 只留下至少有一筆公開案卷的人物：沒有案卷的話，選了/連了也只會看到空白頁，不如不要出現
+        cachePoliticians = rawPoliticians.filter(p => counts[p.id] > 0);
         const topFiveIds = Object.keys(counts).sort((a, b) => counts[b] - counts[a]).slice(0, 5);
         topFivePoliticians = cachePoliticians.filter(p => topFiveIds.includes(p.id));
     } else {
+        cachePoliticians = [];
         topFivePoliticians = [];
     }
 }
