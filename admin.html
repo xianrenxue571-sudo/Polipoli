@@ -163,6 +163,13 @@
                     <h3 id="major-event-form-heading">🗞️ 新增重大事件</h3>
                     <p style="color:var(--text-muted); font-size:0.9rem; margin-top:-0.5rem;">跟人物言行的爭議事件資料庫完全分開，用來整理毒油案、軍購案這類持續性的重大專題。內文如果提到已收錄的政治人物姓名，前台會自動生成連結按鈕，不用手動勾選關聯人物。</p>
 
+                    <div class="form-group" style="background:var(--bg); border:1px dashed var(--border); border-radius:3px; padding:14px;">
+                        <label for="major-event-bulk-paste">📋 一鍵匯入整份草稿（標題／摘要／內文／消息來源）</label>
+                        <p style="color:var(--text-muted); font-size:0.85rem; margin-top:-4px;">把 Gem 產出的完整內容整段貼進來（含「標題：」「摘要：」「**背景**」「消息來源：」這些標記），按下方按鈕會自動拆解填入下面各欄位，來源清單也會一次全部加入，不用一筆一筆手動輸入。</p>
+                        <textarea id="major-event-bulk-paste" class="form-input" style="min-height:140px;" placeholder="把整份草稿（標題到消息來源）整段貼在這裡..."></textarea>
+                        <button class="btn" style="margin-top:8px;" onclick="bulkImportMajorEvent()">🚀 解析並帶入下方欄位</button>
+                    </div>
+
                     <div class="form-group">
                         <label for="major-event-title">標題</label>
                         <input type="text" id="major-event-title" class="form-input" placeholder="例如：毒油案延燒：從食品廠到政治獻金的追蹤">

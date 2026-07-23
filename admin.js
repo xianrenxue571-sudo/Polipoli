@@ -1448,6 +1448,71 @@ window.addNewPoliticiansForMajorEvent = async function() {
     alert(msg);
 };
 
+// 解析 Gem 產出的完整草稿文字，拆出標題／摘要／內文／來源清單。
+// 這是文字格式比對，不是真正的語意理解，格式差太多可能會漏抓，
+// 所以每次解析完都會列出各欄位有沒有抓到，讓管理員自己核對。
+function parseMajorEventBulkText(raw) {
+    const text = raw.replace(/```/g, '').trim();
+    const result = { title: '', summary: '', content: '', sources: [] };
+
+    const titleMatch = text.match(/標題[：:]\s*(.+)/);
+    if (titleMatch) result.title = titleMatch[1].trim();
+
+    const summaryMatch = text.match(/摘要[：:]\s*([\s\S]*?)(?=\n\s*\n\s*\*\*|\n\s*---|\n\s*消息來源)/);
+    if (summaryMatch) result.summary = summaryMatch[1].trim();
+
+    const sourceHeaderMatch = text.match(/消息來源[：:]?/);
+    const contentStart = text.search(/\*\*背景\*\*/);
+    const contentEnd = sourceHeaderMatch ? text.indexOf(sourceHeaderMatch[0]) : text.length;
+
+    if (contentStart !== -1) {
+        result.content = text.slice(contentStart, contentEnd > contentStart ? contentEnd : text.length)
+            .replace(/\n\s*---\s*\n/g, '\n')
+            .trim();
+    }
+
+    if (sourceHeaderMatch) {
+        const sourceSectionText = text.slice(text.indexOf(sourceHeaderMatch[0]));
+        const sourceLineRegex = /^([^\n｜|]+)[｜|]\s*(https?:\/\/\S+)\s*$/gm;
+        let m;
+        while ((m = sourceLineRegex.exec(sourceSectionText)) !== null) {
+            result.sources.push({ media_name: m[1].trim(), url: m[2].trim() });
+        }
+    }
+
+    return result;
+}
+
+window.bulkImportMajorEvent = function() {
+    const textarea = document.getElementById('major-event-bulk-paste');
+    const raw = textarea.value;
+    if (!raw.trim()) { alert('請先貼上整份草稿內容！'); return; }
+
+    const parsed = parseMajorEventBulkText(raw);
+
+    if (!parsed.title && !parsed.content) {
+        alert('沒有解析到標題或內文，請確認貼上的內容裡有「標題：」跟「**背景**」這類標記，格式差太多可能抓不到。');
+        return;
+    }
+
+    document.getElementById('major-event-title').value = parsed.title;
+    document.getElementById('major-event-summary').value = parsed.summary;
+    document.getElementById('major-event-content').value = parsed.content;
+
+    majorEventSources = parsed.sources;
+    renderMajorEventSourceRows();
+
+    textarea.value = '';
+
+    alert(
+        '解析完成，請檢查下方欄位內容是否正確：\n' +
+        `標題：${parsed.title ? '✓ 已帶入' : '✗ 沒抓到，請手動填寫'}\n` +
+        `摘要：${parsed.summary ? '✓ 已帶入' : '✗ 沒抓到，請手動填寫'}\n` +
+        `內文：${parsed.content ? '✓ 已帶入' : '✗ 沒抓到，請手動填寫'}\n` +
+        `來源：抓到 ${parsed.sources.length} 筆`
+    );
+};
+
 window.addMajorEventSourceRow = function() {
     const mediaEl = document.getElementById('major-event-new-source-media');
     const urlEl = document.getElementById('major-event-new-source-url');
