@@ -226,10 +226,13 @@ function renderSettingsLists() {
         polList.innerHTML = cachePoliticians.map(p => `
             <div class="item-row">
                 <div class="item-row-left">
-                    <span class="item-title">👤 ${p.name}</span>
+                    <span class="item-title">👤 ${p.name}${p.is_visible === false ? ' <span style="color:var(--warning); font-weight:normal;">(待查證)</span>' : ''}</span>
                     <span class="item-sub">${p.party || '未知政黨'}</span>
                 </div>
                 <div style="display:flex; align-items:center; gap:10px;">
+                    <label class="checkbox-label" style="font-size:0.8rem; white-space:nowrap;">
+                        <input type="checkbox" ${p.is_visible !== false ? 'checked' : ''} onchange="togglePoliticianVisible('${p.id}', this.checked)"> 可見
+                    </label>
                     <label class="checkbox-label" style="font-size:0.8rem; white-space:nowrap;">
                         <input type="checkbox" ${p.is_hard_to_type ? 'checked' : ''} onchange="toggleHardToType('${p.id}', this.checked)"> 難檢字
                     </label>
@@ -262,6 +265,19 @@ window.toggleHardToType = async function(id, checked) {
     }
     const p = cachePoliticians.find(pol => pol.id === id);
     if (p) p.is_hard_to_type = checked; // 直接更新本地快取，不用整包重新抓一次
+};
+
+window.togglePoliticianVisible = async function(id, checked) {
+    if (!supabase) return;
+    const { error } = await supabase.from('politicians').update({ is_visible: checked }).eq('id', id);
+    if (error) {
+        alert('更新可見度失敗：' + error.message);
+        await refreshAllAdminData();
+        return;
+    }
+    const p = cachePoliticians.find(pol => pol.id === id);
+    if (p) p.is_visible = checked;
+    renderSettingsLists();
 };
 
 window.addPolitician = async function() {
@@ -1350,6 +1366,88 @@ function renderMajorEventSourceRows() {
     `).join('');
 }
 
+// 常見中文姓氏，用來從全文內容裡「猜」出疑似人名的候選字串。
+// 這是關鍵字比對，不是真正的語意判斷，一定會有誤判（例如「陳述」剛好也是姓陳開頭），
+// 所以只列為「候選」供管理員勾選確認，不會自動加入。
+const COMMON_SURNAMES = ['陳', '林', '黃', '張', '李', '王', '吳', '劉', '蔡', '楊', '許', '鄭', '謝', '郭', '洪',
+    '曾', '邱', '廖', '賴', '徐', '周', '葉', '蘇', '莊', '呂', '江', '何', '蕭', '羅', '高', '潘', '簡', '朱',
+    '鍾', '游', '詹', '方', '彭', '胡', '施', '沈', '余', '趙', '盧', '梁', '顏', '柯', '孫', '魏', '范', '宋',
+    '董', '唐', '薛', '鄒', '熊', '馮', '馬', '段', '曹', '袁', '溫', '侯', '古', '程', '傅', '丁', '戴', '翁',
+    '駱', '嚴', '俞', '韓', '龔', '田', '杜', '姚', '石', '紀', '邵', '萬', '錢', '葛', '秦', '夏', '于', '雷',
+    '阮', '尤', '章', '單', '厚', '侶', '倪'];
+
+window.scanMajorEventContentForNames = function() {
+    const text = document.getElementById('major-event-content').value;
+    const box = document.getElementById('major-event-candidate-names');
+    if (!text.trim()) { box.innerHTML = '<div style="color:var(--text-muted); font-size:0.85rem;">請先貼上全文內容再掃描。</div>'; return; }
+
+    const surnamePattern = COMMON_SURNAMES.join('');
+    const regex = new RegExp(`[${surnamePattern}][\\u4e00-\\u9fa5]{1,2}`, 'g');
+    const rawMatches = text.match(regex) || [];
+
+    // 同時比對到「陳智菡」跟「陳智」時，只留比較長、比較精確的那個
+    const uniqueSorted = [...new Set(rawMatches)].sort((a, b) => b.length - a.length);
+    const kept = [];
+    for (const name of uniqueSorted) {
+        if (!kept.some(k => k.includes(name))) kept.push(name);
+    }
+
+    const existingNames = new Set(cachePoliticians.map(p => p.name));
+    const candidates = kept.filter(n => !existingNames.has(n)).sort((a, b) => a.localeCompare(b, 'zh-Hant'));
+
+    if (candidates.length === 0) {
+        box.innerHTML = '<div style="color:var(--text-muted); font-size:0.85rem;">沒有掃到資料庫裡還沒有的疑似人名，可能都已收錄，或這篇沒有明確人名。</div>';
+        return;
+    }
+
+    box.innerHTML = `
+        <div style="color:var(--text-muted); font-size:0.85rem; margin-bottom:6px;">找到 ${candidates.length} 個候選字串，請自行確認是不是真的人名，勾選要加入的：</div>
+        <div class="checkbox-group-box">
+            ${candidates.map(name => `
+                <label class="checkbox-label">
+                    <input type="checkbox" name="major-event-candidate-box" value="${name}"> ${name}
+                </label>
+            `).join('')}
+        </div>
+    `;
+};
+
+window.addNewPoliticiansForMajorEvent = async function() {
+    const checkedCandidates = Array.from(document.querySelectorAll('input[name="major-event-candidate-box"]:checked')).map(cb => cb.value);
+
+    const input = document.getElementById('major-event-new-politician-names');
+    const manualNames = input.value.trim().split(/[、,，]/).map(n => n.trim()).filter(Boolean);
+
+    const names = [...new Set([...checkedCandidates, ...manualNames])];
+    if (names.length === 0) { alert('請至少勾選一個候選人名，或手動輸入姓名！'); return; }
+
+    const existingNames = new Set(cachePoliticians.map(p => p.name));
+    const newNames = names.filter(n => !existingNames.has(n));
+    const skippedNames = names.filter(n => existingNames.has(n));
+
+    if (newNames.length === 0) {
+        alert('這些姓名都已經在人物清單中了，不需要重複加入。');
+        input.value = '';
+        return;
+    }
+
+    const { data, error } = await supabase.from('politicians')
+        .insert(newNames.map(name => ({ name, is_visible: false, is_verified: false })))
+        .select();
+
+    if (error) { alert('批次新增人物失敗：' + error.message); return; }
+
+    cachePoliticians.push(...data);
+    cachePoliticians.sort((a, b) => a.name.localeCompare(b.name, 'zh-Hant'));
+    renderSettingsLists();
+    input.value = '';
+    document.getElementById('major-event-candidate-names').innerHTML = '';
+
+    let msg = `已新增 ${data.length} 位人物（狀態為待查證），記得去上方「追蹤政治人物管理」勾選為可見。`;
+    if (skippedNames.length > 0) msg += `\n以下姓名已存在，已略過：${skippedNames.join('、')}`;
+    alert(msg);
+};
+
 window.addMajorEventSourceRow = function() {
     const mediaEl = document.getElementById('major-event-new-source-media');
     const urlEl = document.getElementById('major-event-new-source-url');
@@ -1454,8 +1552,8 @@ async function refreshMajorEventsList() {
     listEl.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:1rem;">載入中...</div>';
 
     const { data, error } = await supabase.from('major_events')
-        .select('id, title, is_visible, created_at')
-        .order('created_at', { ascending: false });
+        .select('id, title, is_visible, updated_at')
+        .order('updated_at', { ascending: false });
 
     if (error) {
         listEl.innerHTML = `<div style="text-align:center; color:var(--danger); padding:1rem;">載入失敗：${error.message}</div>`;
@@ -1466,7 +1564,7 @@ async function refreshMajorEventsList() {
         <div class="item-row">
             <div class="item-row-left">
                 <span class="item-title">${ev.title}</span>
-                <span class="item-sub">${new Date(ev.created_at).toLocaleDateString('zh-TW')}${ev.is_visible ? '' : '　<strong style="color:var(--text-muted);">（已隱藏）</strong>'}</span>
+                <span class="item-sub">最後更新：${new Date(ev.updated_at).toLocaleDateString('zh-TW')}${ev.is_visible ? '' : '　<strong style="color:var(--text-muted);">（已隱藏）</strong>'}</span>
             </div>
             <div style="display:flex; gap:6px;">
                 <button class="btn" style="padding:4px 10px; background:var(--warning);" onclick="editMajorEvent('${ev.id}')">✏️ 編輯</button>

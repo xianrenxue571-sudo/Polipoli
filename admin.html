@@ -177,6 +177,17 @@
                     </div>
 
                     <div class="form-group">
+                        <label for="major-event-new-politician-names">批次加入人物（文章裡提到但資料庫還沒有的人）</label>
+                        <p style="color:var(--text-muted); font-size:0.85rem; margin-top:-4px;">新增後狀態預設為「待查證」，需要去上方「追蹤政治人物管理」勾選為可見，前台才會顯示、也才抓得到自動連結。</p>
+                        <button class="btn" onclick="scanMajorEventContentForNames()">🔍 掃描全文找人名</button>
+                        <div id="major-event-candidate-names" style="margin-top:10px;"></div>
+                        <div style="display:flex; gap:8px; margin-top:10px;">
+                            <input type="text" id="major-event-new-politician-names" class="form-input" placeholder="掃描漏掉的話，手動補打姓名，用「、」分隔多個" style="flex:1;">
+                        </div>
+                        <button class="btn" style="margin-top:8px;" onclick="addNewPoliticiansForMajorEvent()">➕ 加入勾選＋手動輸入的人物</button>
+                    </div>
+
+                    <div class="form-group">
                         <label>原始新聞來源（可加多個）</label>
                         <div id="major-event-sources-list"></div>
                         <div style="display:flex; gap:8px; margin-top:8px;">

@@ -444,9 +444,9 @@ async function loadMajorEventsFeed() {
     container.innerHTML = '<div class="empty-note">案卷調閱中...</div>';
 
     const { data, error } = await supabase.from('major_events')
-        .select('id, title, summary, content, created_at, major_event_sources ( id, media_name, url )')
+        .select('id, title, summary, content, updated_at, major_event_sources ( id, media_name, url )')
         .eq('is_visible', true)
-        .order('created_at', { ascending: false });
+        .order('updated_at', { ascending: false });
 
     if (error) {
         container.innerHTML = '<div class="empty-note">載入失敗，請稍後再試。</div>';
@@ -487,6 +487,7 @@ function renderMajorEventCard(ev) {
             <button type="button" class="major-event-summary" data-toggle-major-event="${ev.id}">
                 <h3 class="major-event-title">${escapeHtmlClient(ev.title)}</h3>
                 ${ev.summary ? `<p class="major-event-excerpt">${escapeHtmlClient(ev.summary)}</p>` : ''}
+                <span class="major-event-meta">🔄 最後更新：${escapeHtmlClient((ev.updated_at || '').slice(0, 10))}</span>
                 <span class="major-event-expand-hint">點擊展開全文 ▾</span>
             </button>
             <div class="major-event-body">

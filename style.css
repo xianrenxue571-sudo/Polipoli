@@ -582,6 +582,13 @@ main { min-width: 0; }
   color: var(--ink-soft);
   margin: 0;
 }
+.major-event-meta {
+  display: block;
+  margin-top: 0.6rem;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--muted);
+}
 .major-event-expand-hint {
   display: inline-block;
   margin-top: 0.7rem;
