@@ -50,6 +50,7 @@ async function fetchAll() {
             id, title, content, created_at,
             editor_take_politician_map ( politician_id, politicians ( name ) ),
             editor_take_event_map ( event_id, events ( quote, date ) ),
+            editor_take_major_event_map ( major_event_id, major_events ( title ) ),
             editor_take_comments ( id, author_name, content, created_at, is_hidden )
         `).eq('is_visible', true).order('created_at', { ascending: false }),
         supabase.from('major_events').select(`
@@ -125,6 +126,9 @@ function renderEditorTakesFeedSSR(takes) {
         const eventTags = (t.editor_take_event_map || []).filter(m => m.events?.quote).map(m =>
             `<span class="info-tag issue-tag">「${escapeHtml(m.events.quote)}」${m.events.date ? `（${escapeHtml(m.events.date)}）` : ''}</span>`
         ).join('');
+        const majorEventTags = (t.editor_take_major_event_map || []).filter(m => m.major_events?.title).map(m =>
+            `<a href="/major-events/#event-${m.major_event_id}" data-nav="majorEventLink" data-id="${m.major_event_id}" class="info-tag issue-tag">🗞️ ${escapeHtml(m.major_events.title)}</a>`
+        ).join('');
         const visibleComments = (t.editor_take_comments || []).filter(c => !c.is_hidden)
             .sort((a, b) => (a.created_at || '').localeCompare(b.created_at || ''));
 
@@ -135,6 +139,7 @@ function renderEditorTakesFeedSSR(takes) {
                 <span class="meta-tag">📅 ${escapeHtml((t.created_at || '').slice(0, 10))}</span>
                 ${polTags}
                 ${eventTags}
+                ${majorEventTags}
             </div>
             <h3 class="event-quote">${escapeHtml(t.title)}</h3>
             <div class="event-context editor-take-content">${renderTakeContentHtmlSSR(t.content)}</div>
