@@ -55,7 +55,8 @@ async function fetchAll() {
         `).eq('is_visible', true).order('created_at', { ascending: false }),
         supabase.from('major_events').select(`
             id, title, summary, content, updated_at,
-            major_event_sources ( id, media_name, url )
+            major_event_sources ( id, media_name, url ),
+            editor_take_major_event_map ( editor_take_id, editor_takes ( title, is_visible ) )
         `).eq('is_visible', true).order('updated_at', { ascending: false })
     ]);
 
@@ -133,7 +134,7 @@ function renderEditorTakesFeedSSR(takes) {
             .sort((a, b) => (a.created_at || '').localeCompare(b.created_at || ''));
 
         return `
-        <article class="event-card editor-take-card">
+        <article class="event-card editor-take-card" id="editor-take-${t.id}">
             <div class="tag-row">
                 <span class="editor-take-badge">🗣️ 站長觀點</span>
                 <span class="meta-tag">📅 ${escapeHtml((t.created_at || '').slice(0, 10))}</span>
@@ -164,6 +165,13 @@ function renderMajorEventCardSSR(ev, politicians) {
             ${mentioned.map(p => navAnchorSSR('politician', p.id, p.name, escapeHtml(p.name), 'info-tag')).join('')}
         </div>` : '';
 
+    const relatedTakes = (ev.editor_take_major_event_map || []).filter(m => m.editor_takes?.is_visible && m.editor_takes?.title);
+    const relatedTakesHtml = relatedTakes.length > 0 ? `
+        <div class="major-event-mentions">
+            <span class="major-event-mentions-label">🗣️ 相關站長觀點：</span>
+            ${relatedTakes.map(m => `<a href="/editor-takes/#take-${m.editor_take_id}" data-nav="editorTakeLink" data-id="${m.editor_take_id}" class="info-tag">${escapeHtml(m.editor_takes.title)}</a>`).join('')}
+        </div>` : '';
+
     let sourceLinks = '';
     (ev.major_event_sources || []).forEach(src => {
         sourceLinks += `<a href="${escapeHtml(src.url)}" target="_blank" rel="noopener noreferrer" class="source-link">🔗 ${src.media_name ? `[${escapeHtml(src.media_name)}] ` : ''}查看原始來源</a>`;
@@ -181,6 +189,7 @@ function renderMajorEventCardSSR(ev, politicians) {
                 <div class="major-event-content">${renderTakeContentHtmlSSR(ev.content)}</div>
                 ${sourceLinks ? `<div class="major-event-sources">${sourceLinks}</div>` : ''}
                 ${mentionsHtml}
+                ${relatedTakesHtml}
             </div>
         </article>`;
 }
