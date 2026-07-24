@@ -185,6 +185,11 @@ document.addEventListener('click', (e) => {
             loadSpecificData(kind, navEl.dataset.id, navEl.dataset.name);
             return;
         }
+        if (kind === 'majorEventLink') {
+            pendingExpandMajorEventId = navEl.dataset.id;
+            switchMainTab('majorEvents');
+            return;
+        }
         return;
     }
 
@@ -548,6 +553,7 @@ async function loadEditorTakesFeed() {
             id, title, content, created_at,
             editor_take_politician_map ( politician_id, politicians ( name ) ),
             editor_take_event_map ( event_id, events ( quote, date ) ),
+            editor_take_major_event_map ( major_event_id, major_events ( title ) ),
             editor_take_comments ( id, author_name, content, created_at, is_hidden )
         `)
         .eq('is_visible', true)
@@ -571,6 +577,8 @@ async function loadEditorTakesFeed() {
             `<span class="info-tag">${escapeHtmlClient(m.politicians.name)}</span>`).join('');
         const eventTags = (t.editor_take_event_map || []).filter(m => m.events?.quote).map(m =>
             `<span class="info-tag issue-tag">「${escapeHtmlClient(m.events.quote)}」${m.events.date ? `（${escapeHtmlClient(m.events.date)}）` : ''}</span>`).join('');
+        const majorEventTags = (t.editor_take_major_event_map || []).filter(m => m.major_events?.title).map(m =>
+            `<a href="/major-events/#event-${m.major_event_id}" data-nav="majorEventLink" data-id="${m.major_event_id}" class="info-tag issue-tag">🗞️ ${escapeHtmlClient(m.major_events.title)}</a>`).join('');
         const visibleComments = (t.editor_take_comments || []).filter(c => !c.is_hidden)
             .sort((a, b) => (a.created_at || '').localeCompare(b.created_at || ''));
 
@@ -579,7 +587,7 @@ async function loadEditorTakesFeed() {
             <div class="tag-row">
                 <span class="editor-take-badge">🗣️ 站長觀點</span>
                 <span class="meta-tag">📅 ${escapeHtmlClient((t.created_at || '').slice(0, 10))}</span>
-                ${polTags}${eventTags}
+                ${polTags}${eventTags}${majorEventTags}
             </div>
             <h3 class="event-quote">${escapeHtmlClient(t.title)}</h3>
             <div class="event-context editor-take-content">${renderTakeContentHtml(t.content)}</div>

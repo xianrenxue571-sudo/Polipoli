@@ -133,6 +133,7 @@ window.importPastedJSON = async function() {
         let successCount = 0;
         let polMappingFailures = 0;
         let autoAddedPols = 0;
+        const suggestedAnalyses = []; // 收集「建議解讀草稿」，不自動存檔，匯入完後列出來讓管理員自己看
 
         for (const item of eventsArray) {
             let issueId = null;
@@ -204,12 +205,36 @@ window.importPastedJSON = async function() {
                         polMappingFailures++;
                     }
                 }
+
+                if (item.suggested_analysis && item.suggested_analysis.trim()) {
+                    suggestedAnalyses.push({ eventId: newEvent.id, quote: item.quote || '未命名爭議事件', draft: item.suggested_analysis.trim() });
+                }
+
                 successCount++;
             }
         }
 
-        alert(`批次操作完成\n成功匯入：${successCount} 筆\n自動補齊人物：${autoAddedPols} 位\n配對失敗：${polMappingFailures} 筆`);
+        alert(`批次操作完成\n成功匯入：${successCount} 筆\n自動補齊人物：${autoAddedPols} 位\n配對失敗：${polMappingFailures} 筆${suggestedAnalyses.length > 0 ? `\n\n另外有 ${suggestedAnalyses.length} 筆帶了「建議解讀草稿」，下方會列出來，請自行審閱後再決定要不要採用（不會自動上架）。` : ''}`);
         textarea.value = '';
+
+        const suggestBox = document.getElementById('import-suggested-analyses');
+        if (suggestBox) {
+            suggestBox.innerHTML = suggestedAnalyses.length > 0 ? `
+                <div class="admin-card" style="border-left-color: var(--warning);">
+                    <h3>📝 這次匯入附帶的「建議解讀草稿」（尚未存檔，僅供參考）</h3>
+                    <p style="color:var(--text-muted); font-size:0.85rem; margin-top:-0.5rem;">這些是 AI 覺得可能值得解讀的事件草稿，還沒寫進事件解讀資料庫。看過覺得可以用的話，請自行複製到上面「事件解讀」表單，選對應事件貼上後儲存。</p>
+                    ${suggestedAnalyses.map(s => `
+                        <div class="item-row" style="align-items:flex-start;">
+                            <div class="item-row-left">
+                                <span class="item-title">「${s.quote}」</span>
+                                <span class="item-sub" style="white-space:pre-wrap;">${s.draft}</span>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            ` : '';
+        }
+
         await refreshAllAdminData();
 
     } catch (err) {
@@ -977,6 +1002,8 @@ window.resolveDup = async function(action) {
 
 // ===== 站長觀點管理 =====
 let takeChosenEvents = [];
+let takeChosenMajorEvents = [];
+let cacheMajorEventsForTake = [];
 let editingTakeId = null; // null = 新增模式；有值 = 正在編輯這篇既有的站長觀點
 
 async function initEditorTakesTab() {
@@ -984,7 +1011,9 @@ async function initEditorTakesTab() {
     document.getElementById('take-content').value = '';
     document.getElementById('take-new-politician-name').value = '';
     document.getElementById('take-event-search').value = '';
+    document.getElementById('take-major-event-search').value = '';
     takeChosenEvents = [];
+    takeChosenMajorEvents = [];
     editingTakeId = null;
     resetEditorTakeFormUI();
 
@@ -996,6 +1025,13 @@ async function initEditorTakesTab() {
     }
     renderTakeEventOptions(cacheEventsForAnalysis);
     renderTakeEventChips();
+
+    if (cacheMajorEventsForTake.length === 0) {
+        const { data } = await supabase.from('major_events').select('id, title').order('updated_at', { ascending: false });
+        cacheMajorEventsForTake = data || [];
+    }
+    renderTakeMajorEventOptions(cacheMajorEventsForTake);
+    renderTakeMajorEventChips();
 
     await refreshEditorTakesList();
 }
@@ -1080,6 +1116,43 @@ function renderTakeEventChips() {
     `).join('') : '<span style="color:var(--text-muted); font-size:0.85rem;">尚未關聯任何既有事件</span>';
 }
 
+function renderTakeMajorEventOptions(list) {
+    const sel = document.getElementById('take-major-event-select');
+    sel.innerHTML = '<option value="">請選擇重大事件</option>' +
+        list.map(e => `<option value="${e.id}">🗞️ ${(e.title || '未命名重大事件').slice(0, 30)}</option>`).join('');
+}
+
+window.filterTakeMajorEventSelect = function() {
+    const term = document.getElementById('take-major-event-search').value.trim().toLowerCase();
+    const filtered = term ? cacheMajorEventsForTake.filter(e => (e.title || '').toLowerCase().includes(term)) : cacheMajorEventsForTake;
+    renderTakeMajorEventOptions(filtered);
+};
+
+window.addMajorEventChipForTake = function() {
+    const sel = document.getElementById('take-major-event-select');
+    const evId = sel.value;
+    if (!evId) { alert('請先選擇重大事件！'); return; }
+    if (takeChosenMajorEvents.some(e => e.id === evId)) { alert('這篇重大事件已經加入清單了。'); return; }
+    const ev = cacheMajorEventsForTake.find(e => e.id === evId);
+    if (ev) takeChosenMajorEvents.push(ev);
+    renderTakeMajorEventChips();
+};
+
+window.removeTakeMajorEventChip = function(evId) {
+    takeChosenMajorEvents = takeChosenMajorEvents.filter(e => e.id !== evId);
+    renderTakeMajorEventChips();
+};
+
+function renderTakeMajorEventChips() {
+    const box = document.getElementById('take-major-events-chosen');
+    box.innerHTML = takeChosenMajorEvents.length > 0 ? takeChosenMajorEvents.map(e => `
+        <span class="checkbox-label" style="background:#ede9fe; padding:4px 8px; border-radius:12px;">
+            🗞️ ${(e.title || '').slice(0, 20)}
+            <button type="button" style="border:none;background:none;color:#dc2626;cursor:pointer;font-weight:bold;" onclick="removeTakeMajorEventChip('${e.id}')">✕</button>
+        </span>
+    `).join('') : '<span style="color:var(--text-muted); font-size:0.85rem;">尚未關聯任何重大事件</span>';
+}
+
 window.saveEditorTake = async function() {
     const title = document.getElementById('take-title').value.trim();
     const content = document.getElementById('take-content').value.trim();
@@ -1101,6 +1174,8 @@ window.saveEditorTake = async function() {
         if (delPolErr) console.error('清除舊人物關聯失敗:', delPolErr);
         const { error: delEvErr } = await supabase.from('editor_take_event_map').delete().eq('editor_take_id', takeId);
         if (delEvErr) console.error('清除舊事件關聯失敗:', delEvErr);
+        const { error: delMajorEvErr } = await supabase.from('editor_take_major_event_map').delete().eq('editor_take_id', takeId);
+        if (delMajorEvErr) console.error('清除舊重大事件關聯失敗:', delMajorEvErr);
 
         if (checkedPolIds.length > 0) {
             const { error: polMapError } = await supabase.from('editor_take_politician_map')
@@ -1111,6 +1186,11 @@ window.saveEditorTake = async function() {
             const { error: evMapError } = await supabase.from('editor_take_event_map')
                 .insert(takeChosenEvents.map(e => ({ editor_take_id: takeId, event_id: e.id })));
             if (evMapError) console.error('關聯事件失敗:', evMapError);
+        }
+        if (takeChosenMajorEvents.length > 0) {
+            const { error: majorEvMapError } = await supabase.from('editor_take_major_event_map')
+                .insert(takeChosenMajorEvents.map(e => ({ editor_take_id: takeId, major_event_id: e.id })));
+            if (majorEvMapError) console.error('關聯重大事件失敗:', majorEvMapError);
         }
 
         alert('站長觀點已更新！');
@@ -1139,6 +1219,12 @@ window.saveEditorTake = async function() {
         if (evMapError) console.error('關聯事件失敗:', evMapError);
     }
 
+    if (takeChosenMajorEvents.length > 0) {
+        const { error: majorEvMapError } = await supabase.from('editor_take_major_event_map')
+            .insert(takeChosenMajorEvents.map(e => ({ editor_take_id: takeId, major_event_id: e.id })));
+        if (majorEvMapError) console.error('關聯重大事件失敗:', majorEvMapError);
+    }
+
     alert('站長觀點已發布！');
     await initEditorTakesTab();
 };
@@ -1148,7 +1234,8 @@ window.editEditorTake = async function(id) {
         .select(`
             id, title, content,
             editor_take_politician_map ( politician_id ),
-            editor_take_event_map ( event_id, events ( quote, date ) )
+            editor_take_event_map ( event_id, events ( quote, date ) ),
+            editor_take_major_event_map ( major_event_id, major_events ( title ) )
         `)
         .eq('id', id)
         .single();
@@ -1170,6 +1257,11 @@ window.editEditorTake = async function(id) {
         .map(m => ({ id: m.event_id, quote: m.events?.quote || '', date: m.events?.date || '' }));
     renderTakeEventChips();
 
+    takeChosenMajorEvents = (data.editor_take_major_event_map || [])
+        .filter(m => m.major_event_id)
+        .map(m => ({ id: m.major_event_id, title: m.major_events?.title || '' }));
+    renderTakeMajorEventChips();
+
     document.getElementById('editor-take-form-heading').textContent = `✏️ 編輯站長觀點：${data.title || ''}`;
     document.getElementById('btn-save-editor-take').textContent = '💾 更新此觀點';
     document.getElementById('btn-cancel-edit-take').style.display = 'inline-flex';
@@ -1182,8 +1274,10 @@ window.cancelEditEditorTake = function() {
     document.getElementById('take-title').value = '';
     document.getElementById('take-content').value = '';
     takeChosenEvents = [];
+    takeChosenMajorEvents = [];
     renderTakePoliticianCheckboxes();
     renderTakeEventChips();
+    renderTakeMajorEventChips();
     resetEditorTakeFormUI();
 };
 

@@ -42,6 +42,7 @@
                         <textarea id="json-paste-area" class="form-input"></textarea>
                     </div>
                     <button class="btn btn-success" id="btn-execute-import" onclick="importPastedJSON()">🚀 執行強效大數據匯入</button>
+                    <div id="import-suggested-analyses" style="margin-top:1rem;"></div>
                 </div>
                 <div class="grid-2">
                     <div class="admin-card">
@@ -113,6 +114,16 @@
                             <button class="btn" style="white-space:nowrap;" onclick="addEventChipForTake()">➕ 加入</button>
                         </div>
                         <div class="checkbox-group-box" id="take-events-chosen" style="margin-top:8px;"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="take-major-event-search">關聯重大事件（可選，可複選）</label>
+                        <input type="text" id="take-major-event-search" class="form-input" placeholder="輸入重大事件標題關鍵字搜尋..." oninput="filterTakeMajorEventSelect()">
+                        <div style="display:flex; gap:8px; margin-top:8px;">
+                            <select id="take-major-event-select" class="form-input"></select>
+                            <button class="btn" style="white-space:nowrap;" onclick="addMajorEventChipForTake()">➕ 加入</button>
+                        </div>
+                        <div class="checkbox-group-box" id="take-major-events-chosen" style="margin-top:8px;"></div>
                     </div>
 
                     <div style="display:flex; gap:10px; flex-wrap:wrap;">
