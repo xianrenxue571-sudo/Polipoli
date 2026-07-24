@@ -749,7 +749,7 @@ async function refreshAnalysisLists() {
     const evListEl = document.getElementById('list-event-analysis');
     if (evListEl) {
         evListEl.innerHTML = (evAnalyses && evAnalyses.length > 0) ? evAnalyses.map(a => `
-            <div class="item-row">
+            <div class="item-row" style="cursor:pointer;" onclick="loadEventAnalysisFromList('${a.event_id}')">
                 <div class="item-row-left">
                     <span class="item-title">「${a.events?.quote || '未知事件'}」</span>
                     <span class="item-sub">${(a.content || '').slice(0, 40)}...</span>
@@ -758,6 +758,21 @@ async function refreshAnalysisLists() {
         `).join('') : '<div style="text-align:center; color:var(--text-muted); padding:1rem;">尚無事件解讀</div>';
     }
 }
+
+window.loadEventAnalysisFromList = async function(eventId) {
+    const sel = document.getElementById('analysis-event-select');
+
+    // 如果這筆事件目前不在下拉選單的選項裡（例如剛好被關鍵字篩選掉了），
+    // 先清空篩選、重新列出完整清單，確保選得到。
+    if (!sel.querySelector(`option[value="${eventId}"]`)) {
+        document.getElementById('analysis-event-search').value = '';
+        renderEventAnalysisOptions(cacheEventsForAnalysis);
+    }
+
+    sel.value = eventId;
+    await loadEventAnalysisIntoForm();
+    sel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+};
 
 // ===== 檢查重複功能 =====
 let dupPendingEvents = [];
