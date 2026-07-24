@@ -36,6 +36,33 @@
             </nav>
             <div class="tab-content active" id="tab-content-settings">
                 <div class="admin-card">
+                    <h3>📝 研究追蹤筆記</h3>
+                    <p style="color:var(--text-muted); font-size:0.9rem; margin-top:-0.5rem;">跟事件資料表完全分開，全站共用一份筆記本，純粹是查證過程的追蹤紀錄，不會出現在前台網站上。</p>
+
+                    <div class="form-group" style="background:var(--bg); border:1px dashed var(--border); border-radius:3px; padding:14px;">
+                        <label for="research-note-upload-name">上傳人物查證存檔（自動解析待查/暫緩/排除三段，附加到下方對應欄位）</label>
+                        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:6px;">
+                            <input type="text" id="research-note-upload-name" class="form-input" placeholder="這份存檔是哪位人物？（用來標註來源）" style="flex:1; min-width:160px;">
+                            <input type="file" id="research-note-file-input" accept=".md,.txt" style="flex:1; min-width:160px;">
+                            <button class="btn" onclick="handleResearchNoteFileUpload()">📥 解析並附加</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="research-note-pending">🔍 待查清單</label>
+                        <textarea id="research-note-pending" class="form-input" style="min-height:140px; font-family:monospace;"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="research-note-deferred">⏳ 暫緩清單</label>
+                        <textarea id="research-note-deferred" class="form-input" style="min-height:140px; font-family:monospace;"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="research-note-excluded">🚫 排除事件清單</label>
+                        <textarea id="research-note-excluded" class="form-input" style="min-height:140px; font-family:monospace;"></textarea>
+                    </div>
+                    <button class="btn btn-success" onclick="saveResearchNotes()">💾 儲存三個欄位</button>
+                </div>
+                <div class="admin-card">
                     <h3>📦 爭議事件匯入</h3>
                     <div class="form-group">
                         <label for="json-paste-area">請將 Gemini 產出的 JSON 陣列代碼複製並貼上：</label>
@@ -137,6 +164,7 @@
                 <div class="filter-bar">
                     <button class="filter-btn active" id="filter-btn-pending" onclick="setEventFilter('pending')">🔴 待審核</button>
                     <button class="filter-btn" id="filter-btn-staged" onclick="setEventFilter('staged')">🟡 暫存區</button>
+                    <button class="filter-btn" id="filter-btn-delisted" onclick="setEventFilter('delisted')">🟠 下架區</button>
                     <button class="filter-btn" id="filter-btn-approved" onclick="setEventFilter('approved')">🟢 已核准</button>
                 </div>
 

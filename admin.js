@@ -48,6 +48,7 @@ window.attemptUnlock = async function() {
         // 因為初次解鎖不會走 switchAdminTab 那條路徑。
         await initAnalysisTab();
         await initEditorTakesTab();
+        await initResearchNotesTab();
     } catch (err) {
         console.error('Auth Error:', err);
         alert('連線失敗！請確認 Supabase 網址正確且貼上的是最高權限私鑰 (Service Role)。\n' + err.message);
@@ -95,6 +96,7 @@ window.switchAdminTab = function(tabName) {
     if (tabName === 'settings') {
         initAnalysisTab();
         initEditorTakesTab();
+        initResearchNotesTab();
     }
     if (tabName === 'review') {
         fetchAndRenderReviewFeed();
@@ -362,7 +364,9 @@ async function fetchAndRenderReviewFeed() {
     if (currentEventFilter === 'pending') {
         query = query.eq('is_visible', false).eq('is_reviewed', false);
     } else if (currentEventFilter === 'staged') {
-        query = query.eq('is_visible', false).eq('is_reviewed', true);
+        query = query.eq('is_visible', false).eq('is_reviewed', true).eq('is_delisted', false);
+    } else if (currentEventFilter === 'delisted') {
+        query = query.eq('is_visible', false).eq('is_reviewed', true).eq('is_delisted', true);
     } else if (currentEventFilter === 'approved') {
         query = query.eq('is_visible', true);
     }
@@ -437,13 +441,16 @@ function renderFilteredReviewList() {
         
         let actionButtons = '';
         if (currentEventFilter === 'pending') {
-            actionButtons += `<button class="btn btn-secondary" onclick="updateEventState('${e.id}', true, false)">🟡 <span class="hide-on-mobile">移至</span>暫存</button>`;
-            actionButtons += `<button class="btn btn-success" onclick="updateEventState('${e.id}', true, true)">🟢 <span class="hide-on-mobile">直接</span>上架</button>`;
+            actionButtons += `<button class="btn btn-secondary" onclick="updateEventState('${e.id}', true, false, false)">🟡 <span class="hide-on-mobile">移至</span>暫存</button>`;
+            actionButtons += `<button class="btn btn-success" onclick="updateEventState('${e.id}', true, true, false)">🟢 <span class="hide-on-mobile">直接</span>上架</button>`;
         } else if (currentEventFilter === 'staged') {
-            actionButtons += `<button class="btn btn-secondary" onclick="updateEventState('${e.id}', false, false)">🔴 <span class="hide-on-mobile">退回</span>待審</button>`;
-            actionButtons += `<button class="btn btn-success" onclick="updateEventState('${e.id}', true, true)">🟢 <span class="hide-on-mobile">正式</span>上架</button>`;
+            actionButtons += `<button class="btn btn-secondary" onclick="updateEventState('${e.id}', false, false, false)">🔴 <span class="hide-on-mobile">退回</span>待審</button>`;
+            actionButtons += `<button class="btn btn-success" onclick="updateEventState('${e.id}', true, true, false)">🟢 <span class="hide-on-mobile">正式</span>上架</button>`;
+        } else if (currentEventFilter === 'delisted') {
+            actionButtons += `<button class="btn btn-secondary" onclick="updateEventState('${e.id}', true, false, false)">🟡 <span class="hide-on-mobile">移至</span>暫存</button>`;
+            actionButtons += `<button class="btn btn-success" onclick="updateEventState('${e.id}', true, true, false)">🟢 <span class="hide-on-mobile">重新</span>上架</button>`;
         } else if (currentEventFilter === 'approved') {
-            actionButtons += `<button class="btn btn-secondary" onclick="updateEventState('${e.id}', true, false)">🟡 <span class="hide-on-mobile">下架轉</span>暫存</button>`;
+            actionButtons += `<button class="btn btn-secondary" onclick="updateEventState('${e.id}', true, false, true)">🟠 <span class="hide-on-mobile">下架</span></button>`;
         }
 
         return `
@@ -469,15 +476,15 @@ function renderFilteredReviewList() {
     }).join('');
 }
 
-window.updateEventState = async function(id, isReviewed, isVisible) {
+window.updateEventState = async function(id, isReviewed, isVisible, isDelisted = false) {
     if (!supabase) return;
-    const { error } = await supabase.from('events').update({ is_reviewed: isReviewed, is_visible: isVisible }).eq('id', id);
+    const { error } = await supabase.from('events').update({ is_reviewed: isReviewed, is_visible: isVisible, is_delisted: isDelisted }).eq('id', id);
     if (error) alert('狀態切換失敗: ' + error.message);
     await fetchAndRenderReviewFeed();
 };
 
 window.publishAllPending = async function() {
-    if (currentEventFilter === 'approved') {
+    if (currentEventFilter === 'approved' || currentEventFilter === 'delisted') {
         alert('請先切換到待審核或暫存區再執行操作。');
         return;
     }
@@ -518,7 +525,7 @@ window.publishAllPending = async function() {
 };
 
 window.deleteAllPending = async function() {
-    if (currentEventFilter === 'approved') {
+    if (currentEventFilter === 'approved' || currentEventFilter === 'delisted') {
         alert('請先切換到待審核或暫存區再執行操作。');
         return;
     }
@@ -1761,4 +1768,101 @@ window.deleteMajorEvent = async function(id) {
     if (error) { alert('刪除失敗：' + error.message); return; }
     if (editingMajorEventId === id) cancelEditMajorEvent();
     await refreshMajorEventsList();
+};
+
+/* ============================================================
+   研究追蹤筆記：跟events事件資料表完全分開，全站共用一份筆記本
+   （不分人物），拆成待查/暫緩/排除三個獨立欄位。純後台用途。
+   ============================================================ */
+async function initResearchNotesTab() {
+    const { data, error } = await supabase.from('research_notes').select('*').eq('id', 'global').maybeSingle();
+    if (error) { console.error('讀取研究筆記失敗:', error); return; }
+    document.getElementById('research-note-pending').value = data?.pending_content || '';
+    document.getElementById('research-note-deferred').value = data?.deferred_content || '';
+    document.getElementById('research-note-excluded').value = data?.excluded_content || '';
+}
+
+window.saveResearchNotes = async function() {
+    const pending = document.getElementById('research-note-pending').value;
+    const deferred = document.getElementById('research-note-deferred').value;
+    const excluded = document.getElementById('research-note-excluded').value;
+
+    const { error } = await supabase.from('research_notes').upsert({
+        id: 'global',
+        pending_content: pending,
+        deferred_content: deferred,
+        excluded_content: excluded
+    }, { onConflict: 'id' });
+
+    if (error) { alert('儲存失敗：' + error.message); return; }
+    alert('研究追蹤筆記已儲存！');
+};
+
+// 從上傳的查證存檔文字裡，抓出「待查清單」「暫緩清單」「排除事件清單」三段內容。
+// 這是比對固定的標題格式（## 二、待查清單...這種），不是真正的語意理解，
+// 如果存檔格式差異很大，可能抓不到，抓不到的話該欄位就不會有東西被附加。
+function parseResearchNoteSections(text) {
+    function extractSection(startPattern) {
+        const startMatch = text.match(startPattern);
+        if (!startMatch) return '';
+        const startIdx = startMatch.index + startMatch[0].length;
+        const rest = text.slice(startIdx);
+        const nextHeadingMatch = rest.match(/\n##\s/);
+        const sectionText = nextHeadingMatch ? rest.slice(0, nextHeadingMatch.index) : rest;
+        return sectionText.trim();
+    }
+
+    return {
+        pending: extractSection(/##\s*[一二三四五六七八九十]*[、.]?\s*待查清單[^\n]*/),
+        deferred: extractSection(/##\s*[一二三四五六七八九十]*[、.]?\s*暫緩清單[^\n]*/),
+        excluded: extractSection(/##\s*[一二三四五六七八九十]*[、.]?\s*排除事件清單[^\n]*/)
+    };
+}
+
+window.handleResearchNoteFileUpload = function() {
+    const nameInput = document.getElementById('research-note-upload-name');
+    const fileInput = document.getElementById('research-note-file-input');
+    const name = nameInput.value.trim();
+
+    if (!name) { alert('請先填寫這份存檔是哪位人物！'); return; }
+    if (!fileInput.files || fileInput.files.length === 0) { alert('請先選擇要上傳的檔案！'); return; }
+
+    const file = fileInput.files[0];
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const text = e.target.result;
+        const sections = parseResearchNoteSections(text);
+        const today = new Date().toISOString().slice(0, 10);
+        const stamp = `\n\n--- ${name}（${today} 上傳附加）---\n`;
+
+        let appendedCount = 0;
+        if (sections.pending) {
+            const el = document.getElementById('research-note-pending');
+            el.value = (el.value ? el.value + stamp : stamp.trim() + '\n') + sections.pending;
+            appendedCount++;
+        }
+        if (sections.deferred) {
+            const el = document.getElementById('research-note-deferred');
+            el.value = (el.value ? el.value + stamp : stamp.trim() + '\n') + sections.deferred;
+            appendedCount++;
+        }
+        if (sections.excluded) {
+            const el = document.getElementById('research-note-excluded');
+            el.value = (el.value ? el.value + stamp : stamp.trim() + '\n') + sections.excluded;
+            appendedCount++;
+        }
+
+        if (appendedCount === 0) {
+            alert('沒有解析到「待查清單／暫緩清單／排除事件清單」這幾個段落，請確認檔案格式，或自行手動貼上內容。');
+        } else {
+            alert(`已附加 ${appendedCount} 個欄位的內容，請檢查下方文字框，確認無誤後記得按「儲存三個欄位」。`);
+        }
+
+        nameInput.value = '';
+        fileInput.value = '';
+    };
+    reader.onerror = function() {
+        alert('讀取檔案失敗，請確認檔案格式（.md 或 .txt）。');
+    };
+    reader.readAsText(file, 'UTF-8');
 };
