@@ -190,6 +190,11 @@ document.addEventListener('click', (e) => {
             switchMainTab('majorEvents');
             return;
         }
+        if (kind === 'editorTakeLink') {
+            pendingScrollToTakeId = navEl.dataset.id;
+            switchMainTab('editorTakes');
+            return;
+        }
         return;
     }
 
@@ -240,6 +245,9 @@ window.onload = async () => {
         currentTab = 'editorTakes';
         document.querySelectorAll('.main-tab-btn').forEach(btn => btn.classList.remove('active'));
         document.getElementById('tab-editorTakes').classList.add('active');
+        if (window.location.hash.startsWith('#take-')) {
+            pendingScrollToTakeId = window.location.hash.slice('#take-'.length);
+        }
         showEditorTakesView();
         return;
     }
@@ -285,6 +293,7 @@ window.onload = async () => {
    這裡統一用目前網址反推出該顯示哪個畫面，讓上一頁/下一頁真正可用。
    ============================================================ */
 let pendingExpandMajorEventId = null;
+let pendingScrollToTakeId = null;
 
 function syncViewToUrl() {
     const path = window.location.pathname;
@@ -307,6 +316,7 @@ function syncViewToUrl() {
         document.getElementById('tab-editorTakes').classList.add('active');
         restoreDefaultLayout();
         hideMajorEventsView();
+        if (hash.startsWith('#take-')) pendingScrollToTakeId = hash.slice('#take-'.length);
         showEditorTakesView();
         return;
     }
@@ -426,8 +436,9 @@ window.switchMainTab = function (tabName, preventReload = false) {
     if (tabName === 'editorTakes') {
         hideMajorEventsView();
         showEditorTakesView();
-        if (window.location.pathname !== '/editor-takes/') {
-            const newUrl = window.location.protocol + '//' + window.location.host + '/editor-takes/';
+        const targetUrl = '/editor-takes/' + (pendingScrollToTakeId ? `#take-${pendingScrollToTakeId}` : '');
+        if (window.location.pathname + window.location.hash !== targetUrl) {
+            const newUrl = window.location.protocol + '//' + window.location.host + targetUrl;
             window.history.pushState({ path: newUrl }, '', newUrl);
             document.title = '站長觀點 | Polipoli 啪哩啪哩';
         }
@@ -583,7 +594,7 @@ async function loadEditorTakesFeed() {
             .sort((a, b) => (a.created_at || '').localeCompare(b.created_at || ''));
 
         return `
-        <article class="event-card editor-take-card">
+        <article class="event-card editor-take-card" id="editor-take-${t.id}">
             <div class="tag-row">
                 <span class="editor-take-badge">🗣️ 站長觀點</span>
                 <span class="meta-tag">📅 ${escapeHtmlClient((t.created_at || '').slice(0, 10))}</span>
@@ -596,6 +607,16 @@ async function loadEditorTakesFeed() {
     }).join('');
 
     container.innerHTML = html;
+
+    if (pendingScrollToTakeId) {
+        const targetEl = document.getElementById(`editor-take-${pendingScrollToTakeId}`);
+        if (targetEl) {
+            targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            targetEl.classList.add('highlight-flash');
+            setTimeout(() => targetEl.classList.remove('highlight-flash'), 2000);
+        }
+        pendingScrollToTakeId = null;
+    }
 }
 
 window.submitTakeComment = async function (takeId) {
@@ -648,7 +669,11 @@ async function loadMajorEventsFeed() {
     container.innerHTML = '<div class="empty-note">案卷調閱中...</div>';
 
     const { data, error } = await supabase.from('major_events')
-        .select('id, title, summary, content, updated_at, major_event_sources ( id, media_name, url )')
+        .select(`
+            id, title, summary, content, updated_at,
+            major_event_sources ( id, media_name, url ),
+            editor_take_major_event_map ( editor_take_id, editor_takes ( title, is_visible ) )
+        `)
         .eq('is_visible', true)
         .order('updated_at', { ascending: false });
 
@@ -691,6 +716,13 @@ function renderMajorEventCard(ev) {
             ${mentioned.map(p => navAnchor({ type: 'politician', id: p.id, name: p.name, active: false, label: escapeHtmlClient(p.name), extraClass: 'info-tag' })).join('')}
         </div>` : '';
 
+    const relatedTakes = (ev.editor_take_major_event_map || []).filter(m => m.editor_takes?.is_visible && m.editor_takes?.title);
+    const relatedTakesHtml = relatedTakes.length > 0 ? `
+        <div class="major-event-mentions">
+            <span class="major-event-mentions-label">🗣️ 相關站長觀點：</span>
+            ${relatedTakes.map(m => `<a href="/editor-takes/#take-${m.editor_take_id}" data-nav="editorTakeLink" data-id="${m.editor_take_id}" class="info-tag">${escapeHtmlClient(m.editor_takes.title)}</a>`).join('')}
+        </div>` : '';
+
     let sourceLinks = '';
     (ev.major_event_sources || []).forEach(src => {
         sourceLinks += `<a href="${escapeHtmlClient(src.url)}" target="_blank" rel="noopener noreferrer" class="source-link">🔗 ${src.media_name ? `[${escapeHtmlClient(src.media_name)}] ` : ''}查看原始來源</a>`;
@@ -708,6 +740,7 @@ function renderMajorEventCard(ev) {
                 <div class="major-event-content">${renderTakeContentHtml(ev.content)}</div>
                 ${sourceLinks ? `<div class="major-event-sources">${sourceLinks}</div>` : ''}
                 ${mentionsHtml}
+                ${relatedTakesHtml}
             </div>
         </article>`;
 }

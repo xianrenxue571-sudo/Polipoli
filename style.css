@@ -597,6 +597,13 @@ main { min-width: 0; }
   color: var(--stamp);
 }
 .major-event-card.expanded .major-event-expand-hint::after { content: ' (點擊收合)'; }
+
+/* 從別的地方點連結跳轉過來時，短暫高亮提示「就是這一張」 */
+.highlight-flash { animation: highlight-flash-anim 2s ease; }
+@keyframes highlight-flash-anim {
+  0% { box-shadow: 0 0 0 3px var(--stamp); }
+  100% { box-shadow: var(--shadow-card); }
+}
 .major-event-body { display: none; padding: 0 1.2rem 1.2rem; border-top: 1px dashed var(--line-strong); }
 .major-event-card.expanded .major-event-body { display: block; padding-top: 1rem; }
 .major-event-content { font-size: 1.05rem; line-height: 1.8; color: var(--ink); }
